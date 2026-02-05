@@ -3,12 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
     ShoppingCart,
-    BarChart3,
-    TrendingUp,
-    Users,
-    Package,
-    Zap,
-    Truck,
     Bot,
     Calendar,
     UserCircle,

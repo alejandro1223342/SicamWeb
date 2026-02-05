@@ -34,7 +34,7 @@ export default function MonthlyTarget() {
                                 paddingAngle={0}
                                 dataKey="value"
                             >
-                                {data.map((entry, index) => (
+                                {data.map((_, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index]} />
                                 ))}
                             </Pie>

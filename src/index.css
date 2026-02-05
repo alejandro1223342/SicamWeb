@@ -860,6 +860,16 @@ body {
   text-decoration: underline;
 }
 
+.error-banner {
+  padding: 12px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  color: var(--danger);
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .submit-btn {
   padding: 14px 24px;
   background: var(--primary);
