@@ -8,9 +8,10 @@ import {
     Search,
     Loader2,
     Plus,
-    Clock
+    X,
+    Save
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface Doctor {
     id: string;
@@ -44,8 +45,23 @@ interface MedicalOffice {
 
 export default function MedicalOffices() {
     const [offices, setOffices] = useState<MedicalOffice[]>([]);
+    const [doctors, setDoctors] = useState<Doctor[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Modals state
+    const [showOfficeModal, setShowOfficeModal] = useState(false);
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [selectedOffice, setSelectedOffice] = useState<MedicalOffice | null>(null);
+
+    // Form state
+    const [officeForm, setOfficeForm] = useState({
+        name: '',
+        address: '',
+        phone: '',
+        maxDoctors: 2
+    });
+    const [assignDoctorId, setAssignDoctorId] = useState('');
 
     const fetchOffices = async () => {
         try {
@@ -59,19 +75,75 @@ export default function MedicalOffices() {
         }
     };
 
+    const fetchDoctors = async () => {
+        try {
+            const response = await axios.get('http://localhost:3000/users?role=MEDICO');
+            setDoctors(response.data);
+        } catch (error) {
+            console.error('Error fetching doctors:', error);
+        }
+    };
+
     useEffect(() => {
         fetchOffices();
+        fetchDoctors();
     }, []);
+
+    const handleCreateOffice = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await axios.post('http://localhost:3000/medical-offices', officeForm);
+            toast.success('Consultorio creado exitosamente');
+            setShowOfficeModal(false);
+            setOfficeForm({ name: '', address: '', phone: '', maxDoctors: 2 });
+            fetchOffices();
+        } catch (error) {
+            toast.error('Error al crear el consultorio');
+        }
+    };
+
+    const handleAssignDoctor = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedOffice || !assignDoctorId) return;
+
+        try {
+            await axios.post(`http://localhost:3000/medical-offices/${selectedOffice.id}/assign/${assignDoctorId}`);
+            toast.success('Médico asignado exitosamente');
+            setShowAssignModal(false);
+            setAssignDoctorId('');
+            fetchOffices();
+        } catch (error) {
+            toast.error('Error al asignar el médico');
+        }
+    };
+
+    const handleUnassignDoctor = async (officeId: string, doctorId: string) => {
+        if (!confirm('¿Está seguro de querer desvincular a este médico de este consultorio?')) return;
+        try {
+            await axios.delete(`http://localhost:3000/medical-offices/${officeId}/unassign/${doctorId}`);
+            toast.success('Médico desvinculado exitosamente');
+            fetchOffices();
+        } catch (error) {
+            toast.error('Error al desvincular al médico');
+        }
+    };
 
     const filteredOffices = offices.filter(office =>
         office.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         office.address.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Group schedules by doctor to show which doctors use the office
-    const getDoctorsInOffice = (office: MedicalOffice) => {
+    // Get linked doctors from the new relationship
+    // Note: Assuming the API now returns doctors linked via MedicalOfficeDoctor
+    const getAssignedDoctors = (office: any) => {
+        // Fallback to schedules if the new 'doctors' property isn't populated yet
+        if (office.doctors && office.doctors.length > 0) {
+            return office.doctors.map((d: any) => d.doctor);
+        }
+
+        // Old logic fallback
         const uniqueDoctors = new Map<string, Doctor>();
-        office.schedules.forEach(schedule => {
+        office.schedules?.forEach((schedule: any) => {
             uniqueDoctors.set(schedule.doctor.id, schedule.doctor);
         });
         return Array.from(uniqueDoctors.values());
@@ -87,13 +159,14 @@ export default function MedicalOffices() {
 
     return (
         <div className="management-page">
+            <Toaster position="top-right" />
             <div className="management-container">
                 <div className="management-header">
                     <div>
                         <h1 className="page-title">Gestión de Consultorios</h1>
                         <p className="page-subtitle">Visualiza y administra los espacios físicos de la clínica</p>
                     </div>
-                    <button className="submit-btn" style={{ width: 'auto', padding: '10px 24px' }}>
+                    <button className="submit-btn" style={{ width: 'auto', padding: '10px 24px' }} onClick={() => setShowOfficeModal(true)}>
                         <Plus size={18} style={{ marginRight: '8px' }} />
                         Nuevo Consultorio
                     </button>
@@ -127,7 +200,7 @@ export default function MedicalOffices() {
                 ) : (
                     <div className="stats-grid" style={{ marginTop: '1.5rem' }}>
                         {filteredOffices.map((office) => {
-                            const assignedDoctors = getDoctorsInOffice(office);
+                            const assignedDoctors = getAssignedDoctors(office);
                             const usagePercent = Math.min((assignedDoctors.length / office.maxDoctors) * 100, 100);
 
                             return (
@@ -183,10 +256,15 @@ export default function MedicalOffices() {
                                                         </div>
                                                         <div style={{ flex: 1 }}>
                                                             <div style={{ fontSize: '13px', fontWeight: 600 }}>{doctor.firstName} {doctor.lastName}</div>
-                                                            <div style={{ fontSize: '11px', color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                <Clock size={10} /> Consultorio compartido
-                                                            </div>
+                                                            <div style={{ fontSize: '11px', color: 'var(--text-light)' }}>Habilitado para este consultorio</div>
                                                         </div>
+                                                        <button
+                                                            className="text-danger"
+                                                            style={{ background: 'none', border: 'none', padding: '4px' }}
+                                                            onClick={() => handleUnassignDoctor(office.id, doctor.id)}
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
                                                     </div>
                                                 )) : (
                                                     <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-light)', fontSize: '13px', border: '1px dashed var(--border)', borderRadius: '8px' }}>
@@ -201,8 +279,16 @@ export default function MedicalOffices() {
                                         <button className="action-btn-outline" style={{ fontSize: '12px', padding: '6px 12px' }}>
                                             Editar Info
                                         </button>
-                                        <button className="submit-btn" style={{ fontSize: '12px', width: 'auto', padding: '6px 12px', background: 'var(--primary)' }}>
-                                            Gestionar Horarios
+                                        <button
+                                            className="submit-btn"
+                                            style={{ fontSize: '12px', width: 'auto', padding: '6px 12px', background: 'var(--primary)' }}
+                                            onClick={() => {
+                                                setSelectedOffice(office);
+                                                setShowAssignModal(true);
+                                            }}
+                                            disabled={assignedDoctors.length >= office.maxDoctors}
+                                        >
+                                            {assignedDoctors.length >= office.maxDoctors ? 'Cupo Lleno' : 'Asignar Médico'}
                                         </button>
                                     </div>
                                 </div>
@@ -211,6 +297,142 @@ export default function MedicalOffices() {
                     </div>
                 )}
             </div>
+
+            {/* Nuevo Consultorio Modal */}
+            {showOfficeModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content card registration-card">
+                        <div className="modal-header">
+                            <div className="card-title-group">
+                                <div className="card-icon-wrapper">
+                                    <Building2 size={20} />
+                                </div>
+                                <h2 className="card-title">Registrar Nuevo Consultorio</h2>
+                            </div>
+                            <button className="close-btn" onClick={() => setShowOfficeModal(false)}>
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateOffice} className="form-card-body mt-4">
+                            <div className="form-grid">
+                                <div className="form-group full-width">
+                                    <label className="form-label">Nombre del Consultorio</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="Ej. Consultorio 303 - Oftalmología"
+                                        value={officeForm.name}
+                                        onChange={e => setOfficeForm({ ...officeForm, name: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Dirección / Ubicación</label>
+                                    <div className="input-with-icon">
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="Piso 3, Ala Este"
+                                            value={officeForm.address}
+                                            onChange={e => setOfficeForm({ ...officeForm, address: e.target.value })}
+                                            required
+                                        />
+                                        <MapPin className="input-icon" size={18} />
+                                    </div>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Teléfono / Extensión</label>
+                                    <div className="input-with-icon">
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="Ext. 303"
+                                            value={officeForm.phone}
+                                            onChange={e => setOfficeForm({ ...officeForm, phone: e.target.value })}
+                                            required
+                                        />
+                                        <Phone className="input-icon" size={18} />
+                                    </div>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Capacidad de Médicos</label>
+                                    <input
+                                        type="number"
+                                        className="form-input"
+                                        min="1"
+                                        max="10"
+                                        value={officeForm.maxDoctors}
+                                        onChange={e => setOfficeForm({ ...officeForm, maxDoctors: parseInt(e.target.value) })}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="modal-footer mt-6">
+                                <button type="button" className="btn-secondary" onClick={() => setShowOfficeModal(false)}>
+                                    Cancelar
+                                </button>
+                                <button type="submit" className="submit-btn" style={{ width: 'auto', minWidth: '160px' }}>
+                                    Crear Consultorio
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Asignar Médico Modal */}
+            {showAssignModal && selectedOffice && (
+                <div className="modal-overlay">
+                    <div className="modal-content card" style={{ maxWidth: '500px' }}>
+                        <div className="modal-header">
+                            <div className="card-title-group">
+                                <div className="card-icon-wrapper">
+                                    <Users size={20} />
+                                </div>
+                                <h2 className="card-title">Asignar Médico a {selectedOffice.name}</h2>
+                            </div>
+                            <button className="close-btn" onClick={() => setShowAssignModal(false)}>
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleAssignDoctor} className="form-card-body mt-4">
+                            <div className="form-group full-width">
+                                <label className="form-label">Seleccionar Médico</label>
+                                <select
+                                    className="form-input"
+                                    value={assignDoctorId}
+                                    onChange={e => setAssignDoctorId(e.target.value)}
+                                    required
+                                >
+                                    <option value="">Seleccione un doctor...</option>
+                                    {doctors
+                                        .filter(d => !getAssignedDoctors(selectedOffice).some((ad: any) => ad.id === d.id))
+                                        .map((doctor: Doctor) => (
+                                            <option key={doctor.id} value={doctor.id}>
+                                                {doctor.firstName} {doctor.lastName}
+                                            </option>
+                                        ))}
+                                </select>
+                                <p className="text-muted mt-2" style={{ fontSize: '12px' }}>
+                                    * Una vez asignado, el médico podrá configurar sus propios horarios para este consultorio.
+                                </p>
+                            </div>
+
+                            <div className="modal-footer mt-6">
+                                <button type="button" className="btn-secondary" onClick={() => setShowAssignModal(false)}>
+                                    Cancelar
+                                </button>
+                                <button type="submit" className="submit-btn" style={{ width: 'auto' }} disabled={!assignDoctorId}>
+                                    Vincular Médico
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
