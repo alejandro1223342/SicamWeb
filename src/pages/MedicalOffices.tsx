@@ -8,8 +8,7 @@ import {
     Search,
     Loader2,
     Plus,
-    X,
-    Save
+    X
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -77,7 +76,7 @@ export default function MedicalOffices() {
 
     const fetchDoctors = async () => {
         try {
-            const response = await axios.get('http://localhost:3000/users?role=MEDICO');
+            const response = await axios.get('http://localhost:3000/users/doctors');
             setDoctors(response.data);
         } catch (error) {
             console.error('Error fetching doctors:', error);
@@ -249,7 +248,7 @@ export default function MedicalOffices() {
                                                 <Users size={14} /> Médicos Asignados
                                             </h4>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                                {assignedDoctors.length > 0 ? assignedDoctors.map(doctor => (
+                                                {assignedDoctors.length > 0 ? assignedDoctors.map((doctor: Doctor) => (
                                                     <div key={doctor.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #F1F5F9' }}>
                                                         <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700 }}>
                                                             {doctor.firstName[0]}{doctor.lastName[0]}
