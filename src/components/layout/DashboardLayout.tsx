@@ -10,11 +10,7 @@ export default function DashboardLayout() {
             <Sidebar />
             <div className="main-content">
                 <Header />
-                {/* DEBUG BAR */}
-                <div style={{ background: '#000', color: '#fff', padding: '5px' }}>
-                    LAYOUT RENDER: {location.pathname} | KEY: {location.key}
-                </div>
-                <main className="content-area" style={{ border: '5px solid red', padding: '10px' }}>
+                <main className="content-area">
                     <Outlet key={location.pathname} />
                 </main>
             </div>
