@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
@@ -8,6 +8,8 @@ import Dashboard from './pages/Dashboard';
 import DoctorRegistration from './pages/DoctorRegistration';
 import MedicalOffices from './pages/MedicalOffices';
 import MedicalHistory from './pages/MedicalHistory';
+import Patients from './pages/Patients';
+import Schedules from './pages/Schedules';
 import { SpecialtyProvider } from './context/SpecialtyContext';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
@@ -350,22 +352,35 @@ function SignUp() {
 }
 
 function App() {
+  const location = useLocation();
+
+  // LOG PARA DIAGNÓSTICO
+  console.log("APP RENDER | PATH:", location.pathname, "| KEY:", location.key);
+
   return (
-    <BrowserRouter>
-      <SpecialtyProvider>
-        <Routes>
-          <Route path="/" element={<SignIn />} />
-          <Route path="/signin" element={<SignIn />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route element={<DashboardLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/dashboard/doctor/new" element={<DoctorRegistration />} />
-            <Route path="/dashboard/medical-offices" element={<MedicalOffices />} />
-            <Route path="/dashboard/medical-history" element={<MedicalHistory />} />
-          </Route>
-        </Routes>
-      </SpecialtyProvider>
-    </BrowserRouter>
+    <SpecialtyProvider>
+      <Routes key={location.pathname}>
+        <Route path="/" element={<SignIn />} />
+        <Route path="/signin" element={<SignIn />} />
+        <Route path="/signup" element={<SignUp />} />
+
+
+        {/* Dashboard Routes - Standard Nested Structure */}
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="doctor/new" element={<DoctorRegistration />} />
+          <Route path="medical-offices" element={<MedicalOffices />} />
+          <Route path="medical-history" element={<MedicalHistory />} />
+          <Route path="patients" element={<Patients />} />
+          <Route path="schedules" element={<Schedules />} />
+        </Route>
+
+        <Route path="*" element={<div style={{ padding: '50px', textAlign: 'center' }}>
+          <h1>404 - Página no encontrada</h1>
+          <p>La ruta solicitada no existe.</p>
+        </div>} />
+      </Routes>
+    </SpecialtyProvider>
   );
 }
 

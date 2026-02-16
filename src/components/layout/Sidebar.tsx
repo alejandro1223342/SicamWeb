@@ -22,7 +22,7 @@ interface MenuItem {
 }
 
 export default function Sidebar() {
-    const { activeSpecialty, setActiveSpecialty, setAvailableSpecialties, availableSpecialties } = useSpecialty();
+    const { activeSpecialty, setActiveSpecialty, availableSpecialties } = useSpecialty();
     const [user, setUser] = useState<any>(null);
     const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({
         Acceso: true,
@@ -33,22 +33,14 @@ export default function Sidebar() {
     useEffect(() => {
         const userData = localStorage.getItem('user');
         if (userData) {
-            const parsedUser = JSON.parse(userData);
-            setUser(parsedUser);
-
-            if (parsedUser.role === 'MEDICO' && parsedUser.specialties) {
-                const specialties = parsedUser.specialties.map((us: any) => us.specialty);
-                setAvailableSpecialties(specialties);
-
-                if (!localStorage.getItem('activeSpecialty') && specialties.length > 0) {
-                    setActiveSpecialty(specialties[0]);
-                }
-            } else if (parsedUser.role !== 'MEDICO') {
-                // If not a doctor, clear any leftover specialty state
-                setActiveSpecialty(null);
+            try {
+                const parsedUser = JSON.parse(userData);
+                setUser(parsedUser);
+            } catch (e) {
+                console.error("Error parsing user in Sidebar", e);
             }
         }
-    }, [setAvailableSpecialties, setActiveSpecialty]);
+    }, []);
 
     const toggleMenu = (title: string) => {
         setOpenMenus((prev) => ({
