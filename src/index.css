@@ -1397,8 +1397,34 @@ body {
 }
 
 .status-active {
-  background: rgba(var(--primary-rgb), 0.1);
+  background: rgba(93, 95, 239, 0.1);
   color: var(--primary);
+}
+
+.status-inactive {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+.specialties-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.specialties-badges .status-badge {
+  white-space: nowrap;
+}
+
+.specialty-badge {
+  background: rgba(93, 95, 239, 0.08);
+  color: var(--primary);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid rgba(93, 95, 239, 0.1);
 }
 
 .action-btn-outline {

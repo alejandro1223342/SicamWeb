@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { UserPlus, Phone, Mail, Save, X, Hash, Search, Edit } from 'lucide-react';
+import { UserPlus, Phone, Mail, Save, X, Hash, Search, Edit, UserCheck, UserX } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 interface Specialty {
@@ -16,6 +16,7 @@ interface Doctor {
     phone: string | null;
     licenseId: string | null;
     specialties: Specialty[];
+    isActive: boolean;
 }
 
 const DoctorRegistration: React.FC = () => {
@@ -100,6 +101,18 @@ const DoctorRegistration: React.FC = () => {
         setIsEditing(true);
         setSelectedDoctorId(doctor.id);
         setShowModal(true);
+    };
+
+    const toggleDoctorStatus = async (doctor: Doctor) => {
+        try {
+            await axios.patch(`http://localhost:3000/users/doctors/${doctor.id}`, {
+                isActive: !doctor.isActive
+            });
+            toast.success(`Médico ${!doctor.isActive ? 'activado' : 'desactivado'} correctamente`);
+            fetchDoctors();
+        } catch (err: any) {
+            toast.error('Error al cambiar el estado del médico');
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -196,6 +209,7 @@ const DoctorRegistration: React.FC = () => {
                             <thead>
                                 <tr>
                                     <th>Médico</th>
+                                    <th>Estado</th>
                                     <th>Contacto</th>
                                     <th>Especialidades</th>
                                     <th>Cédula</th>
@@ -205,20 +219,20 @@ const DoctorRegistration: React.FC = () => {
                             <tbody>
                                 {fetchingDoctors ? (
                                     <tr>
-                                        <td colSpan={5} className="text-center py-12">
+                                        <td colSpan={6} className="text-center py-12">
                                             <div className="loader" style={{ margin: '0 auto' }}></div>
                                             <p className="mt-4 text-muted">Cargando médicos...</p>
                                         </td>
                                     </tr>
                                 ) : filteredDoctors.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="text-center py-12">
+                                        <td colSpan={6} className="text-center py-12">
                                             <p className="text-muted">No se encontraron médicos registrados.</p>
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredDoctors.map(doctor => (
-                                        <tr key={doctor.id}>
+                                        <tr key={doctor.id} style={{ opacity: doctor.isActive ? 1 : 0.6 }}>
                                             <td>
                                                 <div className="doctor-info-cell">
                                                     <div className="avatar-placeholder">
@@ -231,15 +245,20 @@ const DoctorRegistration: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td>
+                                                <span className={`status-badge ${doctor.isActive ? 'status-active' : 'status-inactive'}`}>
+                                                    {doctor.isActive ? 'Activo' : 'Inactivo'}
+                                                </span>
+                                            </td>
+                                            <td>
                                                 <div className="contact-cell">
                                                     <div className="contact-item"><Mail size={14} /> {doctor.email}</div>
                                                     {doctor.phone && <div className="contact-item"><Phone size={14} /> {doctor.phone}</div>}
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td style={{ minWidth: '220px' }}>
                                                 <div className="specialties-badges">
                                                     {doctor.specialties.map(spec => (
-                                                        <span key={spec.id} className="status-badge status-active">
+                                                        <span key={spec.id} className="specialty-badge">
                                                             {spec.name}
                                                         </span>
                                                     ))}
@@ -251,14 +270,33 @@ const DoctorRegistration: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td className="text-right">
-                                                <button
-                                                    className="action-btn-outline"
-                                                    onClick={() => handleEditClick(doctor)}
-                                                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px' }}
-                                                    title="Editar médico"
-                                                >
-                                                    <Edit size={18} />
-                                                </button>
+                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                    <button
+                                                        className="action-btn-outline"
+                                                        onClick={() => toggleDoctorStatus(doctor)}
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            padding: '8px',
+                                                            width: '36px',
+                                                            height: '36px',
+                                                            color: doctor.isActive ? '#ef4444' : '#10b981',
+                                                            borderColor: doctor.isActive ? '#fee2e2' : '#d1fae5'
+                                                        }}
+                                                        title={doctor.isActive ? "Desactivar médico" : "Activar médico"}
+                                                    >
+                                                        {doctor.isActive ? <UserX size={18} /> : <UserCheck size={18} />}
+                                                    </button>
+                                                    <button
+                                                        className="action-btn-outline"
+                                                        onClick={() => handleEditClick(doctor)}
+                                                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px' }}
+                                                        title="Editar médico"
+                                                    >
+                                                        <Edit size={18} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
