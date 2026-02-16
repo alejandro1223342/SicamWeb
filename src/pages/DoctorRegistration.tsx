@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { UserPlus, Phone, Mail, Save, X, Hash, Search } from 'lucide-react';
+import { UserPlus, Phone, Mail, Save, X, Hash, Search, Edit } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface Specialty {
     id: string;
@@ -25,7 +26,9 @@ const DoctorRegistration: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
-    const [showModal, setShowModal] = useState(false); // Modal toggle state
+    const [showModal, setShowModal] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -68,6 +71,37 @@ const DoctorRegistration: React.FC = () => {
         if (error) setError('');
     };
 
+    const resetForm = () => {
+        setFormData({
+            firstName: '',
+            lastName: '',
+            email: '',
+            password: '',
+            phone: '',
+            licenseId: '',
+            specialtyIds: []
+        });
+        setIsEditing(false);
+        setSelectedDoctorId(null);
+        setError('');
+        setSuccess(false);
+    };
+
+    const handleEditClick = (doctor: Doctor) => {
+        setFormData({
+            firstName: doctor.firstName,
+            lastName: doctor.lastName,
+            email: doctor.email,
+            password: '', // Contraseña vacía para editar (solo se cambia si se ingresa una nueva)
+            phone: doctor.phone || '',
+            licenseId: doctor.licenseId || '',
+            specialtyIds: doctor.specialties.map(s => s.id)
+        });
+        setIsEditing(true);
+        setSelectedDoctorId(doctor.id);
+        setShowModal(true);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -75,37 +109,34 @@ const DoctorRegistration: React.FC = () => {
         setSuccess(false);
 
         try {
-            await axios.post('http://localhost:3000/users/doctors', {
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                email: formData.email,
-                password: formData.password,
-                phone: formData.phone,
-                licenseId: formData.licenseId,
-                specialtyIds: formData.specialtyIds
-            });
+            if (isEditing && selectedDoctorId) {
+                // Preparar datos para actualizar (eliminar password si está vacía)
+                const updateData: any = { ...formData };
+                if (!updateData.password) delete updateData.password;
 
-            setSuccess(true);
-            fetchDoctors(); // Refresh list
+                await axios.patch(`http://localhost:3000/users/doctors/${selectedDoctorId}`, updateData);
+                toast.success('Médico actualizado correctamente');
+                setSuccess(true);
+            } else {
+                await axios.post('http://localhost:3000/users/doctors', formData);
+                toast.success('Médico registrado correctamente');
+                setSuccess(true);
+            }
 
-            // Success cleanup
+            fetchDoctors(); // Actualizar lista
+
+            // Limpieza tras éxito
             setTimeout(() => {
                 setSuccess(false);
-                setShowModal(false); // Close modal on success
-                setFormData({
-                    firstName: '',
-                    lastName: '',
-                    email: '',
-                    password: '',
-                    phone: '',
-                    licenseId: '',
-                    specialtyIds: []
-                });
-            }, 1500);
+                setShowModal(false); // Cerrar modal tras éxito
+                resetForm();
+            }, 1000);
 
         } catch (err: any) {
-            console.error('Error registering doctor:', err);
-            setError(err.response?.data?.message || 'Error al registrar al médico');
+            console.error('Error saving doctor:', err);
+            const msg = err.response?.data?.message || 'Error al guardar los datos del médico';
+            setError(msg);
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
@@ -119,6 +150,7 @@ const DoctorRegistration: React.FC = () => {
 
     return (
         <div className="management-page">
+            <Toaster position="top-right" reverseOrder={false} />
             <div className="management-container">
                 {/* Header Section */}
                 <div className="page-header">
@@ -128,7 +160,10 @@ const DoctorRegistration: React.FC = () => {
                     </div>
                     <button
                         className="submit-btn"
-                        onClick={() => setShowModal(true)}
+                        onClick={() => {
+                            resetForm();
+                            setShowModal(true);
+                        }}
                         style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px' }}
                     >
                         <UserPlus size={18} />
@@ -216,8 +251,13 @@ const DoctorRegistration: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td className="text-right">
-                                                <button className="action-btn-outline" onClick={() => { }}>
-                                                    Detalles
+                                                <button
+                                                    className="action-btn-outline"
+                                                    onClick={() => handleEditClick(doctor)}
+                                                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px' }}
+                                                    title="Editar médico"
+                                                >
+                                                    <Edit size={18} />
                                                 </button>
                                             </td>
                                         </tr>
@@ -236,9 +276,9 @@ const DoctorRegistration: React.FC = () => {
                         <div className="modal-header">
                             <div className="card-title-group">
                                 <div className="card-icon-wrapper">
-                                    <UserPlus size={20} />
+                                    {isEditing ? <Save size={20} /> : <UserPlus size={20} />}
                                 </div>
-                                <h2 className="card-title">Registrar Nuevo Médico</h2>
+                                <h2 className="card-title">{isEditing ? 'Editar médico' : 'Registrar Nuevo Médico'}</h2>
                             </div>
                             <button className="close-btn" onClick={() => setShowModal(false)}>
                                 <X size={24} />
@@ -257,7 +297,7 @@ const DoctorRegistration: React.FC = () => {
                                 {success && (
                                     <div className="alert alert-success mb-4">
                                         <Save size={18} />
-                                        <span>Médico registrado exitosamente</span>
+                                        <span>Médico {isEditing ? 'actualizado' : 'registrado'} exitosamente</span>
                                     </div>
                                 )}
 
@@ -281,8 +321,8 @@ const DoctorRegistration: React.FC = () => {
                                     </div>
 
                                     <div className="form-group">
-                                        <label className="form-label">Contraseña <span className="text-danger">*</span></label>
-                                        <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="********" required minLength={6} className="form-input" disabled={loading} />
+                                        <label className="form-label">Contraseña {isEditing ? '(En blanco para no cambiar)' : <span className="text-danger">*</span>}</label>
+                                        <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="********" required={!isEditing} minLength={6} className="form-input" disabled={loading} />
                                     </div>
 
                                     <div className="form-group">
@@ -333,7 +373,7 @@ const DoctorRegistration: React.FC = () => {
                                         Cancelar
                                     </button>
                                     <button type="submit" disabled={loading || formData.specialtyIds.length === 0} className="submit-btn" style={{ width: 'auto', minWidth: '160px' }}>
-                                        {loading ? 'Registrando...' : 'Registrar Médico'}
+                                        {loading ? (isEditing ? 'Guardando...' : 'Registrando...') : (isEditing ? 'Guardar Cambios' : 'Registrar Médico')}
                                     </button>
                                 </div>
                             </form>
