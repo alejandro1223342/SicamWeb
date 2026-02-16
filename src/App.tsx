@@ -6,9 +6,62 @@ import './index.css';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Dashboard from './pages/Dashboard';
 
-// Componente de Sign In con diseño TailAdmin
+// Componente de Sign In con diseño TailAdmin y conexión al backend
 function SignIn() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    if (error) setError('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!formData.email.trim() || !formData.password.trim()) {
+      setError('Por favor completa todos los campos');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await axios.post('http://localhost:3000/auth/login', {
+        email: formData.email,
+        password: formData.password
+      });
+
+      console.log('Inicio de sesión exitoso:', response.data);
+
+      // Guardar info del usuario si es necesario (ej. localStorage)
+      localStorage.setItem('user', JSON.stringify(response.data));
+
+      // Redirigir al dashboard
+      navigate('/dashboard');
+    } catch (err: any) {
+      console.error('Error al iniciar sesión:', err);
+
+      if (err.response?.status === 401) {
+        setError('Usuario o contraseña incorrecto');
+      } else {
+        setError('Error al intentar iniciar sesión. Por favor intenta de nuevo.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="auth-page">
@@ -17,7 +70,13 @@ function SignIn() {
           <h1 className="auth-title">Iniciar Sesión</h1>
           <p className="auth-subtitle">Ingresa tu correo y contraseña para iniciar sesión</p>
 
-          <form className="auth-form">
+          <form className="auth-form" onSubmit={handleSubmit}>
+            {error && (
+              <div className="error-banner">
+                {error}
+              </div>
+            )}
+
             <div className="form-group">
               <label htmlFor="email" className="form-label">
                 Correo Electrónico<span className="required">*</span>
@@ -25,8 +84,12 @@ function SignIn() {
               <input
                 type="email"
                 id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
                 placeholder="info@gmail.com"
                 className="form-input"
+                disabled={loading}
               />
             </div>
 
@@ -38,13 +101,18 @@ function SignIn() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
                   placeholder="Ingresa tu contraseña"
                   className="form-input"
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="password-toggle"
+                  disabled={loading}
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -53,7 +121,7 @@ function SignIn() {
 
             <div className="form-row">
               <label className="checkbox-label">
-                <input type="checkbox" />
+                <input type="checkbox" disabled={loading} />
                 <span>Mantener sesión iniciada</span>
               </label>
               <a href="/forgot-password" className="forgot-link">
@@ -61,8 +129,8 @@ function SignIn() {
               </a>
             </div>
 
-            <button type="submit" className="submit-btn">
-              Iniciar Sesión
+            <button type="submit" className="submit-btn" disabled={loading}>
+              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </button>
 
             <p className="auth-footer">
