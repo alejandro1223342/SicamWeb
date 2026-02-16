@@ -5,6 +5,7 @@ import axios from 'axios';
 import './index.css';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Dashboard from './pages/Dashboard';
+import DoctorRegistration from './pages/DoctorRegistration';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
 function SignIn() {
@@ -354,6 +355,7 @@ function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard/doctor/new" element={<DoctorRegistration />} />
         </Route>
       </Routes>
     </BrowserRouter>
