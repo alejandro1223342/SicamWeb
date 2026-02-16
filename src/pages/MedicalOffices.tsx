@@ -8,7 +8,9 @@ import {
     Search,
     Loader2,
     Plus,
-    X
+    X,
+    Pencil,
+    UserPlus
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -52,6 +54,8 @@ export default function MedicalOffices() {
     const [showOfficeModal, setShowOfficeModal] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [selectedOffice, setSelectedOffice] = useState<MedicalOffice | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
 
     // Form state
     const [officeForm, setOfficeForm] = useState({
@@ -88,16 +92,40 @@ export default function MedicalOffices() {
         fetchDoctors();
     }, []);
 
-    const handleCreateOffice = async (e: React.FormEvent) => {
+    const handleOpenCreateModal = () => {
+        setIsEditing(false);
+        setEditingId(null);
+        setOfficeForm({ name: '', address: '', phone: '', maxDoctors: 2 });
+        setShowOfficeModal(true);
+    };
+
+    const handleOpenEditModal = (office: MedicalOffice) => {
+        setIsEditing(true);
+        setEditingId(office.id);
+        setOfficeForm({
+            name: office.name,
+            address: office.address,
+            phone: office.phone,
+            maxDoctors: office.maxDoctors
+        });
+        setShowOfficeModal(true);
+    };
+
+    const handleSubmitOffice = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:3000/medical-offices', officeForm);
-            toast.success('Consultorio creado exitosamente');
+            if (isEditing && editingId) {
+                await axios.patch(`http://localhost:3000/medical-offices/${editingId}`, officeForm);
+                toast.success('Consultorio actualizado exitosamente');
+            } else {
+                await axios.post('http://localhost:3000/medical-offices', officeForm);
+                toast.success('Consultorio creado exitosamente');
+            }
             setShowOfficeModal(false);
             setOfficeForm({ name: '', address: '', phone: '', maxDoctors: 2 });
             fetchOffices();
         } catch (error) {
-            toast.error('Error al crear el consultorio');
+            toast.error(isEditing ? 'Error al actualizar el consultorio' : 'Error al crear el consultorio');
         }
     };
 
@@ -165,7 +193,7 @@ export default function MedicalOffices() {
                         <h1 className="page-title">Gestión de Consultorios</h1>
                         <p className="page-subtitle">Visualiza y administra los espacios físicos de la clínica</p>
                     </div>
-                    <button className="submit-btn" style={{ width: 'auto', padding: '10px 24px' }} onClick={() => setShowOfficeModal(true)}>
+                    <button className="submit-btn" style={{ width: 'auto', padding: '10px 24px' }} onClick={handleOpenCreateModal}>
                         <Plus size={18} style={{ marginRight: '8px' }} />
                         Nuevo Consultorio
                     </button>
@@ -203,7 +231,7 @@ export default function MedicalOffices() {
                             const usagePercent = Math.min((assignedDoctors.length / office.maxDoctors) * 100, 100);
 
                             return (
-                                <div key={office.id} className="chart-card list-card" style={{ padding: '0' }}>
+                                <div key={office.id} className="chart-card list-card" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '100%' }}>
                                     <div style={{ padding: '20px', borderBottom: '1px solid var(--border)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                             <div className="card-title-group">
@@ -223,7 +251,7 @@ export default function MedicalOffices() {
                                         </div>
                                     </div>
 
-                                    <div style={{ padding: '20px' }}>
+                                    <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                                         <div className="contact-item mb-4">
                                             <Phone size={14} /> {office.phone}
                                         </div>
@@ -243,7 +271,7 @@ export default function MedicalOffices() {
                                             </div>
                                         </div>
 
-                                        <div>
+                                        <div style={{ flex: 1 }}>
                                             <h4 style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-light)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                 <Users size={14} /> Médicos Asignados
                                             </h4>
@@ -274,20 +302,49 @@ export default function MedicalOffices() {
                                         </div>
                                     </div>
 
-                                    <div style={{ padding: '16px 20px', background: '#F8FAFC', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                                        <button className="action-btn-outline" style={{ fontSize: '12px', padding: '6px 12px' }}>
-                                            Editar Info
+                                    <div style={{ padding: '16px 20px', background: '#F8FAFC', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px' }}>
+                                        <button
+                                            className="action-btn-outline"
+                                            style={{
+                                                width: '32px',
+                                                height: '32px',
+                                                padding: '0',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                borderRadius: '8px',
+                                                border: '1px solid var(--border)',
+                                                margin: '0',
+                                                flex: 'none'
+                                            }}
+                                            onClick={() => handleOpenEditModal(office)}
+                                            title="Editar información"
+                                        >
+                                            <Pencil size={16} />
                                         </button>
                                         <button
                                             className="submit-btn"
-                                            style={{ fontSize: '12px', width: 'auto', padding: '6px 12px', background: 'var(--primary)' }}
+                                            style={{
+                                                width: '32px',
+                                                height: '32px',
+                                                padding: '0',
+                                                background: 'var(--primary)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                borderRadius: '8px',
+                                                border: '1px solid transparent',
+                                                margin: '0',
+                                                flex: 'none'
+                                            }}
                                             onClick={() => {
                                                 setSelectedOffice(office);
                                                 setShowAssignModal(true);
                                             }}
                                             disabled={assignedDoctors.length >= office.maxDoctors}
+                                            title={assignedDoctors.length >= office.maxDoctors ? 'Cupo Lleno' : 'Asignar Médico'}
                                         >
-                                            {assignedDoctors.length >= office.maxDoctors ? 'Cupo Lleno' : 'Asignar Médico'}
+                                            <UserPlus size={16} color="white" />
                                         </button>
                                     </div>
                                 </div>
@@ -297,7 +354,7 @@ export default function MedicalOffices() {
                 )}
             </div>
 
-            {/* Nuevo Consultorio Modal */}
+            {/* Nuevo/Editar Consultorio Modal */}
             {showOfficeModal && (
                 <div className="modal-overlay">
                     <div className="modal-content card registration-card">
@@ -306,14 +363,14 @@ export default function MedicalOffices() {
                                 <div className="card-icon-wrapper">
                                     <Building2 size={20} />
                                 </div>
-                                <h2 className="card-title">Registrar Nuevo Consultorio</h2>
+                                <h2 className="card-title">{isEditing ? 'Actualizar Consultorio' : 'Registrar Nuevo Consultorio'}</h2>
                             </div>
                             <button className="close-btn" onClick={() => setShowOfficeModal(false)}>
                                 <X size={24} />
                             </button>
                         </div>
 
-                        <form onSubmit={handleCreateOffice} className="form-card-body mt-4">
+                        <form onSubmit={handleSubmitOffice} className="form-card-body mt-4">
                             <div className="form-grid">
                                 <div className="form-group full-width">
                                     <label className="form-label">Nombre del Consultorio</label>
@@ -373,7 +430,7 @@ export default function MedicalOffices() {
                                     Cancelar
                                 </button>
                                 <button type="submit" className="submit-btn" style={{ width: 'auto', minWidth: '160px' }}>
-                                    Crear Consultorio
+                                    {isEditing ? 'Actualizar Consultorio' : 'Crear Consultorio'}
                                 </button>
                             </div>
                         </form>
