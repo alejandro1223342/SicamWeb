@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
     UserCircle,
+    Building2,
     ChevronDown,
     ChevronRight,
 } from 'lucide-react';
@@ -21,9 +22,9 @@ const menuItems: MenuItem[] = [
         icon: <LayoutDashboard size={20} />,
         children: [
             { title: 'Gestión de Médicos', icon: <UserCircle size={20} />, path: '/dashboard/doctor/new' },
+            { title: 'Gestión de Consultorios', icon: <Building2 size={20} />, path: '/dashboard/medical-offices' },
         ],
     },
-
 ];
 
 

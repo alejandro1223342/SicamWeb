@@ -166,8 +166,8 @@ const DoctorRegistration: React.FC = () => {
             <Toaster position="top-right" reverseOrder={false} />
             <div className="management-container">
                 {/* Header Section */}
-                <div className="page-header">
-                    <div className="header-info">
+                <div className="management-header">
+                    <div>
                         <h1 className="page-title">Gestión de Médicos</h1>
                         <p className="page-subtitle">Visualiza y administra todo el personal médico registrado.</p>
                     </div>
@@ -185,7 +185,7 @@ const DoctorRegistration: React.FC = () => {
                 </div>
 
                 {/* Search and Stats Section */}
-                <div className="list-controls-row">
+                <div className="management-controls">
                     <div className="search-wrapper" style={{ flex: 1, maxWidth: '400px', marginBottom: 0 }}>
                         <Search className="search-icon" size={18} />
                         <input
