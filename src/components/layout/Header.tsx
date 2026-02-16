@@ -6,7 +6,7 @@ export default function Header() {
             <div className="header-content">
                 {/* Search Bar */}
                 <div className="search-container">
-                    <Search className="search-icon" size={20} />
+                    <Search className="search-icon" size={18} />
                     <input
                         type="text"
                         placeholder="Search or type command..."
@@ -25,22 +25,22 @@ export default function Header() {
                     {/* Notifications */}
                     <button className="header-btn notification-btn">
                         <Bell size={20} />
-                        <span className="notification-badge">3</span>
+                        <span className="dot-badge"></span>
                     </button>
 
                     {/* User Menu */}
                     <div className="user-menu">
-                        <button className="user-menu-btn">
+                        <div className="user-menu-btn">
                             <img
-                                src="https://ui-avatars.com/api/?name=Musharof+Chowdhury&background=5D5FEF&color=fff"
+                                src="https://ui-avatars.com/api/?name=Musharof+Chowdhury&background=5D5FEF&color=fff&rounded=true"
                                 alt="User"
                                 className="user-avatar"
                             />
                             <div className="user-info">
                                 <span className="user-name">Musharof</span>
                             </div>
-                            <ChevronDown size={16} />
-                        </button>
+                            <ChevronDown size={14} />
+                        </div>
                     </div>
                 </div>
             </div>
