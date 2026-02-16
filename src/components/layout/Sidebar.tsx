@@ -20,8 +20,7 @@ const menuItems: MenuItem[] = [
         title: 'Acceso',
         icon: <LayoutDashboard size={20} />,
         children: [
-            { title: 'Médicos', icon: <UserCircle size={20} />, path: '/dashboard/doctor' },
-            { title: 'Registrar Médico', icon: <UserCircle size={20} />, path: '/dashboard/doctor/new' },
+            { title: 'Gestión de Médicos', icon: <UserCircle size={20} />, path: '/dashboard/doctor/new' },
         ],
     },
 
