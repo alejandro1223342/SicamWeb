@@ -7,6 +7,8 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import Dashboard from './pages/Dashboard';
 import DoctorRegistration from './pages/DoctorRegistration';
 import MedicalOffices from './pages/MedicalOffices';
+import MedicalHistory from './pages/MedicalHistory';
+import { SpecialtyProvider } from './context/SpecialtyContext';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
 function SignIn() {
@@ -350,16 +352,19 @@ function SignUp() {
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<SignIn />} />
-        <Route path="/signin" element={<SignIn />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route element={<DashboardLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/doctor/new" element={<DoctorRegistration />} />
-          <Route path="/dashboard/medical-offices" element={<MedicalOffices />} />
-        </Route>
-      </Routes>
+      <SpecialtyProvider>
+        <Routes>
+          <Route path="/" element={<SignIn />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/doctor/new" element={<DoctorRegistration />} />
+            <Route path="/dashboard/medical-offices" element={<MedicalOffices />} />
+            <Route path="/dashboard/medical-history" element={<MedicalHistory />} />
+          </Route>
+        </Routes>
+      </SpecialtyProvider>
     </BrowserRouter>
   );
 }
