@@ -10,7 +10,9 @@ import {
     Plus,
     X,
     Pencil,
-    UserPlus
+    UserPlus,
+    Eye,
+    EyeOff
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -129,6 +131,18 @@ export default function MedicalOffices() {
         }
     };
 
+    const toggleOfficeStatus = async (office: MedicalOffice) => {
+        try {
+            await axios.patch(`http://localhost:3000/medical-offices/${office.id}`, {
+                isActive: !office.isActive
+            });
+            toast.success(`Consultorio ${!office.isActive ? 'activado' : 'desactivado'} exitosamente`);
+            fetchOffices();
+        } catch (error) {
+            toast.error('Error al cambiar el estado del consultorio');
+        }
+    };
+
     const handleAssignDoctor = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedOffice || !assignDoctorId) return;
@@ -231,7 +245,14 @@ export default function MedicalOffices() {
                             const usagePercent = Math.min((assignedDoctors.length / office.maxDoctors) * 100, 100);
 
                             return (
-                                <div key={office.id} className="chart-card list-card" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                <div key={office.id} className="chart-card list-card" style={{
+                                    padding: '0',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    height: '100%',
+                                    opacity: office.isActive ? 1 : 0.6,
+                                    transition: 'opacity 0.3s ease'
+                                }}>
                                     <div style={{ padding: '20px', borderBottom: '1px solid var(--border)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                             <div className="card-title-group">
@@ -303,6 +324,27 @@ export default function MedicalOffices() {
                                     </div>
 
                                     <div style={{ padding: '16px 20px', background: '#F8FAFC', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px' }}>
+                                        <button
+                                            className="action-btn-outline"
+                                            style={{
+                                                width: '32px',
+                                                height: '32px',
+                                                padding: '0',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                borderRadius: '8px',
+                                                border: '1px solid var(--border)',
+                                                margin: '0',
+                                                flex: 'none',
+                                                color: office.isActive ? 'var(--text-gray)' : 'var(--success)',
+                                                borderColor: office.isActive ? 'var(--border)' : 'var(--success)'
+                                            }}
+                                            onClick={() => toggleOfficeStatus(office)}
+                                            title={office.isActive ? 'Desactivar consultorio' : 'Activar consultorio'}
+                                        >
+                                            {office.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
+                                        </button>
                                         <button
                                             className="action-btn-outline"
                                             style={{
