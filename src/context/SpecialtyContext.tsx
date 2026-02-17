@@ -12,6 +12,7 @@ interface SpecialtyContextType {
     availableSpecialties: Specialty[];
     setAvailableSpecialties: (specialties: Specialty[]) => void;
     isLoading: boolean;
+    refreshSpecialties: () => void;
 }
 
 const SpecialtyContext = createContext<SpecialtyContextType | undefined>(undefined);
@@ -21,8 +22,7 @@ export const SpecialtyProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const [availableSpecialties, setAvailableSpecialties] = useState<Specialty[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Persist active specialty in localStorage AND initialize available specialties
-    useEffect(() => {
+    const loadData = () => {
         // 1. Load Active Specialty
         const saved = localStorage.getItem('activeSpecialty');
         if (saved) {
@@ -34,13 +34,13 @@ export const SpecialtyProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             }
         }
 
-        // 2. Load Available Specialties from User (Merged Logic from Sidebar)
+        // 2. Load Available Specialties from User
         const userData = localStorage.getItem('user');
         if (userData) {
             try {
                 const parsedUser = JSON.parse(userData);
                 if (parsedUser.role === 'MEDICO' && parsedUser.specialties) {
-                    const specialties = parsedUser.specialties.map((us: any) => us.specialty);
+                    const specialties = parsedUser.specialties;
                     setAvailableSpecialties(specialties);
 
                     // Auto-select first if none active
@@ -48,13 +48,22 @@ export const SpecialtyProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                         setActiveSpecialtyState(specialties[0]);
                         localStorage.setItem('activeSpecialty', JSON.stringify(specialties[0]));
                     }
+                } else {
+                    setAvailableSpecialties([]);
                 }
             } catch (e) {
                 console.error('Error parsing user data for specialties', e);
             }
+        } else {
+            setAvailableSpecialties([]);
+            setActiveSpecialtyState(null);
         }
-
         setIsLoading(false);
+    };
+
+    // Persist active specialty in localStorage AND initialize available specialties
+    useEffect(() => {
+        loadData();
     }, []);
 
     const setActiveSpecialty = (specialty: Specialty | null) => {
@@ -72,7 +81,8 @@ export const SpecialtyProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             setActiveSpecialty,
             availableSpecialties,
             setAvailableSpecialties,
-            isLoading
+            isLoading,
+            refreshSpecialties: loadData
         }}>
             {children}
         </SpecialtyContext.Provider>

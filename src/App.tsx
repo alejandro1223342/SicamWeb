@@ -10,12 +10,13 @@ import MedicalOffices from './pages/MedicalOffices';
 import MedicalHistory from './pages/MedicalHistory';
 import Patients from './pages/Patients';
 import Schedules from './pages/Schedules';
-import { SpecialtyProvider } from './context/SpecialtyContext';
+import { SpecialtyProvider, useSpecialty } from './context/SpecialtyContext';
 import PatientClinicalOffices from './pages/PatientClinicalOffices';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
 function SignIn() {
   const navigate = useNavigate();
+  const { refreshSpecialties } = useSpecialty();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -55,6 +56,9 @@ function SignIn() {
       const { access_token, ...user } = response.data;
       localStorage.setItem('token', access_token);
       localStorage.setItem('user', JSON.stringify(user));
+
+      // Refresh specialties context to update sidebar immediately
+      refreshSpecialties();
 
       // Redirigir al dashboard según el rol
       if (user.role === 'PACIENTE') {
