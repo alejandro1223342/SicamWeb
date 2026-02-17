@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { LogOut, Stethoscope, ChevronRight } from 'lucide-react';
+import { Stethoscope, ChevronRight } from 'lucide-react';
 
 interface Specialty {
     id: string;
@@ -35,11 +35,6 @@ export default function PatientDashboard() {
         fetchSpecialties();
     }, []);
 
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/signin');
-    };
 
     if (loading) {
         return <div className="loading-container">Cargando especialidades...</div>;
@@ -47,18 +42,12 @@ export default function PatientDashboard() {
 
     return (
         <div className="patient-dashboard">
-            <header className="patient-header">
-                <div className="user-welcome">
-                    <h1>Hola, {user?.firstName || 'Paciente'}</h1>
-                    <p>Selecciona una especialidad para agendar tu cita</p>
-                </div>
-                <button onClick={handleLogout} className="logout-btn-patient">
-                    <LogOut size={20} />
-                    <span>Cerrar Sesión</span>
-                </button>
-            </header>
+            <div className="page-header">
+                <h1>Hola, {user?.firstName || 'Paciente'}</h1>
+                <p>Bienvenido a tu portal de salud. Selecciona una especialidad para agendar tu cita.</p>
+            </div>
 
-            <main className="specialties-grid-container">
+            <main className="specialties-grid-container" style={{ marginTop: '20px' }}>
                 <h2 className="section-title">Especialidades Disponibles</h2>
                 <div className="specialties-grid">
                     {specialties.map((specialty) => (

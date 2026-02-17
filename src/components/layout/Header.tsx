@@ -1,6 +1,20 @@
+import { useState, useEffect } from 'react';
 import { Search, Moon, Bell, ChevronDown } from 'lucide-react';
 
 export default function Header() {
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            try {
+                setUser(JSON.parse(userData));
+            } catch (e) {
+                console.error("Error al parsear usuario en Header", e);
+            }
+        }
+    }, []);
+
     return (
         <header className="header">
             <div className="header-content">
@@ -9,7 +23,7 @@ export default function Header() {
                     <Search className="search-icon" size={18} />
                     <input
                         type="text"
-                        placeholder="Search or type command..."
+                        placeholder="Buscar o escribir comando..."
                         className="search-input"
                     />
                     <kbd className="search-kbd">⌘ K</kbd>
@@ -32,12 +46,12 @@ export default function Header() {
                     <div className="user-menu">
                         <div className="user-menu-btn">
                             <img
-                                src="https://ui-avatars.com/api/?name=Musharof+Chowdhury&background=5D5FEF&color=fff&rounded=true"
+                                src={`https://ui-avatars.com/api/?name=${user?.firstName || 'User'}+${user?.lastName || ''}&background=5D5FEF&color=fff&rounded=true`}
                                 alt="User"
                                 className="user-avatar"
                             />
                             <div className="user-info">
-                                <span className="user-name">Musharof</span>
+                                <span className="user-name">{user?.firstName || 'Usuario'}</span>
                             </div>
                             <ChevronDown size={14} />
                         </div>

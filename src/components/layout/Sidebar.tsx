@@ -57,11 +57,22 @@ export default function Sidebar() {
     const managementItems: MenuItem[] = [];
     if (user?.role === 'ADMIN') {
         managementItems.push({
-            title: 'Configuración',
+            title: 'Configuracion',
             icon: <LayoutDashboard size={20} />,
             children: [
-                { title: 'Gestión de Médicos', icon: <UserCircle size={20} />, path: '/dashboard/doctor/new' },
-                { title: 'Gestión de Consultorios', icon: <Building2 size={20} />, path: '/dashboard/medical-offices' },
+                { title: 'Gestion de Medicos', icon: <UserCircle size={20} />, path: '/dashboard/doctor/new' },
+                { title: 'Gestion de Consultorios', icon: <Building2 size={20} />, path: '/dashboard/medical-offices' },
+            ],
+        });
+    }
+
+    const patientItems: MenuItem[] = [];
+    if (user?.role === 'PACIENTE') {
+        patientItems.push({
+            title: 'Mi Portal',
+            icon: <LayoutDashboard size={20} />,
+            children: [
+                { title: 'Consultorios Clinicos', icon: <Building2 size={20} />, path: '/patient/clinics' },
             ],
         });
     }
@@ -84,7 +95,7 @@ export default function Sidebar() {
         <aside className="sidebar">
             {/* Logo */}
             <div className="sidebar-header">
-                <Link to="/dashboard" className="sidebar-logo">
+                <Link to={user?.role === 'PACIENTE' ? '/patient/dashboard' : '/dashboard'} className="sidebar-logo">
                     <div className="logo-icon">
                         <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
                             <rect width="32" height="32" rx="6" fill="#5D5FEF" />
@@ -95,7 +106,7 @@ export default function Sidebar() {
                         </svg>
                     </div>
                     <span className="logo-text">
-                        {user?.role === 'ADMIN' ? 'Sicam Admin' : 'Sicam Médico'}
+                        {user?.role === 'ADMIN' ? 'Sicam Admin' : user?.role === 'PACIENTE' ? 'Sicam Paciente' : 'Sicam Medico'}
                     </span>
                 </Link>
             </div>
@@ -127,7 +138,7 @@ export default function Sidebar() {
                 <div className="nav-section">
                     <h3 className="nav-section-title">MENU PRINCIPAL</h3>
 
-                    {[...specialtyItems, ...managementItems].map((item) => (
+                    {[...patientItems, ...specialtyItems, ...managementItems].map((item) => (
                         <div key={item.title}>
                             <button
                                 onClick={() => toggleMenu(item.title)}

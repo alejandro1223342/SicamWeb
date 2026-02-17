@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import api from './api';
@@ -10,8 +10,8 @@ import MedicalOffices from './pages/MedicalOffices';
 import MedicalHistory from './pages/MedicalHistory';
 import Patients from './pages/Patients';
 import Schedules from './pages/Schedules';
-import PatientDashboard from './pages/PatientDashboard';
 import { SpecialtyProvider } from './context/SpecialtyContext';
+import PatientClinicalOffices from './pages/PatientClinicalOffices';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
 function SignIn() {
@@ -369,10 +369,12 @@ function App() {
         <Route path="/" element={<SignIn />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/patient/dashboard" element={<PatientDashboard />} />
-
-
-        {/* Dashboard Routes - Standard Nested Structure */}
+        {/* Patient Routes - Now under DashboardLayout */}
+        <Route path="/patient" element={<DashboardLayout />}>
+          <Route index element={<Navigate to="/patient/clinics" replace />} />
+          <Route path="dashboard" element={<Navigate to="/patient/clinics" replace />} />
+          <Route path="clinics" element={<PatientClinicalOffices />} />
+        </Route>
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="doctor/new" element={<DoctorRegistration />} />
