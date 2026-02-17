@@ -1,11 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
-import { Plus, X, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
+import axios from 'axios';
+import api from '../api';
+import toast, { Toaster } from 'react-hot-toast';
+import { useSpecialty } from '../context/SpecialtyContext';
 import '../index.css';
+
+// Day mapping helper (Spanish for Backend Enum)
+const getDayOfWeek = (dateString: string): string => {
+    const days = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
+    const date = new Date(dateString + 'T12:00:00');
+    return days[date.getDay()];
+};
 
 interface CalendarEvent {
     id: string;
@@ -18,43 +29,136 @@ interface CalendarEvent {
 }
 
 export default function Schedules() {
-    const [events, setEvents] = useState<CalendarEvent[]>([
-        { id: '1', title: 'Consultas Mañana', start: '2025-02-17T08:00:00', end: '2025-02-17T12:00:00', backgroundColor: '#5D5FEF', borderColor: '#5D5FEF' },
-        { id: '2', title: 'Cirugía Capilar', start: '2025-02-18T14:00:00', end: '2025-02-18T16:00:00', backgroundColor: '#F43F5E', borderColor: '#F43F5E' },
-    ]);
+    const { activeSpecialty } = useSpecialty();
+    const [events, setEvents] = useState<CalendarEvent[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [offices, setOffices] = useState<any[]>([]);
+    const [selectedOfficeId, setSelectedOfficeId] = useState<string>('');
 
     // Modal State
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-    const [formData, setFormData] = useState({
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    interface ScheduleFormData {
+        title: string;
+        color: string;
+        startDate: string;
+        endDate: string;
+        startTime: string;
+        endTime: string;
+        isActive: boolean;
+    }
+
+    const [formData, setFormData] = useState<ScheduleFormData>({
         title: '',
-        color: 'primary', // primary, success, warning, danger
+        color: 'primary',
         startDate: '',
         endDate: '',
         startTime: '09:00',
-        endTime: '10:00'
+        endTime: '10:00',
+        isActive: true
     });
 
-    // Helper to map color names to hex
-    const getColorHex = (colorName: string) => {
-        switch (colorName) {
-            case 'danger': return '#ef4444'; // Red-500
-            case 'success': return '#10b981'; // Emerald-500
-            case 'warning': return '#f59e0b'; // Amber-500
-            case 'primary': default: return '#6366f1'; // Indigo-500
+
+
+    // Load User and Offices
+    useEffect(() => {
+        const fetchInitialized = async () => {
+            try {
+                const userData = localStorage.getItem('user');
+                if (!userData) return;
+                const user = JSON.parse(userData);
+
+                // Fetch Doctor's Offices
+                const officesRes = await api.get(`/medical-offices/doctor/${user.id}`);
+                setOffices(officesRes.data);
+
+                if (officesRes.data.length > 0) {
+                    setSelectedOfficeId(officesRes.data[0].id);
+                }
+
+                // Fetch Schedules
+                fetchSchedules(user.id);
+            } catch (error) {
+                console.error('Error loading initial data:', error);
+                toast.error('Error al cargar datos del médico');
+            }
+        };
+
+        fetchInitialized();
+    }, []);
+
+    // Helper to map Spanish backend days to FullCalendar integers (0=Sunday, 1=Monday...)
+    const getDayId = (dayName: string) => {
+        const days = { 'DOMINGO': 0, 'LUNES': 1, 'MARTES': 2, 'MIERCOLES': 3, 'JUEVES': 4, 'VIERNES': 5, 'SABADO': 6 };
+        return days[dayName as keyof typeof days] ?? 1; // Default to Monday if error
+    };
+
+    const fetchSchedules = async (doctorId: string) => {
+        try {
+            setLoading(true);
+            const response = await api.get(`/schedules/doctor/${doctorId}`);
+
+            setEvents(response.data.map((s: any) => {
+                // Correctly parse ISO string to Local Time (HH:mm)
+                const extractLocalTime = (dateStr: string) => {
+                    if (!dateStr) return '00:00';
+                    const date = new Date(dateStr);
+                    const hours = date.getHours().toString().padStart(2, '0');
+                    const minutes = date.getMinutes().toString().padStart(2, '0');
+                    return `${hours}:${minutes}`;
+                };
+
+                const start = extractLocalTime(s.startTime);
+                const end = extractLocalTime(s.endTime);
+
+                const endDate = new Date(s.endDate);
+                endDate.setDate(endDate.getDate() + 1);
+
+                return {
+                    id: s.id,
+                    title: `${s.office?.name || 'Consultorio'} (${start} - ${end})`,
+                    // Recurring Event Properties
+                    daysOfWeek: [getDayId(s.dayOfWeek)],
+                    startTime: start,
+                    endTime: end,
+                    startRecur: s.startDate.split('T')[0],
+                    endRecur: endDate.toISOString().split('T')[0],
+                    // Visuals
+                    backgroundColor: s.isActive ? '#6366f1' : '#e5e7eb',
+                    borderColor: s.isActive ? '#6366f1' : '#d1d5db',
+                    textColor: s.isActive ? 'white' : '#9ca3af',
+                    extendedProps: {
+                        isActive: s.isActive !== false, // Default to true if undefined
+                        officeId: s.officeId,
+                        specialtyId: s.specialtyId,
+                        originalStartDate: s.startDate,
+                        originalEndDate: s.endDate
+                    }
+                };
+            }));
+
+            setLoading(false);
+        } catch (error) {
+            console.error(error);
+            setLoading(false);
         }
     };
 
     const handleDateSelect = (selectInfo: any) => {
         setModalMode('add');
+        const startStr = selectInfo.startStr;
+        const endStr = selectInfo.endStr;
+
         setFormData({
             title: '',
             color: 'primary',
-            startDate: selectInfo.startStr.split('T')[0],
-            endDate: selectInfo.endStr.split('T')[0] || selectInfo.startStr.split('T')[0],
-            startTime: selectInfo.startStr.includes('T') ? selectInfo.startStr.split('T')[1].substring(0, 5) : '09:00',
-            endTime: selectInfo.endStr.includes('T') ? selectInfo.endStr.split('T')[1].substring(0, 5) : '10:00'
+            startDate: startStr.includes('T') ? startStr.split('T')[0] : startStr,
+            endDate: endStr.includes('T') ? endStr.split('T')[0] : startStr,
+            startTime: startStr.includes('T') ? startStr.split('T')[1].substring(0, 5) : '09:00',
+            endTime: endStr.includes('T') ? endStr.split('T')[1].substring(0, 5) : '10:00',
+            isActive: true
         });
         setShowModal(true);
         selectInfo.view.calendar.unselect();
@@ -63,57 +167,137 @@ export default function Schedules() {
     const handleEventClick = (clickInfo: any) => {
         setModalMode('edit');
         setSelectedEventId(clickInfo.event.id);
-        const eventColorHex = clickInfo.event.backgroundColor;
-        // Simple heuristic to map back to color code if needed, or just keep strict
+
+        // Helper to extract HH:mm from a Date object
+        const formatTime = (date: Date | null) => {
+            if (!date) return '00:00';
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `${hours}:${minutes}`;
+        };
 
         setFormData({
-            title: clickInfo.event.title,
+            title: clickInfo.event.title.split('(')[0].trim(), // Clean title
             color: 'primary',
-            startDate: clickInfo.event.startStr.split('T')[0],
-            endDate: clickInfo.event.endStr ? clickInfo.event.endStr.split('T')[0] : clickInfo.event.startStr.split('T')[0],
-            startTime: clickInfo.event.startStr.includes('T') ? clickInfo.event.startStr.split('T')[1].substring(0, 5) : '00:00',
-            endTime: clickInfo.event.endStr && clickInfo.event.endStr.includes('T') ? clickInfo.event.endStr.split('T')[1].substring(0, 5) : '23:59'
+            startDate: clickInfo.event.extendedProps.originalStartDate ? clickInfo.event.extendedProps.originalStartDate.split('T')[0] : clickInfo.event.startStr.split('T')[0],
+            endDate: clickInfo.event.extendedProps.originalEndDate ? clickInfo.event.extendedProps.originalEndDate.split('T')[0] : clickInfo.event.endStr.split('T')[0],
+            startTime: formatTime(clickInfo.event.start),
+            endTime: formatTime(clickInfo.event.end || clickInfo.event.start),
+            isActive: clickInfo.event.extendedProps.isActive ?? true
         });
         setShowModal(true);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const newEvent: CalendarEvent = {
-            id: modalMode === 'edit' && selectedEventId ? selectedEventId : String(Date.now()),
-            title: formData.title,
-            start: `${formData.startDate}T${formData.startTime}:00`,
-            end: `${formData.startDate}T${formData.endTime}:00`,
-            backgroundColor: getColorHex(formData.color),
-            borderColor: getColorHex(formData.color)
-        };
+        try {
+            const userData = localStorage.getItem('user');
+            if (!userData) {
+                toast.error('Sesión no válida');
+                return;
+            }
+            const user = JSON.parse(userData);
 
-        if (modalMode === 'add') {
-            setEvents([...events, newEvent]);
-        } else {
-            setEvents(events.map(ev => ev.id === selectedEventId ? newEvent : ev));
+            if (!selectedOfficeId && offices.length === 0) {
+                toast.error('No tienes consultorios asignados para crear horarios.');
+                return;
+            }
+
+            // Construct valid Dates for startTime/endTime
+            const startDateTime = new Date(`${formData.startDate}T${formData.startTime}:00`);
+            const endDateTime = new Date(`${formData.endDate}T${formData.endTime}:00`);
+
+            const payload = {
+                officeId: selectedOfficeId || offices[0].id,
+                doctorId: user.id,
+                specialtyId: activeSpecialty?.id || user.specialties?.[0]?.specialtyId,
+                dayOfWeek: getDayOfWeek(formData.startDate),
+                startDate: new Date(formData.startDate).toISOString(),
+                endDate: new Date(formData.endDate).toISOString(),
+                startTime: startDateTime.toISOString(),
+                endTime: endDateTime.toISOString(),
+                isActive: formData.isActive
+            };
+
+            console.log('Enviando Payload:', payload);
+
+            if (!payload.specialtyId) {
+                toast.error('Selecciona una especialidad activa primero.');
+                return;
+            }
+
+            if (modalMode === 'add') {
+                await api.post('/schedules', payload);
+                toast.success('Horario creado exitosamente');
+            } else if (selectedEventId) {
+                await api.patch(`/schedules/${selectedEventId}`, payload);
+                toast.success('Horario actualizado');
+            }
+
+            setShowModal(false);
+            fetchSchedules(user.id);
+        } catch (error) {
+            console.error('Error saving schedule:', error);
+            if (axios.isAxiosError(error) && error.response) {
+                console.error('Server response:', error.response.data);
+                toast.error(`Error: ${error.response.data.message || 'Error al guardar'}`);
+            } else {
+                toast.error('Error al guardar el horario');
+            }
         }
-
-        setShowModal(false);
     };
 
     const handleDelete = () => {
-        if (selectedEventId && confirm('¿Estás seguro de eliminar este evento?')) {
-            setEvents(events.filter(ev => ev.id !== selectedEventId));
+        if (selectedEventId) {
+            setShowDeleteConfirm(true);
+        }
+    };
+
+    const confirmDelete = async () => {
+        if (!selectedEventId) return;
+
+        try {
+            await api.delete(`/schedules/${selectedEventId}`);
+            toast.success('Horario eliminado');
             setShowModal(false);
+            setShowDeleteConfirm(false);
+            const userData = localStorage.getItem('user');
+            if (userData) fetchSchedules(JSON.parse(userData).id);
+        } catch (error) {
+            console.error(error);
+            toast.error('Error al eliminar');
         }
     };
 
     return (
         <div className="management-container" style={{ maxWidth: '100%', padding: '24px' }}>
+            <Toaster position="top-right" />
 
             {/* Header */}
-            <div style={{ marginBottom: '24px' }}>
-                <h1 style={{ fontSize: '1.8rem', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Mi Agenda</h1>
-                <div style={{ fontSize: '0.95rem', color: '#6b7280' }}>
-                    Gestión de Horarios {'>'} <span style={{ color: '#6366f1', fontWeight: '500' }}>Calendario</span>
+            <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
+                <div>
+                    <h1 style={{ fontSize: '1.8rem', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Mi Agenda</h1>
+                    <div style={{ fontSize: '0.95rem', color: '#6b7280' }}>
+                        Gestión de Horarios {'>'} <span style={{ color: '#6366f1', fontWeight: '500' }}>Calendario</span>
+                    </div>
                 </div>
+
+                {offices.length > 1 && (
+                    <div style={{ minWidth: '200px' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#6b7280', marginBottom: '4px' }}>Consultorio:</label>
+                        <select
+                            className="form-input"
+                            value={selectedOfficeId}
+                            onChange={(e) => setSelectedOfficeId(e.target.value)}
+                            style={{ padding: '8px', borderRadius: '8px', border: '1px solid #e5e7eb', width: '100%' }}
+                        >
+                            {offices.map(off => (
+                                <option key={off.id} value={off.id}>{off.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
             </div>
 
             <div className="card" style={{
@@ -137,8 +321,6 @@ export default function Schedules() {
                         fontWeight: 700; 
                         color: #111827; 
                     }
-
-                    /* General Button Styles */
                     .fc-button { 
                         border-radius: 8px !important; 
                         font-weight: 500; 
@@ -151,50 +333,6 @@ export default function Schedules() {
                         color: #374151 !important;
                     }
                     .fc-button:hover { background-color: #f9fafb !important; border-color: #d1d5db !important; }
-                    .fc-button:focus { box-shadow: none !important; }
-
-                    /* Left Side: Navigation Group */
-                    .fc-toolbar-chunk:first-child {
-                        display: flex;
-                        align-items: center;
-                        gap: 12px; /* Space between nav arrows and Add button */
-                    }
-                    
-                    /* Navigation Arrows Group */
-                    .fc-prev-button, .fc-next-button {
-                        border: 1px solid #e5e7eb !important;
-                        background-color: #fff !important;
-                        color: #374151 !important;
-                        width: 40px;
-                        padding: 0 !important;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    }
-
-                    /* Add Event Button - Prominent Blue */
-                    .fc-addEventButton-button { 
-                        background-color: #5D5FEF !important; 
-                        border-color: #5D5FEF !important;
-                        color: white !important; 
-                        font-weight: 600;
-                        padding-left: 1.2rem !important;
-                        padding-right: 1.2rem !important;
-                        border: none !important;
-                    }
-                    .fc-addEventButton-button:hover { 
-                        background-color: #4f46e5 !important; 
-                        box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2) !important;
-                    }
-
-                    /* Right Side: View Switcher (Segmented Control) */
-                    .fc-button-group {
-                        background-color: #f3f4f6;
-                        padding: 4px;
-                        border-radius: 10px;
-                        gap: 0;
-                        border: none;
-                    }
                     .fc-button-group > .fc-button {
                         background-color: transparent !important;
                         border: none !important;
@@ -203,30 +341,15 @@ export default function Schedules() {
                         margin: 0 !important;
                         font-size: 0.85rem;
                     }
-                    .fc-button-group > .fc-button:hover {
-                        color: #111827 !important;
-                        background-color: rgba(255,255,255,0.5) !important;
-                    }
                     .fc-button-group > .fc-button.fc-button-active {
                         background-color: #fff !important;
                         color: #5D5FEF !important;
                         box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
                         font-weight: 600;
-                    }
-
-                    /* Hide Today button for cleaner look matching reference, or style it minimal */
+                    } 
                     .fc-today-button { display: none; } 
-
-                    /* Calendar Grid & Header */
                     .fc-theme-standard td, .fc-theme-standard th { border-color: #f3f4f6; }
                     .fc-col-header-cell { padding: 16px 0; background: transparent; border-bottom: 2px solid #f3f4f6; }
-                    .fc-col-header-cell-cushion { color: #9ca3af; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
-                    .fc-timegrid-slot { height: 3.5rem !important; }
-                    .fc-timegrid-slot-label-cushion { font-size: 0.75rem; color: #9ca3af; font-weight: 500; }
-                    .fc-scrollgrid { border: none !important; }
-                    .fc-scrollgrid-section-header > td { border: none !important; }
-                    
-                    /* Events */
                     .fc-event { 
                         border-radius: 6px; 
                         border: none; 
@@ -234,6 +357,11 @@ export default function Schedules() {
                         font-size: 0.85rem; 
                         font-weight: 500;
                         box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+                    }
+                    .fc-addEventButton-button { 
+                        background-color: #5D5FEF !important; 
+                        border-color: #5D5FEF !important;
+                        color: white !important; 
                     }
                 `}</style>
 
@@ -271,6 +399,52 @@ export default function Schedules() {
                         height="100%"
                         expandRows={true}
                         stickyHeaderDates={true}
+                        eventDrop={async (info) => {
+                            try {
+                                const newStart = info.event.start;
+                                const newEnd = info.event.end || info.event.start; // Fallback if null
+
+                                if (!newStart || !newEnd) return;
+
+                                // Helper to map Spanish backend days
+                                const days = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
+                                const dayOfWeek = days[newStart.getDay()];
+
+                                // Send ISO strings as expected by backend DTO
+                                await api.patch(`/schedules/${info.event.id}`, {
+                                    startTime: newStart.toISOString(),
+                                    endTime: newEnd.toISOString(),
+                                    dayOfWeek
+                                });
+
+                                toast.success('Horario actualizado');
+                            } catch (error: any) {
+                                console.error('Error updating schedule via drag:', error);
+                                const msg = error.response?.data?.message || 'Error al mover el evento';
+                                toast.error(`Error: ${Array.isArray(msg) ? msg[0] : msg}`);
+                                info.revert();
+                            }
+                        }}
+                        eventResize={async (info) => {
+                            try {
+                                const newStart = info.event.start;
+                                const newEnd = info.event.end;
+
+                                if (!newStart || !newEnd) return;
+
+                                await api.patch(`/schedules/${info.event.id}`, {
+                                    startTime: newStart.toISOString(),
+                                    endTime: newEnd.toISOString()
+                                });
+
+                                toast.success('Duración actualizada');
+                            } catch (error: any) {
+                                console.error('Error updating schedule via resize:', error);
+                                const msg = error.response?.data?.message || 'Error al cambiar duración';
+                                toast.error(`Error: ${Array.isArray(msg) ? msg[0] : msg}`);
+                                info.revert();
+                            }
+                        }}
                     />
                 </div>
             </div>
@@ -344,6 +518,19 @@ export default function Schedules() {
                                 </div>
                             </div>
 
+                            <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <input
+                                    type="checkbox"
+                                    id="isActive"
+                                    checked={formData.isActive}
+                                    onChange={e => setFormData({ ...formData, isActive: e.target.checked })}
+                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                />
+                                <label htmlFor="isActive" style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151', cursor: 'pointer' }}>
+                                    Horario Activo
+                                </label>
+                            </div>
+
                             <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '16px', borderTop: '1px solid #f3f4f6' }}>
                                 {modalMode === 'edit' ? (
                                     <button type="button" onClick={handleDelete} style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}>
@@ -364,6 +551,38 @@ export default function Schedules() {
                     </div>
                 </div>
             )}
-        </div>
+
+            {
+                showDeleteConfirm && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>
+                        <div style={{ background: 'white', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', transform: 'scale(1)', transition: 'transform 0.2s' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+                                    <AlertTriangle size={24} color="#ef4444" />
+                                </div>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>¿Eliminar este horario?</h3>
+                                <p style={{ color: '#6b7280', fontSize: '0.95rem', marginBottom: '24px' }}>
+                                    Esta acción no se puede deshacer. El horario se eliminará permanentemente de tu calendario.
+                                </p>
+                                <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+                                    <button
+                                        onClick={() => setShowDeleteConfirm(false)}
+                                        style={{ flex: 1, background: 'white', border: '1px solid #d1d5db', color: '#374151', padding: '10px', borderRadius: '8px', fontWeight: '500', cursor: 'pointer', transition: 'background 0.2s' }}
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={confirmDelete}
+                                        style={{ flex: 1, background: '#ef4444', border: 'none', color: 'white', padding: '10px', borderRadius: '8px', fontWeight: '500', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.4)', transition: 'background 0.2s' }}
+                                    >
+                                        Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 }

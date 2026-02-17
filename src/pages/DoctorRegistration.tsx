@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { UserPlus, Phone, Mail, Save, X, Hash, Search, Edit, UserCheck, UserX } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -47,7 +47,7 @@ const DoctorRegistration: React.FC = () => {
 
     const fetchSpecialties = async () => {
         try {
-            const response = await axios.get('http://localhost:3000/specialties');
+            const response = await api.get('/specialties');
             setSpecialties(response.data);
         } catch (err) {
             console.error('Error fetching specialties:', err);
@@ -57,7 +57,7 @@ const DoctorRegistration: React.FC = () => {
     const fetchDoctors = async () => {
         setFetchingDoctors(true);
         try {
-            const response = await axios.get('http://localhost:3000/users/doctors');
+            const response = await api.get('/users/doctors');
             setDoctors(response.data);
         } catch (err) {
             console.error('Error fetching doctors:', err);
@@ -105,7 +105,7 @@ const DoctorRegistration: React.FC = () => {
 
     const toggleDoctorStatus = async (doctor: Doctor) => {
         try {
-            await axios.patch(`http://localhost:3000/users/doctors/${doctor.id}`, {
+            await api.patch(`/users/doctors/${doctor.id}`, {
                 isActive: !doctor.isActive
             });
             toast.success(`Médico ${!doctor.isActive ? 'activado' : 'desactivado'} correctamente`);
@@ -127,11 +127,11 @@ const DoctorRegistration: React.FC = () => {
                 const updateData: any = { ...formData };
                 if (!updateData.password) delete updateData.password;
 
-                await axios.patch(`http://localhost:3000/users/doctors/${selectedDoctorId}`, updateData);
+                await api.patch(`/users/doctors/${selectedDoctorId}`, updateData);
                 toast.success('Médico actualizado correctamente');
                 setSuccess(true);
             } else {
-                await axios.post('http://localhost:3000/users/doctors', formData);
+                await api.post('/users/doctors', formData);
                 toast.success('Médico registrado correctamente');
                 setSuccess(true);
             }

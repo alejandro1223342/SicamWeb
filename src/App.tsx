@@ -1,7 +1,7 @@
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import axios from 'axios';
+import api from './api';
 import './index.css';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Dashboard from './pages/Dashboard';
@@ -44,7 +44,7 @@ function SignIn() {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3000/auth/login', {
+      const response = await api.post('/auth/login', {
         email: formData.email,
         password: formData.password
       });
@@ -206,7 +206,7 @@ function SignUp() {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3000/users/patients', {
+      const response = await api.post('/users/patients', {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,

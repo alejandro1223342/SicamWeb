@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { UserPlus, Search, Edit, Mail, Phone, ClipboardList, PlusCircle, X, Loader2 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useSpecialty } from '../context/SpecialtyContext';
@@ -46,7 +46,7 @@ const Patients: React.FC = () => {
         try {
             // Check if there is a specific endpoint for patients or use the general users one
             // For now, mocking until backend is confirmed, but trying the logical endpoint
-            const response = await axios.get('http://localhost:3000/users/patients');
+            const response = await api.get('/users/patients');
             setPatients(response.data);
         } catch (err) {
             console.error('Error fetching patients:', err);
@@ -97,10 +97,10 @@ const Patients: React.FC = () => {
 
         try {
             if (isEditing && selectedPatientId) {
-                await axios.patch(`http://localhost:3000/users/patients/${selectedPatientId}`, formData);
+                await api.patch(`/users/patients/${selectedPatientId}`, formData);
                 toast.success('Paciente actualizado correctamente');
             } else {
-                await axios.post('http://localhost:3000/users/patients', formData);
+                await api.post('/users/patients', formData);
                 toast.success('Paciente registrado correctamente');
             }
 

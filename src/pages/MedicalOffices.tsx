@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import {
     Building2,
     MapPin,
@@ -70,7 +70,7 @@ export default function MedicalOffices() {
 
     const fetchOffices = async () => {
         try {
-            const response = await axios.get('http://localhost:3000/medical-offices');
+            const response = await api.get('/medical-offices');
             setOffices(response.data);
         } catch (error) {
             console.error('Error fetching offices:', error);
@@ -82,7 +82,7 @@ export default function MedicalOffices() {
 
     const fetchDoctors = async () => {
         try {
-            const response = await axios.get('http://localhost:3000/users/doctors');
+            const response = await api.get('/users/doctors');
             setDoctors(response.data);
         } catch (error) {
             console.error('Error fetching doctors:', error);
@@ -117,10 +117,10 @@ export default function MedicalOffices() {
         e.preventDefault();
         try {
             if (isEditing && editingId) {
-                await axios.patch(`http://localhost:3000/medical-offices/${editingId}`, officeForm);
+                await api.patch(`/medical-offices/${editingId}`, officeForm);
                 toast.success('Consultorio actualizado exitosamente');
             } else {
-                await axios.post('http://localhost:3000/medical-offices', officeForm);
+                await api.post('/medical-offices', officeForm);
                 toast.success('Consultorio creado exitosamente');
             }
             setShowOfficeModal(false);
@@ -133,7 +133,7 @@ export default function MedicalOffices() {
 
     const toggleOfficeStatus = async (office: MedicalOffice) => {
         try {
-            await axios.patch(`http://localhost:3000/medical-offices/${office.id}`, {
+            await api.patch(`/medical-offices/${office.id}`, {
                 isActive: !office.isActive
             });
             toast.success(`Consultorio ${!office.isActive ? 'activado' : 'desactivado'} exitosamente`);
@@ -148,7 +148,7 @@ export default function MedicalOffices() {
         if (!selectedOffice || !assignDoctorId) return;
 
         try {
-            await axios.post(`http://localhost:3000/medical-offices/${selectedOffice.id}/assign/${assignDoctorId}`);
+            await api.post(`/medical-offices/${selectedOffice.id}/assign/${assignDoctorId}`);
             toast.success('Médico asignado exitosamente');
             setShowAssignModal(false);
             setAssignDoctorId('');
@@ -161,7 +161,7 @@ export default function MedicalOffices() {
     const handleUnassignDoctor = async (officeId: string, doctorId: string) => {
         if (!confirm('¿Está seguro de querer desvincular a este médico de este consultorio?')) return;
         try {
-            await axios.delete(`http://localhost:3000/medical-offices/${officeId}/unassign/${doctorId}`);
+            await api.delete(`/medical-offices/${officeId}/unassign/${doctorId}`);
             toast.success('Médico desvinculado exitosamente');
             fetchOffices();
         } catch (error) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useSpecialty } from '../context/SpecialtyContext';
 import { Loader2, Save, FileText, Stethoscope } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -37,7 +37,7 @@ export default function MedicalHistory() {
             if (!activeSpecialty) return;
             setLoading(true);
             try {
-                const response = await axios.get(`http://localhost:3000/medical-records/template/${activeSpecialty.id}`);
+                const response = await api.get(`/medical-records/template/${activeSpecialty.id}`);
                 setTemplate(response.data);
 
                 // Initialize form data
@@ -73,7 +73,7 @@ export default function MedicalHistory() {
             const userData = localStorage.getItem('user');
             const user = userData ? JSON.parse(userData) : {};
 
-            await axios.post('http://localhost:3000/medical-records', {
+            await api.post('/medical-records', {
                 patientId: selectedPatientId,
                 doctorId: user.id || '00000000-0000-0000-0000-000000000000',
                 specialtyId: activeSpecialty.id,
