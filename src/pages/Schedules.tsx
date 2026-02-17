@@ -39,7 +39,6 @@ interface CalendarEvent {
 export default function Schedules() {
     const { activeSpecialty } = useSpecialty();
     const [events, setEvents] = useState<CalendarEvent[]>([]);
-    const [loading, setLoading] = useState(false);
     const [offices, setOffices] = useState<any[]>([]);
     const [selectedOfficeId, setSelectedOfficeId] = useState<string>('');
 
@@ -110,7 +109,6 @@ export default function Schedules() {
 
     const fetchSchedules = async (doctorId: string) => {
         try {
-            setLoading(true);
             const response = await api.get(`/schedules/doctor/${doctorId}`);
 
             setEvents(response.data.map((s: any) => {
@@ -151,11 +149,8 @@ export default function Schedules() {
                     }
                 };
             }));
-
-            setLoading(false);
         } catch (error) {
             console.error(error);
-            setLoading(false);
         }
     };
 

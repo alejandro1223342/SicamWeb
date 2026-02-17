@@ -10,6 +10,7 @@ import MedicalOffices from './pages/MedicalOffices';
 import MedicalHistory from './pages/MedicalHistory';
 import Patients from './pages/Patients';
 import Schedules from './pages/Schedules';
+import PatientDashboard from './pages/PatientDashboard';
 import { SpecialtyProvider } from './context/SpecialtyContext';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
@@ -51,11 +52,16 @@ function SignIn() {
 
       console.log('Inicio de sesión exitoso:', response.data);
 
-      // Guardar info del usuario si es necesario (ej. localStorage)
-      localStorage.setItem('user', JSON.stringify(response.data));
+      const { access_token, ...user } = response.data;
+      localStorage.setItem('token', access_token);
+      localStorage.setItem('user', JSON.stringify(user));
 
-      // Redirigir al dashboard
-      navigate('/dashboard');
+      // Redirigir al dashboard según el rol
+      if (user.role === 'PACIENTE') {
+        navigate('/patient/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       console.error('Error al iniciar sesión:', err);
 
@@ -363,6 +369,7 @@ function App() {
         <Route path="/" element={<SignIn />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/patient/dashboard" element={<PatientDashboard />} />
 
 
         {/* Dashboard Routes - Standard Nested Structure */}
