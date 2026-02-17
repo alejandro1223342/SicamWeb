@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -26,6 +26,14 @@ interface CalendarEvent {
     backgroundColor?: string;
     borderColor?: string;
     allDay?: boolean;
+    textColor?: string;
+    extendedProps?: {
+        isActive?: boolean;
+        officeId?: string;
+        specialtyId?: string;
+        originalStartDate?: string;
+        originalEndDate?: string;
+    };
 }
 
 export default function Schedules() {
@@ -59,6 +67,11 @@ export default function Schedules() {
         endTime: '10:00',
         isActive: true
     });
+
+    const filteredEvents = useMemo(() => {
+        if (!selectedOfficeId) return events;
+        return events.filter(event => event.extendedProps?.officeId === selectedOfficeId);
+    }, [events, selectedOfficeId]);
 
 
 
@@ -390,7 +403,7 @@ export default function Schedules() {
                         dayMaxEvents={true}
                         weekends={true}
                         initialEvents={events}
-                        events={events}
+                        events={filteredEvents}
                         select={handleDateSelect}
                         eventClick={handleEventClick}
                         slotMinTime="06:00:00"
