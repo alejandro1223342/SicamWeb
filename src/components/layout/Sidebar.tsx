@@ -85,6 +85,7 @@ export default function Sidebar() {
             icon: <Stethoscope size={20} />,
             children: [
                 { title: 'Mi Agenda', icon: <Calendar size={20} />, path: '/dashboard/schedules' },
+                { title: 'Citas', icon: <ClipboardList size={20} />, path: '/dashboard/appointments' },
                 { title: 'Mis Pacientes', icon: <Users size={20} />, path: '/dashboard/patients' },
                 { title: 'Historias Clínicas', icon: <ClipboardList size={20} />, path: '/dashboard/medical-history' },
             ],

@@ -12,6 +12,7 @@ import Patients from './pages/Patients';
 import Schedules from './pages/Schedules';
 import { SpecialtyProvider, useSpecialty } from './context/SpecialtyContext';
 import PatientClinicalOffices from './pages/PatientClinicalOffices';
+import Appointments from './pages/Appointments';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
 function SignIn() {
@@ -363,6 +364,9 @@ function SignUp() {
 
 import { ToastProvider } from './components/Toast';
 
+// Componente de Sign In con diseño TailAdmin y conexión al backend
+// ... (Skipping auth components update context, doing inline replacement for routes)
+
 function App() {
   const location = useLocation();
 
@@ -389,6 +393,7 @@ function App() {
             <Route path="medical-history" element={<MedicalHistory />} />
             <Route path="patients" element={<Patients />} />
             <Route path="schedules" element={<Schedules />} />
+            <Route path="appointments" element={<Appointments />} />
           </Route>
 
           <Route path="*" element={<div style={{ padding: '50px', textAlign: 'center' }}>

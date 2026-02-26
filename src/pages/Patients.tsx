@@ -44,13 +44,24 @@ const Patients: React.FC = () => {
     const fetchPatients = async () => {
         setFetchingPatients(true);
         try {
-            // Check if there is a specific endpoint for patients or use the general users one
-            // For now, mocking until backend is confirmed, but trying the logical endpoint
-            const response = await api.get('/users/patients');
-            setPatients(response.data);
+            const userData = localStorage.getItem('user');
+            if (!userData) {
+                setPatients([]);
+                return;
+            }
+
+            const user = JSON.parse(userData);
+
+            if (user.role === 'MEDICO') {
+                const response = await api.get(`/users/patients/doctor/${user.id}`);
+                setPatients(response.data);
+            } else {
+                // For admin or receptionist
+                const response = await api.get('/users/patients');
+                setPatients(response.data);
+            }
         } catch (err) {
             console.error('Error fetching patients:', err);
-            // Fallback empty list if error
             setPatients([]);
         } finally {
             setFetchingPatients(false);
