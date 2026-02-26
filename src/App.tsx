@@ -361,6 +361,8 @@ function SignUp() {
   );
 }
 
+import { ToastProvider } from './components/Toast';
+
 function App() {
   const location = useLocation();
 
@@ -368,32 +370,34 @@ function App() {
   console.log("APP RENDER | PATH:", location.pathname, "| KEY:", location.key);
 
   return (
-    <SpecialtyProvider>
-      <Routes key={location.pathname}>
-        <Route path="/" element={<SignIn />} />
-        <Route path="/signin" element={<SignIn />} />
-        <Route path="/signup" element={<SignUp />} />
-        {/* Patient Routes - Now under DashboardLayout */}
-        <Route path="/patient" element={<DashboardLayout />}>
-          <Route index element={<Navigate to="/patient/clinics" replace />} />
-          <Route path="dashboard" element={<Navigate to="/patient/clinics" replace />} />
-          <Route path="clinics" element={<PatientClinicalOffices />} />
-        </Route>
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="doctor/new" element={<DoctorRegistration />} />
-          <Route path="medical-offices" element={<MedicalOffices />} />
-          <Route path="medical-history" element={<MedicalHistory />} />
-          <Route path="patients" element={<Patients />} />
-          <Route path="schedules" element={<Schedules />} />
-        </Route>
+    <ToastProvider>
+      <SpecialtyProvider>
+        <Routes key={location.pathname}>
+          <Route path="/" element={<SignIn />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/signup" element={<SignUp />} />
+          {/* Patient Routes - Now under DashboardLayout */}
+          <Route path="/patient" element={<DashboardLayout />}>
+            <Route index element={<Navigate to="/patient/clinics" replace />} />
+            <Route path="dashboard" element={<Navigate to="/patient/clinics" replace />} />
+            <Route path="clinics" element={<PatientClinicalOffices />} />
+          </Route>
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="doctor/new" element={<DoctorRegistration />} />
+            <Route path="medical-offices" element={<MedicalOffices />} />
+            <Route path="medical-history" element={<MedicalHistory />} />
+            <Route path="patients" element={<Patients />} />
+            <Route path="schedules" element={<Schedules />} />
+          </Route>
 
-        <Route path="*" element={<div style={{ padding: '50px', textAlign: 'center' }}>
-          <h1>404 - Página no encontrada</h1>
-          <p>La ruta solicitada no existe.</p>
-        </div>} />
-      </Routes>
-    </SpecialtyProvider>
+          <Route path="*" element={<div style={{ padding: '50px', textAlign: 'center' }}>
+            <h1>404 - Página no encontrada</h1>
+            <p>La ruta solicitada no existe.</p>
+          </div>} />
+        </Routes>
+      </SpecialtyProvider>
+    </ToastProvider>
   );
 }
 

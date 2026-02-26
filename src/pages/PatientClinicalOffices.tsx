@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import { Building2, Phone, MapPin, ArrowRight, User, Stethoscope, X, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { useToast } from '../components/Toast';
 
+// ... (interfaces remain the same)
 interface Specialty {
     id: string;
     name: string;
@@ -45,6 +47,7 @@ interface DoctorCardData {
 }
 
 export default function PatientClinicalOffices() {
+    const { showToast } = useToast();
     const [doctorCards, setDoctorCards] = useState<DoctorCardData[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedDoctor, setSelectedDoctor] = useState<DoctorCardData | null>(null);
@@ -83,13 +86,14 @@ export default function PatientClinicalOffices() {
                 setDoctorCards(cards);
             } catch (error) {
                 console.error('Error fetching data:', error);
+                showToast('Error al cargar la información de los especialistas.', 'error');
             } finally {
                 setLoading(false);
             }
         };
 
         fetchOffices();
-    }, []);
+    }, [showToast]);
 
     const dayNameMap: { [key: string]: number } = {
         'DOMINGO': 0,
@@ -171,6 +175,54 @@ export default function PatientClinicalOffices() {
         if (selectedDoctor) {
             const slots = generateTimeSlots(date, selectedDoctor.schedules);
             setAvailableSlots(slots);
+        }
+    };
+
+    const handleConfirmAppointment = async () => {
+        if (!selectedDate || !selectedSlot || !selectedDoctor) return;
+
+        try {
+            setLoading(true);
+
+            // Reconstruct full DateTime for the appointment
+            const [hours, minutes] = selectedSlot.split(':').map(Number);
+            const appointmentDate = new Date(selectedDate);
+            appointmentDate.setHours(hours, minutes, 0, 0);
+
+            // Find the correct schedule ID based on the day of week
+            const dayNames = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
+            const dayName = dayNames[appointmentDate.getDay()];
+            const schedule = selectedDoctor.schedules.find(s => s.dayOfWeek === dayName);
+
+            if (!schedule) {
+                showToast('Horario no encontrado para este día.', 'error');
+                return;
+            }
+
+            // Get logged-in patient user
+            const userData = localStorage.getItem('user');
+            if (!userData) {
+                showToast('Debe iniciar sesión para agendar una cita.', 'warning');
+                return;
+            }
+            const user = JSON.parse(userData);
+
+            const payload = {
+                patientId: user.id,
+                scheduleId: schedule.id,
+                appointmentDate: appointmentDate.toISOString(),
+                notes: 'Agendado desde el portal de pacientes'
+            };
+
+            await api.post('/appointments', payload);
+
+            showToast('¡Cita agendada exitosamente!', 'success');
+            setShowAgenda(false);
+        } catch (error) {
+            console.error('Error al agendar cita:', error);
+            showToast('Ocurrió un error al intentar agendar la cita. Por favor intente de nuevo.', 'error');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -310,7 +362,11 @@ export default function PatientClinicalOffices() {
 
                         <div className="modal-footer-premium">
                             <p className="footer-notice">* Las citas tienen una duración estimada de 60 minutos.</p>
-                            <button className="btn-confirm-selection" disabled={!selectedDate || !selectedSlot}>
+                            <button
+                                className="btn-confirm-selection"
+                                disabled={!selectedDate || !selectedSlot}
+                                onClick={handleConfirmAppointment}
+                            >
                                 Confirmar Fecha y Hora
                             </button>
                         </div>
