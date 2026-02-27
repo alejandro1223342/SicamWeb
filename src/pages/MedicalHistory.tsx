@@ -1,120 +1,111 @@
-import React, { useState, useEffect } from 'react';
-import api from '../api';
-import { useSpecialty } from '../context/SpecialtyContext';
-import { Loader2, Save, FileText, Stethoscope } from 'lucide-react';
+import React, { useState } from 'react';
+import { Save, User, ShieldAlert, Syringe, AlertTriangle, Search, FileText, Stethoscope, FileSignature } from 'lucide-react';
+import EmergencyContactForm from '../components/medical-history/EmergencyContactForm';
+import FamilyHistoryForm from '../components/medical-history/FamilyHistoryForm';
+import RecentVaccinesForm from '../components/medical-history/RecentVaccinesForm';
+import RiskFactorsForm from '../components/medical-history/RiskFactorsForm';
+import TricologyFindingsForm from '../components/medical-history/TricologyFindingsForm';
+import LabResultsForm from '../components/medical-history/LabResultsForm';
+import DiagnosisActivityForm from '../components/medical-history/DiagnosisActivityForm';
+import ComplementaryExamsForm from '../components/medical-history/ComplementaryExamsForm';
 import toast from 'react-hot-toast';
 
-interface TemplateField {
-    id: string;
-    label: string;
-    type: 'text' | 'textarea' | 'select' | 'number';
-    options?: string[];
-    required?: boolean;
+type SectionKey = 'emergency' | 'family' | 'vaccines' | 'risks' | 'labresults' | 'diagnosis' | 'exams' | 'tricology';
+
+interface SectionDef {
+    id: SectionKey;
+    title: string;
+    icon: React.ReactNode;
 }
 
-interface SpecialtyTemplate {
-    schema: {
-        fields: TemplateField[];
-    };
-}
+const SECTIONS: SectionDef[] = [
+    { id: 'emergency', title: 'Contactos de emergencia', icon: <User size={18} /> },
+    { id: 'family', title: 'Antecedentes familiares', icon: <ShieldAlert size={18} /> },
+    { id: 'vaccines', title: 'Vacunas recientes', icon: <Syringe size={18} /> },
+    { id: 'risks', title: 'Factores y conductas de riesgo', icon: <AlertTriangle size={18} /> },
+    { id: 'tricology', title: 'Hallazgos en tricología', icon: <Search size={18} /> },
+    { id: 'labresults', title: 'Resultados de laboratorio e imágenes', icon: <FileText size={18} /> },
+    { id: 'diagnosis', title: 'Diagnóstico/Actividad', icon: <Stethoscope size={18} /> },
+    { id: 'exams', title: 'Exámenes complementarios solicitados', icon: <FileSignature size={18} /> },
+];
 
 export default function MedicalHistory() {
-    const { activeSpecialty } = useSpecialty();
-    const [template, setTemplate] = useState<SpecialtyTemplate | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [activeSection, setActiveSection] = useState<SectionKey>('emergency');
     const [saving, setSaving] = useState(false);
-    const [formData, setFormData] = useState<any>({});
-    const [diagnosis, setDiagnosis] = useState('');
-    const [treatment, setTreatment] = useState('');
-    const [notes, setNotes] = useState('');
 
-    // For patient search (Mocking for now, will link to real patients later)
-    // Using a placeholder UUID for development
-    const [selectedPatientId] = useState('00000000-0000-0000-0000-000000000000');
+    // Master state for the entire form
+    const [formData, setFormData] = useState({
+        emergency: { name: '', relation: '', phone: '', address: '' },
+        family: [] as string[],
+        vaccines: [] as string[],
+        risks: [] as string[],
+        labresults: [] as any[],
+        diagnosis: [] as any[],
+        exams: { category: '', options: [] as string[], other: '', diagnosis: '' },
+        tricology: { text: '', files: [] as string[] }
+    });
 
-    useEffect(() => {
-        const fetchTemplate = async () => {
-            if (!activeSpecialty) return;
-            setLoading(true);
-            try {
-                const response = await api.get(`/medical-records/template/${activeSpecialty.id}`);
-                setTemplate(response.data);
-
-                // Initialize form data
-                const initialData: any = {};
-                if (response.data?.schema?.fields) {
-                    response.data.schema.fields.forEach((f: TemplateField) => {
-                        initialData[f.id] = '';
-                    });
-                }
-                setFormData(initialData);
-            } catch (error) {
-                console.error('Error fetching template:', error);
-                toast.error('No se pudo cargar la plantilla de la especialidad');
-                setTemplate(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchTemplate();
-    }, [activeSpecialty]);
-
-    const handleFieldChange = (id: string, value: any) => {
-        setFormData((prev: any) => ({ ...prev, [id]: value }));
+    const handleUpdateSection = (section: SectionKey, data: any) => {
+        setFormData(prev => ({ ...prev, [section]: data }));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!activeSpecialty) return;
+    const isSectionComplete = (section: SectionKey) => {
+        const data = formData[section];
+        if (section === 'emergency') {
+            const e = data as any;
+            return e.name && e.relation && e.phone && e.address;
+        }
+        if (section === 'tricology') {
+            const t = data as any;
+            return t.text.length > 0 || t.files.length > 0;
+        }
+        if (section === 'exams') {
+            const x = data as any;
+            return (x.options && x.options.length > 0) || x.other.length > 0;
+        }
+        // Arrays for checklists and tables
+        return Array.isArray(data) && data.length > 0;
+    };
 
+    const handleSaveAll = async () => {
         setSaving(true);
-        try {
-            const userData = localStorage.getItem('user');
-            const user = userData ? JSON.parse(userData) : {};
-
-            await api.post('/medical-records', {
-                patientId: selectedPatientId,
-                doctorId: user.id || '00000000-0000-0000-0000-000000000000',
-                specialtyId: activeSpecialty.id,
-                data: formData,
-                diagnosis,
-                treatment,
-                notes
-            });
-            toast.success('Historia clínica guardada correctamente');
-        } catch (error) {
-            console.error('Error saving record:', error);
-            toast.error('Error al guardar la historia clínica');
-        } finally {
+        // Simulate API Call
+        setTimeout(() => {
+            console.log('Saved Data:', formData);
+            toast.success('Historia clínica guardada exitosamente');
             setSaving(false);
+        }, 1500);
+    };
+
+    const renderActiveSection = () => {
+        switch (activeSection) {
+            case 'emergency':
+                return <EmergencyContactForm data={formData.emergency} onChange={(d) => handleUpdateSection('emergency', d)} onSave={() => setActiveSection('family')} />;
+            case 'family':
+                return <FamilyHistoryForm data={formData.family} onChange={(d) => handleUpdateSection('family', d)} onSave={() => setActiveSection('vaccines')} />;
+            case 'vaccines':
+                return <RecentVaccinesForm data={formData.vaccines} onChange={(d) => handleUpdateSection('vaccines', d)} onSave={() => setActiveSection('risks')} />;
+            case 'risks':
+                return <RiskFactorsForm data={formData.risks} onChange={(d) => handleUpdateSection('risks', d)} onSave={() => setActiveSection('tricology')} />;
+            case 'tricology':
+                return <TricologyFindingsForm data={formData.tricology} onChange={(d) => handleUpdateSection('tricology', d)} onSave={() => setActiveSection('labresults')} />;
+            case 'labresults':
+                return <LabResultsForm data={formData.labresults} onChange={(d) => handleUpdateSection('labresults', d)} onSave={() => setActiveSection('diagnosis')} />;
+            case 'diagnosis':
+                return <DiagnosisActivityForm data={formData.diagnosis} onChange={(d) => handleUpdateSection('diagnosis', d)} onSave={() => setActiveSection('exams')} />;
+            case 'exams':
+                return <ComplementaryExamsForm data={formData.exams} onChange={(d) => handleUpdateSection('exams', d)} onSave={handleSaveAll} />;
+            default:
+                return null;
         }
     };
 
-    if (loading) {
-        return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '100px' }}>
-                <Loader2 className="animate-spin text-primary" size={40} style={{ color: 'var(--primary)' }} />
-            </div>
-        );
-    }
-
-    if (!activeSpecialty) {
-        return (
-            <div className="chart-card" style={{ padding: '80px 20px', textAlign: 'center' }}>
-                <FileText size={48} className="mx-auto" style={{ margin: '0 auto 16px', color: 'var(--border)' }} />
-                <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>Selecciona una especialidad</h3>
-                <p style={{ color: 'var(--text-gray)' }}>Por favor, selecciona una especialidad en la barra lateral para comenzar.</p>
-            </div>
-        );
-    }
-
     return (
-        <div className="management-container" style={{ padding: '24px' }}>
-            <div className="management-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <div className="management-container" style={{ padding: '24px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div className="management-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
                     <h2 className="management-title" style={{ fontSize: '24px', fontWeight: '700', margin: '0' }}>
-                        Historia Clínica - {activeSpecialty.name}
+                        Historia Clínica - Tricología (Diseño)
                     </h2>
                     <p className="management-subtitle" style={{ color: 'var(--text-gray)', marginTop: '4px' }}>
                         Registro de evolución clínica especializada
@@ -123,104 +114,71 @@ export default function MedicalHistory() {
                 <div className="management-actions">
                     <button
                         className="submit-btn"
-                        onClick={handleSubmit}
+                        onClick={handleSaveAll}
                         disabled={saving}
-                        style={{ width: 'auto', padding: '0 24px', display: 'flex', alignItems: 'center', gap: '8px', height: '44px' }}
+                        style={{ width: 'auto', padding: '0 24px', display: 'flex', alignItems: 'center', gap: '8px', height: '44px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '8px', border: 'none', fontWeight: '600', cursor: 'pointer' }}
                     >
-                        {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                        {saving ? 'Guardando...' : 'Guardar Historia'}
+                        {saving ? <div className="loader" style={{ width: '18px', height: '18px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} /> : <Save size={18} />}
+                        {saving ? 'Guardando...' : 'Guardar Todo'}
                     </button>
                 </div>
             </div>
 
-            <div className="chart-card" style={{ padding: '32px', background: 'white', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                <form className="space-y-6" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    {/* General Section */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-                        <div className="form-group">
-                            <label className="form-label" style={{ fontWeight: '500', marginBottom: '8px', display: 'block' }}>Diagnóstico Principal</label>
-                            <input
-                                type="text"
-                                className="form-input"
-                                value={diagnosis}
-                                onChange={(e) => setDiagnosis(e.target.value)}
-                                placeholder="Ej: Alopecia androgenética"
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label" style={{ fontWeight: '500', marginBottom: '8px', display: 'block' }}>Tratamiento Sugerido</label>
-                            <input
-                                type="text"
-                                className="form-input"
-                                value={treatment}
-                                onChange={(e) => setTreatment(e.target.value)}
-                                placeholder="Ej: Minoxidil al 5%"
-                            />
-                        </div>
-                    </div>
+            <div style={{ display: 'flex', gap: '24px', flex: 1, alignItems: 'flex-start' }}>
 
-                    {/* Dynamic Specialty Section */}
-                    <div style={{ borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9', padding: '32px 0' }}>
-                        <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Stethoscope size={20} style={{ color: 'var(--primary)' }} />
-                            Exploración Especializada ({activeSpecialty.name})
-                        </h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-                            {template?.schema.fields.map(field => (
-                                <div key={field.id} className="form-group">
-                                    <label className="form-label" style={{ fontWeight: '500', marginBottom: '8px', display: 'block' }}>
-                                        {field.label}
-                                        {field.required && <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>}
-                                    </label>
-
-                                    {field.type === 'textarea' ? (
-                                        <textarea
-                                            className="form-input"
-                                            rows={3}
-                                            value={formData[field.id] || ''}
-                                            onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                                            style={{ minHeight: '100px', resize: 'vertical' }}
-                                        />
-                                    ) : field.type === 'select' ? (
-                                        <select
-                                            className="form-input"
-                                            value={formData[field.id] || ''}
-                                            onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                                            style={{ height: '44px' }}
-                                        >
-                                            <option value="">Seleccionar...</option>
-                                            {field.options?.map(opt => (
-                                                <option key={opt} value={opt}>{opt}</option>
-                                            ))}
-                                        </select>
-                                    ) : (
-                                        <input
-                                            type={field.type}
-                                            className="form-input"
-                                            value={formData[field.id] || ''}
-                                            onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                                            style={{ height: '44px' }}
-                                        />
+                {/* Sidebar Nav */}
+                <div style={{ width: '280px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', flexShrink: 0, position: 'sticky', top: '24px' }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px', paddingLeft: '12px' }}>
+                        Secciones
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {SECTIONS.map((section) => {
+                            const isActive = activeSection === section.id;
+                            const isComplete = isSectionComplete(section.id);
+                            return (
+                                <button
+                                    key={section.id}
+                                    onClick={() => setActiveSection(section.id)}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        width: '100%', padding: '12px', borderRadius: '8px', border: 'none',
+                                        backgroundColor: isActive ? '#eff6ff' : 'transparent',
+                                        color: isActive ? '#1d4ed8' : '#475569',
+                                        fontWeight: isActive ? '600' : '500',
+                                        cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left'
+                                    }}
+                                    onMouseOver={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = '#f8fafc'; }}
+                                    onMouseOut={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <span style={{ color: isActive ? '#3b82f6' : '#94a3b8' }}>{section.icon}</span>
+                                        {section.title}
+                                    </div>
+                                    {isComplete && (
+                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
                                     )}
-                                </div>
-                            ))}
-                        </div>
+                                </button>
+                            );
+                        })}
                     </div>
+                </div>
 
-                    {/* Notes Section */}
-                    <div className="form-group">
-                        <label className="form-label" style={{ fontWeight: '500', marginBottom: '8px', display: 'block' }}>Observaciones Adicionales</label>
-                        <textarea
-                            className="form-input"
-                            rows={4}
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                            placeholder="Notas clínicas adicionales..."
-                            style={{ minHeight: '120px', resize: 'vertical' }}
-                        />
-                    </div>
-                </form>
+                {/* Content Area */}
+                <div style={{ flex: 1, backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '32px', minHeight: '500px' }}>
+                    {renderActiveSection()}
+                </div>
+
             </div>
+
+            <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
         </div>
     );
 }
