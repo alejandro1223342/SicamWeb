@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+import api from '../../api';
 
 interface Props {
     data: string[];
@@ -5,11 +7,23 @@ interface Props {
     onSave?: () => void;
 }
 
-const OPTIONS = [
-    'NINGUNO', 'NEOPLASIAS', 'DIABETES', 'HTA', 'CALVICIE', 'ALERGIAS', 'HTA PADRE'
-];
-
 export default function FamilyHistoryForm({ data = [], onChange, onSave }: Props) {
+    const [options, setOptions] = useState<{ id: string, name: string }[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchOptions = async () => {
+            try {
+                const response = await api.get('/catalogs/type/FAMILY_HISTORY');
+                setOptions(response.data);
+            } catch (error) {
+                console.error("Error fetching family history options:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchOptions();
+    }, []);
 
     const toggleOption = (option: string) => {
         if (option === 'NINGUNO') {
@@ -39,37 +53,42 @@ export default function FamilyHistoryForm({ data = [], onChange, onSave }: Props
             <label style={{ fontWeight: '500', color: '#475569', marginBottom: '16px', display: 'block' }}>Seleccione(*)</label>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                {OPTIONS.map((opt) => {
-                    const isSelected = data.includes(opt);
-                    return (
-                        <div
-                            key={opt}
-                            onClick={() => toggleOption(opt)}
-                            style={{
-                                padding: '8px 16px',
-                                borderRadius: '20px',
-                                border: `1px solid ${isSelected ? '#3b82f6' : '#cbd5e1'}`,
-                                backgroundColor: isSelected ? '#eff6ff' : 'white',
-                                color: isSelected ? '#1d4ed8' : '#475569',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                fontWeight: '500',
-                                transition: 'all 0.2s ease',
-                                userSelect: 'none'
-                            }}
-                        >
-                            <div style={{
-                                width: '18px', height: '18px', borderRadius: '4px', border: `2px solid ${isSelected ? '#3b82f6' : '#cbd5e1'}`,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? '#3b82f6' : 'transparent'
-                            }}>
-                                {isSelected && <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: '12px', height: '12px' }}><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                {loading ? (
+                    <div style={{ padding: '8px 16px', color: '#64748b', fontSize: '14px', fontStyle: 'italic' }}>Cargando catálogo...</div>
+                ) : (
+                    options.map((optItem) => {
+                        const opt = optItem.name;
+                        const isSelected = data.includes(opt);
+                        return (
+                            <div
+                                key={optItem.id}
+                                onClick={() => toggleOption(opt)}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '20px',
+                                    border: `1px solid ${isSelected ? '#3b82f6' : '#cbd5e1'}`,
+                                    backgroundColor: isSelected ? '#eff6ff' : 'white',
+                                    color: isSelected ? '#1d4ed8' : '#475569',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    fontWeight: '500',
+                                    transition: 'all 0.2s ease',
+                                    userSelect: 'none'
+                                }}
+                            >
+                                <div style={{
+                                    width: '18px', height: '18px', borderRadius: '4px', border: `2px solid ${isSelected ? '#3b82f6' : '#cbd5e1'}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? '#3b82f6' : 'transparent'
+                                }}>
+                                    {isSelected && <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: '12px', height: '12px' }}><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                                </div>
+                                {opt}
                             </div>
-                            {opt}
-                        </div>
-                    );
-                })}
+                        );
+                    })
+                )}
             </div >
 
             <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'center' }}>
