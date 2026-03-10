@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Save, User, ShieldAlert, Syringe, AlertTriangle, Search, FileText, Stethoscope, FileSignature } from 'lucide-react';
 import EmergencyContactForm from '../components/medical-history/EmergencyContactForm';
 import FamilyHistoryForm from '../components/medical-history/FamilyHistoryForm';
@@ -30,6 +31,8 @@ const SECTIONS: SectionDef[] = [
 ];
 
 export default function MedicalHistory() {
+    const location = useLocation();
+    const patientId = location.state?.patientId || 'generic';
     const [activeSection, setActiveSection] = useState<SectionKey>('emergency');
     const [saving, setSaving] = useState(false);
 
@@ -88,7 +91,12 @@ export default function MedicalHistory() {
             case 'risks':
                 return <RiskFactorsForm data={formData.risks} onChange={(d) => handleUpdateSection('risks', d)} onSave={() => setActiveSection('tricology')} />;
             case 'tricology':
-                return <TricologyFindingsForm data={formData.tricology} onChange={(d) => handleUpdateSection('tricology', d)} onSave={() => setActiveSection('labresults')} />;
+                return <TricologyFindingsForm
+                    patientId={patientId}
+                    data={formData.tricology}
+                    onChange={(d) => handleUpdateSection('tricology', d)}
+                    onSave={() => setActiveSection('labresults')}
+                />;
             case 'labresults':
                 return <LabResultsForm data={formData.labresults} onChange={(d) => handleUpdateSection('labresults', d)} onSave={() => setActiveSection('diagnosis')} />;
             case 'diagnosis':
