@@ -254,18 +254,18 @@ const Patients: React.FC = () => {
                                                     </button>
                                                     <button
                                                         className="action-btn-outline"
+                                                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px', color: 'var(--success)', borderColor: '#d1fae5' }}
+                                                        title="Historias Previas"
+                                                    >
+                                                        <ClipboardList size={18} />
+                                                    </button>
+                                                    <button
+                                                        className="action-btn-outline"
                                                         onClick={() => handleEditClick(patient)}
                                                         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px', color: 'var(--text-gray)', borderColor: '#E5E7EB' }}
                                                         title="Editar Paciente"
                                                     >
                                                         <Edit size={18} />
-                                                    </button>
-                                                    <button
-                                                        className="action-btn-outline"
-                                                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px', color: 'var(--success)', borderColor: '#d1fae5' }}
-                                                        title="Historias Previas"
-                                                    >
-                                                        <ClipboardList size={18} />
                                                     </button>
                                                 </div>
                                             </td>

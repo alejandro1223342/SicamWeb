@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+import api from '../../api';
 
 interface Props {
     data: any;
@@ -6,6 +8,23 @@ interface Props {
 }
 
 export default function EmergencyContactForm({ data, onChange, onSave }: Props) {
+    const [options, setOptions] = useState<{ id: string, name: string }[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchOptions = async () => {
+            try {
+                const response = await api.get('/catalogs/type/RELATION');
+                setOptions(response.data);
+            } catch (error) {
+                console.error("Error fetching relationship options:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchOptions();
+    }, []);
+
     const handleChange = (field: string, value: string) => {
         onChange({ ...data, [field]: value });
     };
@@ -39,13 +58,14 @@ export default function EmergencyContactForm({ data, onChange, onSave }: Props) 
                         style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none', backgroundColor: 'white', transition: 'border-color 0.2s' }}
                         onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
                         onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                        disabled={loading}
                     >
-                        <option value="">Seleccione</option>
-                        <option value="Padre/Madre">Padre/Madre</option>
-                        <option value="Esposo(a)">Esposo(a)</option>
-                        <option value="Hijo(a)">Hijo(a)</option>
-                        <option value="Hermano(a)">Hermano(a)</option>
-                        <option value="Otro">Otro</option>
+                        <option value="">{loading ? 'Cargando...' : 'Seleccione'}</option>
+                        {options.map((opt) => (
+                            <option key={opt.id} value={opt.name}>
+                                {opt.name}
+                            </option>
+                        ))}
                     </select>
                 </div>
 
