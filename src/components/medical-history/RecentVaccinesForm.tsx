@@ -4,10 +4,9 @@ import api from '../../api';
 interface Props {
     data: string[];
     onChange: (data: string[]) => void;
-    onSave?: () => void;
 }
 
-export default function RecentVaccinesForm({ data = [], onChange, onSave }: Props) {
+export default function RecentVaccinesForm({ data = [], onChange }: Props) {
     const [options, setOptions] = useState<{ id: string, name: string }[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -80,18 +79,7 @@ export default function RecentVaccinesForm({ data = [], onChange, onSave }: Prop
                         );
                     })
                 )}
-            </div >
-
-            <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'center' }}>
-                <button
-                    onClick={(e) => { e.preventDefault(); onSave && onSave(); }}
-                    style={{ backgroundColor: '#22c55e', color: 'white', padding: '10px 32px', borderRadius: '6px', fontWeight: '500', border: 'none', cursor: 'pointer', transition: 'background-color 0.2s' }}
-                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#16a34a'}
-                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#22c55e'}
-                >
-                    Guardar sección
-                </button>
             </div>
-        </div >
+        </div>
     );
 }

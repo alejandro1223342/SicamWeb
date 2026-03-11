@@ -390,7 +390,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="doctor/new" element={<DoctorRegistration />} />
             <Route path="medical-offices" element={<MedicalOffices />} />
-            <Route path="medical-history" element={<MedicalHistory />} />
+            <Route path="medical-history/:patientId" element={<MedicalHistory />} />
             <Route path="patients" element={<Patients />} />
             <Route path="schedules" element={<Schedules />} />
             <Route path="appointments" element={<Appointments />} />

@@ -1,42 +1,41 @@
-import { useState } from 'react';
+import  { useState } from 'react';
 import { Plus, X, Trash2 } from 'lucide-react';
 
 interface DiagnosisItem {
     id: string;
     description: string;
-    p: string;
-    d: string;
-    r: string;
+    p: boolean;
+    d: boolean;
+    r: boolean;
     cieCode: string;
 }
 
 interface Props {
     data: DiagnosisItem[];
     onChange: (data: DiagnosisItem[]) => void;
-    onSave?: () => void;
 }
 
-export default function DiagnosisActivityForm({ data = [], onChange, onSave }: Props) {
+export default function DiagnosisActivityForm({ data = [], onChange }: Props) {
     const [showModal, setShowModal] = useState(false);
     const [newItem, setNewItem] = useState<Partial<DiagnosisItem>>({
-        description: '', p: '', d: '', r: '', cieCode: ''
+        description: '', p: false, d: false, r: false, cieCode: ''
     });
 
     const handleAddItem = () => {
-        if (!newItem.description || !newItem.p || !newItem.d || !newItem.r || !newItem.cieCode) {
-            alert('Por favor llene todos los campos obligatorios (*)');
+        if (!newItem.description || (!newItem.p && !newItem.d && !newItem.r) || !newItem.cieCode) {
+            alert('Por favor llene todos los campos obligatorios (*) y seleccione al menos una opción (P, D o R)');
             return;
         }
         const result: DiagnosisItem = {
             id: Date.now().toString(),
             description: newItem.description!,
-            p: newItem.p!,
-            d: newItem.d!,
-            r: newItem.r!,
+            p: !!newItem.p,
+            d: !!newItem.d,
+            r: !!newItem.r,
             cieCode: newItem.cieCode!
         };
         onChange([...data, result]);
-        setNewItem({ description: '', p: '', d: '', r: '', cieCode: '' });
+        setNewItem({ description: '', p: false, d: false, r: false, cieCode: '' });
         setShowModal(false);
     };
 
@@ -86,9 +85,9 @@ export default function DiagnosisActivityForm({ data = [], onChange, onSave }: P
                             data.map((item) => (
                                 <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                                     <td style={{ padding: '12px 16px', color: '#1e293b' }}>{item.description}</td>
-                                    <td style={{ padding: '12px 16px', color: '#475569' }}>{item.p}</td>
-                                    <td style={{ padding: '12px 16px', color: '#475569' }}>{item.d}</td>
-                                    <td style={{ padding: '12px 16px', color: '#475569' }}>{item.r}</td>
+                                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>{item.p ? <span style={{ fontWeight: '700', color: '#4f46e5' }}>X</span> : ''}</td>
+                                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>{item.d ? <span style={{ fontWeight: '700', color: '#4f46e5' }}>X</span> : ''}</td>
+                                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>{item.r ? <span style={{ fontWeight: '700', color: '#4f46e5' }}>X</span> : ''}</td>
                                     <td style={{ padding: '12px 16px', color: '#475569' }}>{item.cieCode}</td>
                                     <td style={{ padding: '12px 16px' }}>
                                         <button onClick={() => handleRemove(item.id)} style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}>
@@ -102,14 +101,6 @@ export default function DiagnosisActivityForm({ data = [], onChange, onSave }: P
                 </table>
             </div>
 
-            <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'center' }}>
-                <button
-                    onClick={(e) => { e.preventDefault(); onSave && onSave(); }}
-                    style={{ backgroundColor: '#22c55e', color: 'white', padding: '10px 32px', borderRadius: '6px', fontWeight: '500', border: 'none', cursor: 'pointer', transition: 'background-color 0.2s' }}
-                >
-                    Guardar sección
-                </button>
-            </div>
 
             {/* Fake Modal */}
             {showModal && (
@@ -132,19 +123,32 @@ export default function DiagnosisActivityForm({ data = [], onChange, onSave }: P
                                 />
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontWeight: '600', fontSize: '16px', color: '#64748b', marginBottom: '8px' }}>P(*)</label>
-                                    <input type="text" value={newItem.p} onChange={(e) => setNewItem({ ...newItem, p: e.target.value })} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '4px', outlineColor: '#3b82f6' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontWeight: '600', fontSize: '16px', color: '#64748b', marginBottom: '8px' }}>D(*)</label>
-                                    <input type="text" value={newItem.d} onChange={(e) => setNewItem({ ...newItem, d: e.target.value })} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '4px', outlineColor: '#3b82f6' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontWeight: '600', fontSize: '16px', color: '#64748b', marginBottom: '8px' }}>R(*)</label>
-                                    <input type="text" value={newItem.r} onChange={(e) => setNewItem({ ...newItem, r: e.target.value })} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '4px', outlineColor: '#3b82f6' }} />
-                                </div>
+                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                {(['p', 'd', 'r'] as const).map(key => (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        onClick={() => setNewItem({ ...newItem, [key]: !newItem[key] })}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: '60px',
+                                            height: '40px',
+                                            borderRadius: '8px',
+                                            border: '2px solid',
+                                            borderColor: newItem[key] ? '#4f46e5' : '#cbd5e1',
+                                            backgroundColor: newItem[key] ? '#f5f3ff' : 'white',
+                                            color: newItem[key] ? '#4f46e5' : '#64748b',
+                                            fontWeight: '800',
+                                            fontSize: '18px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        {key.toUpperCase()}
+                                    </button>
+                                ))}
                             </div>
 
                             <div>

@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Upload, Trash2, Eye, X, FileImage, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Upload, Trash2, Eye, X, FileImage, ChevronLeft, ChevronRight, FileText, Download, ExternalLink } from 'lucide-react';
 import api from '../../api';
 
-interface Props {
-    data: { text: string; files: string[] };
-    patientId?: string;
-    onChange: (data: { text: string; files: string[] }) => void;
-    onSave?: () => void;
+interface TricologyFindingsFormProps {
+    patientId: string;
+    data: {
+        observations: string;
+        files: any[];
+    };
+    onChange: (data: any) => void;
 }
 
-export default function TricologyFindingsForm({ data = { text: '', files: [] }, patientId = 'generic', onChange, onSave }: Props) {
+export default function TricologyFindingsForm({ patientId, data, onChange }: TricologyFindingsFormProps) {
     const [isUploading, setIsUploading] = useState(false);
     const [dragActive, setDragActive] = useState(false);
     const [previewFiles, setPreviewFiles] = useState<any[]>([]);
@@ -20,12 +22,13 @@ export default function TricologyFindingsForm({ data = { text: '', files: [] }, 
         const fetchFiles = async () => {
             if (!patientId || patientId === 'generic') return;
             try {
-                const response = await api.get(`/drive/patient/${patientId}?specialty=Tricologia`);
+                const response = await api.get(`/drive/patient/${patientId}?specialty=Tricologia&folder=Hallazgos de Tricologia`);
                 if (Array.isArray(response.data)) {
                     const dbFiles = response.data.map((f: any) => ({
                         url: f.url,
                         status: 'uploaded',
-                        name: f.name
+                        name: f.name,
+                        type: f.mimeType // Incluir el tipo para que funcione la vista previa
                     }));
 
                     setPreviewFiles(prev => {
@@ -34,8 +37,10 @@ export default function TricologyFindingsForm({ data = { text: '', files: [] }, 
                         return [...prev, ...newOnes];
                     });
 
-                    const allUrls = [...new Set([...data.files, ...dbFiles.map(f => f.url)])];
-                    if (allUrls.length !== data.files.length) {
+                    const currentFiles = Array.isArray(data?.files) ? data.files : [];
+                    const dbUrls = dbFiles.map(f => typeof f === 'string' ? f : f.url).filter(Boolean);
+                    const allUrls = [...new Set([...currentFiles, ...dbUrls])];
+                    if (allUrls.length !== currentFiles.length) {
                         onChange({ ...data, files: allUrls });
                     }
                 }
@@ -50,13 +55,27 @@ export default function TricologyFindingsForm({ data = { text: '', files: [] }, 
     React.useEffect(() => {
         if (!isUploading) {
             setPreviewFiles(prev => {
-                const propFiles = data.files.map(url => ({
-                    url,
-                    status: 'uploaded'
-                }));
-                const currentUrls = new Set(prev.map(p => p.url));
-                const missing = propFiles.filter(f => !currentUrls.has(f.url));
-                return [...prev, ...missing];
+                const currentFilesMap = new Map(prev.map(f => [f.url, f]));
+
+                const propFiles = (Array.isArray(data?.files) ? data.files : []).map(urlOrObj => {
+                    const url = typeof urlOrObj === 'string' ? urlOrObj : (urlOrObj?.url || '');
+                    if (!url) return null;
+
+                    const existing = currentFilesMap.get(url);
+                    return {
+                        url,
+                        status: 'uploaded' as const,
+                        name: existing?.name || (url.includes('/') ? url.split('/').pop() : 'Archivo'),
+                        type: existing?.type || (url.toLowerCase().includes('pdf') ? 'application/pdf' : 'image/jpeg')
+                    };
+                }).filter(Boolean) as any[];
+
+                // Si no hay cambios reales en los URLs, no actualizar para evitar parpadeos
+                const currentUrls = prev.map(f => f.url).sort().join(',');
+                const nextUrls = propFiles.map(f => f.url).sort().join(',');
+                if (currentUrls === nextUrls) return prev;
+
+                return propFiles;
             });
         }
     }, [data.files, isUploading]);
@@ -68,15 +87,22 @@ export default function TricologyFindingsForm({ data = { text: '', files: [] }, 
         const batchFiles = Array.from(files);
 
         for (const file of batchFiles) {
+            // Validar tipo de archivo
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+            if (!allowedTypes.includes(file.type)) {
+                alert(`El archivo ${file.name} no es un tipo permitido (Imágenes o PDF).`);
+                continue;
+            }
+
             const tempUrl = URL.createObjectURL(file);
-            setPreviewFiles(prev => [...prev, { url: tempUrl, status: 'uploading', name: file.name }]);
+            setPreviewFiles(prev => [...prev, { url: tempUrl, status: 'uploading', name: file.name, type: file.type }]);
 
             const formData = new FormData();
             formData.append('file', file);
 
             try {
                 const baseUrl = api.defaults.baseURL?.replace(/\/$/, '') || 'http://localhost:3000';
-                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=Tricologia`, formData, {
+                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=Tricologia&folder=Hallazgos de Tricologia`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
 
@@ -86,7 +112,7 @@ export default function TricologyFindingsForm({ data = { text: '', files: [] }, 
 
                     setPreviewFiles(prev => {
                         const updated = prev.map(p =>
-                            p.url === tempUrl ? { ...p, url: proxyUrl, status: 'uploaded' } : p
+                            p.url === tempUrl ? { ...p, url: proxyUrl, status: 'uploaded', type: file.type } : p
                         );
                         const uploadedUrls = updated
                             .filter(f => f.status === 'uploaded')
@@ -118,7 +144,26 @@ export default function TricologyFindingsForm({ data = { text: '', files: [] }, 
         if (e.dataTransfer.files?.length > 0) handleFileUpload(e.dataTransfer.files);
     };
 
-    const removeFile = (index: number) => {
+    const removeFile = async (index: number) => {
+        const fileToRemove = previewFiles[index];
+        if (fileToRemove.status === 'uploaded') {
+            try {
+                // Extraer el ID de Google Drive desde la URL del proxy
+                // La URL es tipo: http://localhost:3000/drive/file/ID_DE_ARCHIVO
+                const parts = fileToRemove.url.split('/');
+                const fileId = parts[parts.length - 1];
+
+                if (fileId) {
+                    await api.delete(`/drive/file/${fileId}`);
+                    console.log(`✅ Archivo eliminado de Drive: ${fileId}`);
+                }
+            } catch (error) {
+                console.error('❌ Error al eliminar archivo de Drive:', error);
+                alert('No se pudo eliminar el archivo del servidor.');
+                return; // No lo quitamos de la vista si falló el borrado (opcional)
+            }
+        }
+
         setPreviewFiles(prev => {
             const updated = [...prev];
             updated.splice(index, 1);
@@ -140,22 +185,14 @@ export default function TricologyFindingsForm({ data = { text: '', files: [] }, 
                 <label style={{ fontWeight: '600', color: '#475569', marginBottom: '10px', display: 'block', fontSize: '14px' }}>Descripción de los hallazgos</label>
                 <textarea
                     className="form-input"
-                    value={data?.text || ''}
-                    onChange={(e) => onChange({ ...data, text: e.target.value })}
+                    value={data?.observations || ''}
+                    onChange={(e) => onChange({ ...data, observations: e.target.value })}
                     rows={4}
                     placeholder="Escriba aquí los hallazgos observados..."
                     style={{ width: '100%', padding: '14px 18px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', resize: 'vertical', minHeight: '120px', transition: 'all 0.2s', fontSize: '15px' }}
                     onFocus={(e) => { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 4px rgba(79, 70, 229, 0.1)'; }}
                     onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
                 />
-                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                        onClick={(e) => { e.preventDefault(); onSave && onSave(); }}
-                        style={{ backgroundColor: '#4f46e5', color: 'white', padding: '10px 24px', borderRadius: '10px', fontWeight: '600', border: 'none', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.15)' }}
-                    >
-                        Guardar texto
-                    </button>
-                </div>
             </div>
 
             <div style={{
@@ -189,7 +226,7 @@ export default function TricologyFindingsForm({ data = { text: '', files: [] }, 
                             </p>
                             <p style={{ fontSize: '13px', color: '#64748b' }}>PNG, JPG hasta 10MB</p>
                         </div>
-                        <input type="file" multiple accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e.target.files)} disabled={isUploading} />
+                        <input type="file" multiple accept="image/*,application/pdf" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e.target.files)} disabled={isUploading} />
                     </label>
 
                     {previewFiles.length > 0 && (
@@ -206,16 +243,20 @@ export default function TricologyFindingsForm({ data = { text: '', files: [] }, 
                                     boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
                                     textAlign: 'left'
                                 }}>
-                                    <div style={{ width: '54px', height: '54px', flexShrink: 0, position: 'relative', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
-                                        <img
-                                            src={file.url}
-                                            alt="preview"
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                            onError={(e) => {
-                                                e.currentTarget.style.display = 'none';
-                                                e.currentTarget.parentElement!.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fee2e2;color:#ef4444;font-size:10px;font-weight:700">ERR</div>';
-                                            }}
-                                        />
+                                    <div style={{ width: '54px', height: '54px', flexShrink: 0, position: 'relative', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        {file.type === 'application/pdf' || file.url.toLowerCase().endsWith('.pdf') ? (
+                                            <FileText size={24} color="#64748b" />
+                                        ) : (
+                                            <img
+                                                src={file.url}
+                                                alt="preview"
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                onError={(e) => {
+                                                    e.currentTarget.style.display = 'none';
+                                                    e.currentTarget.parentElement!.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fee2e2;color:#ef4444;font-size:10px;font-weight:700">ERR</div>';
+                                                }}
+                                            />
+                                        )}
                                         {file.status === 'uploading' && (
                                             <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                                 <div style={{ width: '16px', height: '16px', border: '2px solid #4f46e5', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
@@ -224,10 +265,7 @@ export default function TricologyFindingsForm({ data = { text: '', files: [] }, 
                                     </div>
 
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <p style={{ fontSize: '13px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            {file.name || `Imagen ${idx + 1}`}
-                                        </p>
-                                        <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
                                             <button
                                                 onClick={() => setSelectedImageIndex(idx)}
                                                 style={{ border: '1px solid #e2e8f0', background: '#f8fafc', color: '#475569', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
@@ -293,12 +331,70 @@ export default function TricologyFindingsForm({ data = { text: '', files: [] }, 
                             </button>
                         )}
 
-                        <div style={{ position: 'relative', textAlign: 'center' }}>
-                            <img
-                                src={previewFiles[selectedImageIndex].url}
-                                alt="Full preview"
-                                style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', transition: 'all 0.3s ease' }}
-                            />
+                        <div style={{ position: 'relative', textAlign: 'center', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                            {(previewFiles[selectedImageIndex].type === 'application/pdf' ||
+                                previewFiles[selectedImageIndex].url.toLowerCase().includes('pdf') ||
+                                previewFiles[selectedImageIndex].name?.toLowerCase().endsWith('.pdf')) ? (
+                                <div
+                                    style={{
+                                        width: '90vw',
+                                        maxWidth: '1000px',
+                                        height: '85vh',
+                                        backgroundColor: 'white',
+                                        borderRadius: '20px',
+                                        overflow: 'hidden',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+                                        animation: 'zoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    {/* PDF Header/Toolbar */}
+                                    <div style={{ padding: '16px 24px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                                            <div style={{ backgroundColor: '#eff6ff', color: '#3b82f6', padding: '8px', borderRadius: '8px' }}>
+                                                <FileText size={20} />
+                                            </div>
+                                            <span style={{ fontWeight: '700', color: '#0f172a', fontSize: '15px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {previewFiles[selectedImageIndex].name}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <a
+                                                href={previewFiles[selectedImageIndex].url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'white', color: '#475569', padding: '8px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', textDecoration: 'none', fontSize: '13px', fontWeight: '600', transition: 'all 0.2s' }}
+                                                onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                                                onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                                            >
+                                                <ExternalLink size={16} /> Abrir externo
+                                            </a>
+                                            <a
+                                                href={previewFiles[selectedImageIndex].url}
+                                                download={previewFiles[selectedImageIndex].name}
+                                                style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#4f46e5', color: 'white', padding: '8px 16px', borderRadius: '10px', border: 'none', textDecoration: 'none', fontSize: '13px', fontWeight: '600', transition: 'all 0.2s' }}
+                                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#4338ca'}
+                                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#4f46e5'}
+                                            >
+                                                <Download size={16} /> Descargar
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <iframe
+                                        src={previewFiles[selectedImageIndex].url}
+                                        style={{ width: '100%', flex: 1, border: 'none' }}
+                                        title="PDF Preview"
+                                    />
+                                </div>
+                            ) : (
+                                <img
+                                    src={previewFiles[selectedImageIndex].url}
+                                    alt="Full preview"
+                                    style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', transition: 'all 0.3s ease' }}
+                                />
+                            )}
                             <div style={{ position: 'absolute', bottom: '-40px', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.7)', fontSize: '14px', fontWeight: '500' }}>
                                 {previewFiles[selectedImageIndex].name || `Imagen ${selectedImageIndex + 1}`} ({selectedImageIndex + 1} / {previewFiles.length})
                             </div>

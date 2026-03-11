@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Eye, FileText, Loader2 } from 'lucide-react';
 import api from '../../api';
 import toast from 'react-hot-toast';
 
-interface ComplementaryExamData {
-    category: string;
+interface ExamsData {
     options: string[];
     other: string;
     diagnosis: string;
+    treatment: string;
 }
 
 interface ExamCategory {
@@ -17,19 +18,165 @@ interface ExamCategory {
 }
 
 interface Props {
-    data: ComplementaryExamData;
-    onChange: (data: ComplementaryExamData) => void;
-    onSave?: () => void;
+    data: ExamsData;
+    onChange: (data: ExamsData) => void;
+    patient?: any;
 }
 
-export default function ComplementaryExamsForm({ data = { category: '', options: [], other: '', diagnosis: '' }, onChange, onSave }: Props) {
+export const EXAMS_CATALOG = {
+    "HEMATOLOGÍA": [
+        "BIOMETRÍA HEMÁTICA", "HEMATROCRITO + HEMOGLOBINA", "SEDIMENTACIÓN", "PLAQUETAS",
+        "RETICULOSCITOS", "MORFOLOGÍA CELULAR", "GRUPO SANGUÍNEO Y RH", "DREPANOCITOS",
+        "COOMBS DIRECTO", "COOMBS INDIRECTO", "VITAMINA D25", "VITAMINA B12", "ÁCIDO FÓLICO"
+    ],
+    "HEMOSTASIA": [
+        "TP + INR", "TTP", "PLAQUETAS", "DIMERO D", "FIBRINÓGENO", "ANTICOAGULANTE LÚPICO",
+        "FACTOR V (LEADING)", "PROTEÍNA C", "ANTITROMBINA III"
+    ],
+    "HEMOQUÍMICA": [
+        "GLUCOSA BASAL", "GLUCOSA RÁPIDA", "GLUCOSA POSPANDRIAL 2H", "CURVA TOLERICA GLUCOSA..H",
+        "GLUCOSA-TEST DE O'SULIVAN", "HEMOGLOBINA GLICOSILADA", "FRUCTOSAMINA", "INSULINA BASAL",
+        "CURVA TOLERACIA INSULINA..H", "ÍNDICE HOMA", "HIERRO SERICO", "PÉPTIDO C", "ÚREA",
+        "N. UREICO", "CREATININA", "ÁC. ÚRICO", "CISTATINA C", "FOSFATASA ÁCIDA TOTAL",
+        "FOSFATASA ÁCIDA PROSTÁTICA", "FERRITINA"
+    ],
+    "PERFIL LIPÍDICO": [
+        "COLESTEROL", "HDL COLESTEROL", "LDL COLESTEROL", "COLESTEROL V.L.D.L",
+        "TRIGLICÉRIDOS", "LÍPIDOS TOTALES", "APO-LIPOPTROTEÍNA AyB"
+    ],
+    "PERFIL TIROIDEO": [
+        "TSH", "FT4", "FT3", "T4", "T3", "ANTI-TPO", "ANTI-TIPO", "ANTI TIROGLOBULINA",
+        "TIROGLOBULINA", "PTH (PARATOHORMONA)"
+    ],
+    "PERFIL HEPÁTICO": [
+        "BILIRRUBINA TOTAL", "BILIRRUBINA DIRECTA", "BILIRRUBINA INDIRECTA", "PROTEÍNAS TOTALES",
+        "ALBÚMINA", "GLOBULINA", "ÍNDICE ALBÚMINA/GLOBULINA", "COLINESTERASA SÉRICA",
+        "COLINESTERASA ERITROCITARIA", "TGO/AST", "TGP/ALT", "FOSFATASA ALCALINA", "GAMMA GT",
+        "LDH", "AMILASA", "LIPASA"
+    ],
+    "PERFIL HORMONAL": [
+        "LH", "FSH", "ESTRADIOL", "PROGESTERONA", "17 HIDROXIPROGESTERONA", "PROLACTINA",
+        "ESTRONA", "ESTRIOL LIBRE", "CORTISOL AM", "CORTISOL PM", "DHEAS", "ACTH",
+        "HCG CUALITATIVA", "HCG BETA CUANTITATIVA", "HORMONA DE CRECIMIENTO", "ANDROSTENEDIONA",
+        "TESTOSTERONA TOTAL", "TESTOSTERONA LIBRE", "TRANSPORTADORA SEXUAL", "PTH"
+    ],
+    "INMUNOSEROLOGÍA": [
+        "ASTO CUANTITATIVO", "ASTO LATEX", "POR CUANTITATIVO", "PCR LATEX", "FR CUANTITATIVO",
+        "FR LATEX", "AGLUTINACIONES FEBRILES", "ANTI ESTREPTOCOCO GRUPO A", "ANTI TUBERCULOSIS",
+        "ANTI HEMATOZOARIOS", "ANTI MONONUCLEOSIS", "ANTI DENGUE IgG/IgM", "ANTI CHIKUNGUYA"
+    ],
+    "IONOGRAMA": [
+        "SODIO/POTASIO/CLORO", "CALCIO IÓNICO", "CALCIO TOTAL", "MAGNESIO", "FÓSFORO", "LITIO"
+    ],
+    "GASOMETRÍA": [
+        "ARTERIAL", "VENOSA"
+    ],
+    "INFECCIOSAS": [
+        "PROCALCITONINA", "INTERLEUKINA-6", "VDRL/RPR", "FTA-ABS", "HIV 1+2+P24", "CARGA VIRAL HIV (PCR)",
+        "CD4/CD8", "HEPATITIS A", "HEPATITIS B", "HEPATITIS C", "ANTI HAV IgM", "ANTI BHs (CONTROL VACUNA)",
+        "HBc LgM (CORE)", "ANTI HBC (CORE TOTAL)", "HBe Ag", "HBe Ac", "QUANTIFERÓN TB", "TOXOPLASMA IgG",
+        "TOXOPLASMA IgM", "RUBEOLA IgG", "RUBEOLA IgM", "CITOMEGALOVIRUS IgG", "CITOMEGALOVIRUS IgM",
+        "HERPES I IgG", "HERPES I IgM", "HERPES II IgG", "HERPES II IgM", "TORCH IgG/IgM CUALITATIVO",
+        "HEICOBACTER PYLORI IgG", "HELICOBACTER PYLORI IgM", "CHALAMIDYA TRACH. IgG", "EPSTEIN BARR IgM",
+        "VARICELA ZÓSTER IgG", "VARICELA ZÓSTER IgM"
+    ],
+    "MARCADORES ONCOLÓGICOS": [
+        "PSA TOTAL", "PSA LIBRE", "AFP (ALFA FETO PROTEÍNA)", "CEA  (AG. CARCINO EMBRIONARIO)",
+        "CEA 125 (OVARIO)", "HE4", "ÍNDICE ROMA", "CA 15-3 (MAMAS)", "CA 19-9 (PÁNCREAS GÁSTRICO E INTESTINAL)",
+        "CA 72-4 (ESTÓMAGO)", "CYFRA 21-1 (PULMON)"
+    ],
+    "INMUNOGLOBULINAS": [
+        "IgA", "IgD", "IgE TOTAL", "IgM", "IgG"
+    ],
+    "MACADORES CARDIACOS": [
+        "CK-MB", "TROPONINA T ULTRASENSIBLE", "PRO BNP", "MIOGLOBINA"
+    ],
+    "AUTOINMUNIDAD": [
+        "COMPLEMENTO C3", "COMPLEMENTO C4", "ANA (Ac. ANTINUCLEARES)", "Ac. Anti DNA", "CCP (CITRULINADO)",
+        "Anti-Ro (SSA)", "AnTI-La (SSB)", "Anti-Jo", "ANCA C (Anti-PR3)", "ANCA P (Anti-MPO)",
+        "CARDIOPLINA IgG", "CARDIOPLINA IgM", "FOSFOLIPÍDO IgG", "FOSFOLIPÍDO IgM", "AntI-SM",
+        "AntI-RNP", "Anti. MÚSCULO LISO", "Ac. Anti. MITOCONDRIALES", "Ac. Anti. CENTRÓMERO"
+    ],
+    "PRUEBAS DE ALERGIA": [
+        "PANEL 54 ALIMENTOS", "PANEL 108 ALIMENTOS", "PANEL 216 ALIMENTOS", "PANEL 54 ALERGENOS RESP/ALIM",
+        "PANEL PEDÍATRICO"
+    ],
+    "UROANÁLISIS": [
+        "ELEMENTAL Y MICROSCÓPICO", "GRAM GOTA FRESCA", "GRAM SEDIMENTO", "MICROALBUMINURIA",
+        "MICROALBUMINURIA 24h", "CLEARENCE CREATININA 24h", "PROTEINURIA 24h", "CREATININA EN ORINA",
+        "SODIO EN ORINA", "POTASIO EN ORINA", "CLORO EN ORINA", "BAAR ORINA Nº MUESTRAS:"
+    ],
+    "HECES": [
+        "COPROLÓGICO/PARASITARIO", "COPROPARASITARIO SERIADO", "POLIMORFONUCLEARES", "SANGRE OCULTA",
+        "AZÚCARES REDUCTORES", "pH en heces", "HELICOBACTER PYLORI", "ROTAVIRUS", "ADENOVIRUS",
+        "CALPROTECTINA", "CRIPTOSPORIDIUM", "CLINITEST"
+    ],
+    "ESTUDIO DE LÍQUIDOS": [
+        "LCR", "ASCÍTICO", "PLEURAL", "SINOVIAL", "PERITONEAL"
+    ],
+    "LÍQUIDO ESPERMÁTICO": [
+        "ESPERMATOGRAMA"
+    ],
+    "MICROBIOLOGÍA": [
+        "UROCULTIVO", "COPROCULTIVO", "CULTIVO EXUDADO FARÍNGEO", "CULTIVO DE ESPUTO",
+        "CULTIVO SECRECIÓN VAGINAL", "HEMOCULTIVO", "CULTIVO HONGOS", "CULTIVO THAYER MARTIN", "OTROS"
+    ],
+    "BACTERIOLOGÍA": [
+        "MUESTRA DE:", "KOH", "FRESCO", "GRAM", "ZHIEL NEELSEN Nº"
+    ],
+    "CITOLOGÍA/HISTOPATOLOGÍA": [
+        "PAPANICOLAOU", "(PAAF) PUNCIÓN DE AGUJA FINA", "HISTOPATOLÓGICO", "FRESCO/GRAM SECRE. VAGINAL",
+        "CRISTALOGRAFÍA", "BIOPSIA"
+    ],
+    "TOXICOLOGÍA": [
+        "PLOMO EN SANGRE", "ZINC", "COLINESTERASA"
+    ],
+    "DROGAS TERAPÉUTICAS": [
+        "Ac. VALPROICO", "FENITOÍNA", "CARBAMAZEPINA", "FENOBARBITAL", "DIGOXINA", "DIFENILHIDANTOINA (EPAMIN)"
+    ],
+    "DROGAS DE ABUSO": [
+        "MARIHUANA", "COCAÍNA", "PANEL DROGAS: MARIHUANA COCAINA, OTRO"
+    ],
+    "BIOLOGÍA MOLECULAR": [
+        "HPV DE ALTO RIESGO", "CARGA VIRAL HIV", "INFLUENZA A Y B", "INFLUENZA A y B + VIRUS SINCITIAL RESP.",
+        "INFLUENZA A y B (INMUNOCROMATOGRAFÍA)"
+    ],
+    "SARS CoV-2": [
+        "RT-PCR", "ANTÍGENO CUALITATIVO", "PANEL: SARS CoV-2, INFLUENZA A Y B", "ANTICUERPOS CUANTITATIVO IgG e IgM",
+        "ANTICUERPOS CUALITATIVO IgG e IgM", "CONTROL POST VACUNA"
+    ]
+};
 
+export default function ComplementaryExamsForm({ data, onChange, patient: propPatient }: Props) {
+    const { patientId } = useParams<{ patientId: string }>();
     const [categories, setCategories] = useState<ExamCategory[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [searchTerm, setSearchTerm] = useState('');
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [localPatient, setLocalPatient] = useState<any>(propPatient);
+
+    // Sync prop patient to local state
+    useEffect(() => {
+        if (propPatient) setLocalPatient(propPatient);
+    }, [propPatient]);
+
+    // Fallback fetch if patient is null
+    useEffect(() => {
+        const fetchPatientFallback = async () => {
+            if (localPatient || !patientId || patientId === 'generic') return;
+            try {
+                console.log('FALLBACK FETCH PATIENT:', patientId);
+                const response = await api.get(`/users/patients/${patientId}`);
+                const userData = response.data?.data || response.data;
+                setLocalPatient(userData);
+            } catch (error) {
+                console.error('Error in fallback patient fetch:', error);
+            }
+        };
+        fetchPatientFallback();
+    }, [patientId, localPatient]);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -72,6 +219,23 @@ export default function ComplementaryExamsForm({ data = { category: '', options:
             newOptions.push(opt);
         }
         onChange({ ...data, options: newOptions });
+    };
+
+    const handlePrint = () => {
+        if (!data.options?.length && !data.other) {
+            toast.error('No hay exámenes seleccionados para generar el PDF');
+            return;
+        }
+        
+        // Add class to specify we are printing exams
+        document.body.classList.add('printing-exams');
+        
+        // Use a small delay to ensure CSS reflects the change
+        setTimeout(() => {
+            window.print();
+            // Remove the class after print dialog opens/closes
+            document.body.classList.remove('printing-exams');
+        }, 100);
     };
 
     const activeCategoryOptions = categories.find(c => c.name === selectedCategory)?.options || [];
@@ -242,26 +406,42 @@ export default function ComplementaryExamsForm({ data = { category: '', options:
                         </div>
                     </div>
 
-                    <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
-                        <button
-                            onClick={(e) => { e.preventDefault(); onSave && onSave(); }}
-                            style={{ backgroundColor: '#4f46e5', color: 'white', padding: '6px 40px', borderRadius: '4px', fontWeight: '600', fontSize: '13px', border: 'none', cursor: 'pointer', transition: 'background-color 0.2s' }}
-                        >
-                            Guardar
-                        </button>
-                    </div>
                 </div>
             </div>
 
             {/* Boton Ver PDF al final */}
-            <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'center' }}>
+            <div className="no-print" style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'center' }}>
                 <button
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'transparent', color: '#ef4444', border: '1px solid #ef4444', padding: '6px 20px', borderRadius: '4px', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}
+                    onClick={handlePrint}
+                    style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '6px', 
+                        backgroundColor: 'transparent', 
+                        color: '#ef4444', 
+                        border: '1px solid #ef4444', 
+                        padding: '10px 30px', 
+                        borderRadius: '6px', 
+                        fontWeight: '700', 
+                        fontSize: '14px', 
+                        cursor: 'pointer',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                    }}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor = '#fef2f2';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
+                    }}
                 >
-                    <FileText size={16} /> Ver PDF
+                    <FileText size={18} /> Ver PDF
                 </button>
             </div>
-
         </div>
     );
 }

@@ -136,8 +136,7 @@ const Patients: React.FC = () => {
     );
 
     const goToMedicalHistory = (patientId: string) => {
-        // En un sistema real, guardaríamos el paciente seleccionado en un contexto o lo pasaríamos por URL
-        navigate('/dashboard/medical-history', { state: { patientId } });
+        navigate(`/dashboard/medical-history/${patientId}`);
     };
 
     return (
