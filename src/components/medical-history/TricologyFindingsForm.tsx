@@ -4,14 +4,18 @@ import api from '../../api';
 
 interface TricologyFindingsFormProps {
     patientId: string;
+    recordId?: string | null;
+    sessionId?: string | null;
     data: {
         observations: string;
         files: any[];
     };
-    onChange: (data: any) => void;
+    onChange: (data: { observations: string, files: any[] }) => void;
+    onUploadingChange?: (uploading: boolean) => void;
+    readOnly?: boolean;
 }
 
-export default function TricologyFindingsForm({ patientId, data, onChange }: TricologyFindingsFormProps) {
+export default function TricologyFindingsForm({ patientId, recordId, sessionId, data, onChange, onUploadingChange, readOnly = false }: TricologyFindingsFormProps) {
     const [isUploading, setIsUploading] = useState(false);
     const [dragActive, setDragActive] = useState(false);
     const [previewFiles, setPreviewFiles] = useState<any[]>([]);
@@ -20,9 +24,17 @@ export default function TricologyFindingsForm({ patientId, data, onChange }: Tri
     // Cargar archivos persistentes desde la base de datos al montar
     React.useEffect(() => {
         const fetchFiles = async () => {
+            // ONLY fetch if we are NOT in 'new' mode or if we specifically HAVE a record ID
+            // This prevents old photos from leaking into new sessions
+            const isNewMode = new URLSearchParams(window.location.search).get('mode') === 'new';
+            if (isNewMode) {
+                console.log('DEBUG: TricologyFindingsForm skipping fetch in NEW mode');
+                return;
+            }
+
             if (!patientId || patientId === 'generic') return;
             try {
-                const response = await api.get(`/drive/patient/${patientId}?specialty=Tricologia&folder=Hallazgos de Tricologia`);
+                const response = await api.get(`/drive/patient/${patientId}?specialty=Tricologia&folder=Hallazgos de Tricologia&recordId=${recordId || ''}&sessionId=${sessionId || ''}`);
                 if (Array.isArray(response.data)) {
                     const dbFiles = response.data.map((f: any) => ({
                         url: f.url,
@@ -31,11 +43,7 @@ export default function TricologyFindingsForm({ patientId, data, onChange }: Tri
                         type: f.mimeType // Incluir el tipo para que funcione la vista previa
                     }));
 
-                    setPreviewFiles(prev => {
-                        const existingUrls = new Set(prev.map(p => p.url));
-                        const newOnes = dbFiles.filter(f => !existingUrls.has(f.url));
-                        return [...prev, ...newOnes];
-                    });
+                    setPreviewFiles(dbFiles);
 
                     const currentFiles = Array.isArray(data?.files) ? data.files : [];
                     const dbUrls = dbFiles.map(f => typeof f === 'string' ? f : f.url).filter(Boolean);
@@ -49,7 +57,7 @@ export default function TricologyFindingsForm({ patientId, data, onChange }: Tri
             }
         };
         fetchFiles();
-    }, [patientId]);
+    }, [patientId, recordId, sessionId]);
 
     // Sincronizar la vista previa cuando los datos externos cambian
     React.useEffect(() => {
@@ -81,9 +89,10 @@ export default function TricologyFindingsForm({ patientId, data, onChange }: Tri
     }, [data.files, isUploading]);
 
     const handleFileUpload = async (files: FileList | null) => {
-        if (!files || files.length === 0) return;
+        if (readOnly || !files || files.length === 0) return;
 
         setIsUploading(true);
+        onUploadingChange?.(true);
         const batchFiles = Array.from(files);
 
         for (const file of batchFiles) {
@@ -102,7 +111,7 @@ export default function TricologyFindingsForm({ patientId, data, onChange }: Tri
 
             try {
                 const baseUrl = api.defaults.baseURL?.replace(/\/$/, '') || 'http://localhost:3000';
-                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=Tricologia&folder=Hallazgos de Tricologia`, formData, {
+                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=Tricologia&folder=Hallazgos de Tricologia&recordId=${recordId || ''}&sessionId=${sessionId || ''}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
 
@@ -129,6 +138,7 @@ export default function TricologyFindingsForm({ patientId, data, onChange }: Tri
             }
         }
         setIsUploading(false);
+        onUploadingChange?.(false);
     };
 
     const handleDrag = (e: React.DragEvent) => {
@@ -145,6 +155,7 @@ export default function TricologyFindingsForm({ patientId, data, onChange }: Tri
     };
 
     const removeFile = async (index: number) => {
+        if (readOnly) return;
         const fileToRemove = previewFiles[index];
         if (fileToRemove.status === 'uploaded') {
             try {
@@ -186,12 +197,13 @@ export default function TricologyFindingsForm({ patientId, data, onChange }: Tri
                 <textarea
                     className="form-input"
                     value={data?.observations || ''}
-                    onChange={(e) => onChange({ ...data, observations: e.target.value })}
+                    onChange={(e) => !readOnly && onChange({ ...data, observations: e.target.value })}
+                    readOnly={readOnly}
                     rows={4}
-                    placeholder="Escriba aquí los hallazgos observados..."
-                    style={{ width: '100%', padding: '14px 18px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', resize: 'vertical', minHeight: '120px', transition: 'all 0.2s', fontSize: '15px' }}
-                    onFocus={(e) => { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 4px rgba(79, 70, 229, 0.1)'; }}
-                    onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
+                    placeholder={readOnly ? "Sin observaciones" : "Escriba aquí los hallazgos observados..."}
+                    style={{ width: '100%', padding: '14px 18px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', resize: 'vertical', minHeight: '120px', transition: 'all 0.2s', fontSize: '15px', backgroundColor: readOnly ? '#f8fafc' : 'white' }}
+                    onFocus={(e) => { if (!readOnly) { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 4px rgba(79, 70, 229, 0.1)'; } }}
+                    onBlur={(e) => { if (!readOnly) { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; } }}
                 />
             </div>
 
@@ -210,23 +222,30 @@ export default function TricologyFindingsForm({ patientId, data, onChange }: Tri
             >
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <label style={{
-                        cursor: isUploading ? 'not-allowed' : 'pointer',
+                        cursor: (readOnly || isUploading) ? 'default' : 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         gap: '12px',
                         width: '100%'
                     }}>
-                        <div style={{ backgroundColor: '#fff', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', color: '#4f46e5' }}>
-                            <Upload size={24} />
-                        </div>
-                        <div>
-                            <p style={{ fontWeight: '700', color: '#1e293b', marginBottom: '4px', fontSize: '16px' }}>
-                                {isUploading ? 'Subiendo archivos...' : 'Agregar o arrastre imágenes'}
-                            </p>
-                            <p style={{ fontSize: '13px', color: '#64748b' }}>PNG, JPG hasta 10MB</p>
-                        </div>
-                        <input type="file" multiple accept="image/*,application/pdf" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e.target.files)} disabled={isUploading} />
+                        {!readOnly && (
+                            <>
+                                <div style={{ backgroundColor: '#fff', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', color: '#4f46e5' }}>
+                                    <Upload size={24} />
+                                </div>
+                                <div>
+                                    <p style={{ fontWeight: '700', color: '#1e293b', marginBottom: '4px', fontSize: '16px' }}>
+                                        {isUploading ? 'Subiendo archivos...' : 'Agregar o arrastre imágenes'}
+                                    </p>
+                                    <p style={{ fontSize: '13px', color: '#64748b' }}>PNG, JPG hasta 10MB</p>
+                                </div>
+                                <input type="file" multiple accept="image/*,application/pdf" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e.target.files)} disabled={isUploading || readOnly} />
+                            </>
+                        )}
+                        {readOnly && previewFiles.length === 0 && (
+                            <p style={{ color: '#64748b', fontSize: '14px' }}>No hay imágenes cargadas en este registro.</p>
+                        )}
                     </label>
 
                     {previewFiles.length > 0 && (
@@ -273,13 +292,15 @@ export default function TricologyFindingsForm({ patientId, data, onChange }: Tri
                                             >
                                                 <Eye size={14} />
                                             </button>
-                                            <button
-                                                onClick={() => removeFile(idx)}
-                                                style={{ border: '1px solid #ffe4e6', background: '#fff1f2', color: '#e11d48', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-                                                title="Eliminar"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
+                                            {!readOnly && (
+                                                <button
+                                                    onClick={() => removeFile(idx)}
+                                                    style={{ border: '1px solid #ffe4e6', background: '#fff1f2', color: '#e11d48', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                                                    title="Eliminar"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -396,7 +417,7 @@ export default function TricologyFindingsForm({ patientId, data, onChange }: Tri
                                 />
                             )}
                             <div style={{ position: 'absolute', bottom: '-40px', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.7)', fontSize: '14px', fontWeight: '500' }}>
-                                {previewFiles[selectedImageIndex].name || `Imagen ${selectedImageIndex + 1}`} ({selectedImageIndex + 1} / {previewFiles.length})
+                                Archivo {selectedImageIndex + 1} de {previewFiles.length}
                             </div>
                         </div>
 

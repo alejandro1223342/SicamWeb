@@ -8,11 +8,14 @@ import Dashboard from './pages/Dashboard';
 import DoctorRegistration from './pages/DoctorRegistration';
 import MedicalOffices from './pages/MedicalOffices';
 import MedicalHistory from './pages/MedicalHistory';
+import MedicalHistoryList from './pages/MedicalHistoryList';
 import Patients from './pages/Patients';
 import Schedules from './pages/Schedules';
 import { SpecialtyProvider, useSpecialty } from './context/SpecialtyContext';
 import PatientClinicalOffices from './pages/PatientClinicalOffices';
 import Appointments from './pages/Appointments';
+import PrintHistoryPage from './pages/PrintHistoryPage';
+import PrintExamsPage from './pages/PrintExamsPage';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
 function SignIn() {
@@ -376,7 +379,7 @@ function App() {
   return (
     <ToastProvider>
       <SpecialtyProvider>
-        <Routes key={location.pathname}>
+        <Routes>
           <Route path="/" element={<SignIn />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
@@ -390,11 +393,16 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="doctor/new" element={<DoctorRegistration />} />
             <Route path="medical-offices" element={<MedicalOffices />} />
-            <Route path="medical-history/:patientId" element={<MedicalHistory />} />
+            <Route path="medical-history/:patientId/:recordId?" element={<MedicalHistory />} />
+            <Route path="medical-history-list/:patientId" element={<MedicalHistoryList />} />
             <Route path="patients" element={<Patients />} />
             <Route path="schedules" element={<Schedules />} />
             <Route path="appointments" element={<Appointments />} />
           </Route>
+
+          {/* Dedicated Print Routes (No Layout) */}
+          <Route path="/print/history/:patientId/:recordId" element={<PrintHistoryPage />} />
+          <Route path="/print/exams/:patientId/:recordId" element={<PrintExamsPage />} />
 
           <Route path="*" element={<div style={{ padding: '50px', textAlign: 'center' }}>
             <h1>404 - Página no encontrada</h1>

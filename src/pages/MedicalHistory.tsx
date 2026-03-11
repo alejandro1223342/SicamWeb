@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Save, User, ShieldAlert, Syringe, AlertTriangle, Search, FileText, Stethoscope, FileSignature, Loader2, Phone, Printer } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Save, User, ShieldAlert, Syringe, AlertTriangle, Search, FileText, Stethoscope, FileSignature, Loader2, Phone, Printer, ArrowLeft } from 'lucide-react';
 import EmergencyContactForm from '../components/medical-history/EmergencyContactForm';
 import FamilyHistoryForm from '../components/medical-history/FamilyHistoryForm';
 import RecentVaccinesForm from '../components/medical-history/RecentVaccinesForm';
@@ -10,6 +10,7 @@ import LabResultsForm from '../components/medical-history/LabResultsForm';
 import DiagnosisActivityForm from '../components/medical-history/DiagnosisActivityForm';
 import ComplementaryExamsForm from '../components/medical-history/ComplementaryExamsForm';
 import PrintMedicalHistoryTemplate from '../components/medical-history/PrintMedicalHistoryTemplate';
+import PrintExamsTemplate from '../components/medical-history/PrintExamsTemplate';
 import { useSpecialty } from '../context/SpecialtyContext';
 import api from '../api';
 import toast from 'react-hot-toast';
@@ -35,13 +36,29 @@ const SECTIONS: SectionDef[] = [
 ];
 
 export default function MedicalHistory() {
-    const { patientId } = useParams<{ patientId: string }>();
+    const { patientId, recordId } = useParams<{ patientId: string, recordId?: string }>();
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const mode = queryParams.get('mode'); // 'new' if forced empty
+    const navigate = useNavigate();
+    
     const { activeSpecialty } = useSpecialty();
     const [activeSection, setActiveSection] = useState<SectionKey>('emergency');
     const [patient, setPatient] = useState<any>(null);
+    const [examCatalog, setExamCatalog] = useState<any>({});
     const [saving, setSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-    const [showPreview, setShowPreview] = useState(false);
+    const [isReadOnly, setIsReadOnly] = useState(false);
+    const [currentRecordId, setCurrentRecordId] = useState<string | null>(recordId || null);
+    const currentRecordIdRef = useRef<string | null>(recordId || null);
+    const isSavingRef = useRef(false);
+
+    const [isGlobalUploading, setIsGlobalUploading] = useState(false);
+
+    // Sync ref with state
+    useEffect(() => {
+        currentRecordIdRef.current = currentRecordId;
+    }, [currentRecordId]);
 
 
     // Master state for the entire form
@@ -53,60 +70,127 @@ export default function MedicalHistory() {
         labresults: [] as any[],
         diagnosis: [] as any[],
         exams: { options: [] as string[], other: '', diagnosis: '', treatment: '' },
-        tricology: { observations: '', files: [] as any[] }
+        tricology: { observations: '', files: [] as any[] },
+        sessionId: queryParams.get('session') || null as string | null
     });
 
     const handleUpdateSection = (section: SectionKey, data: any) => {
+        if (isReadOnly) return;
         setFormData(prev => ({ ...prev, [section]: data }));
     };
 
+    // Reset state strictly if mode is 'new'
     useEffect(() => {
-        const fetchPatient = async () => {
-            const cleanPatientId = patientId?.trim();
+        if (mode === 'new') {
+            console.log('DEBUG: New record mode detected, resetting all form data.');
+            setFormData({
+                emergency: { name: '', relation: '', phone: '', address: '' },
+                family: [],
+                vaccines: [],
+                risks: [],
+                labresults: [],
+                diagnosis: [],
+                exams: { options: [], other: '', diagnosis: '', treatment: '' },
+                tricology: { observations: '', files: [] },
+                sessionId: queryParams.get('session') || null
+            });
+            setCurrentRecordId(null);
+            currentRecordIdRef.current = null;
+        }
+    }, [mode, patientId]);
+
+    useEffect(() => {
+        const fetchCatalog = async () => {
+            try {
+                const response = await api.get('/catalogs/complementary-exams', {
+                    params: { page: 1, limit: 1000 } // Get all for the catalog
+                });
+                const fetchedItems = response.data.items || [];
+                const catalog: any = {};
+                fetchedItems.forEach((cat: any) => {
+                    catalog[cat.name] = (cat.options || []).map((opt: any) => opt.name);
+                });
+                setExamCatalog(catalog);
+            } catch (error) {
+                console.error('Error fetching catalog:', error);
+            }
+        };
+
+        const fetchPatient = async (id: string) => {
+            const cleanPatientId = id.trim();
             if (!cleanPatientId || cleanPatientId === 'generic') return;
             try {
                 const response = await api.get(`/users/patients/${cleanPatientId}`);
-                console.log('DEBUG: Patient fetch response:', response.data);
-                // Handle both wrapped and unwrapped response
                 const userData = response.data?.data || response.data;
-                console.log('DEBUG: Set patient state with:', userData);
                 setPatient(userData);
             } catch (error) {
                 console.error('DEBUG: Error fetching patient:', error);
             }
         };
 
+        const fetchRecordById = async () => {
+            if (!recordId) return;
+            setIsReadOnly(true);
+            try {
+                const response = await api.get(`/medical-records/${recordId}`);
+                if (response.data) {
+                    const dbData = response.data;
+                    setFormData((prev: any) => ({
+                        ...prev,
+                        emergency: dbData.data?.emergency || prev.emergency,
+                        family: dbData.data?.family || prev.family,
+                        vaccines: dbData.data?.vaccines || prev.vaccines,
+                        risks: dbData.data?.risks || prev.risks,
+                        labresults: Array.isArray(dbData.data?.labresults) ? dbData.data?.labresults : prev.labresults,
+                        diagnosis: Array.isArray(dbData.data?.diagnosis) ? dbData.data?.diagnosis : prev.diagnosis,
+                        exams: { ...prev.exams, ...dbData.data?.exams },
+                        tricology: { ...prev.tricology, ...dbData.data?.tricology },
+                        sessionId: dbData.data?.sessionId || prev.sessionId
+                    }));
+                    
+                    if (dbData.patient) {
+                        setPatient(dbData.patient);
+                    }
+                }
+            } catch (error) {
+                console.error('DEBUG: Error fetching specific record:', error);
+                toast.error('Error al cargar el registro histórico');
+            }
+        };
+
         const fetchTodayRecord = async () => {
             const cleanPatientId = patientId?.trim();
-            if (!cleanPatientId || !activeSpecialty || cleanPatientId === 'generic') return;
+            if (!cleanPatientId || !activeSpecialty || cleanPatientId === 'generic' || mode === 'new') return;
 
             const userData = localStorage.getItem('user');
             if (!userData) return;
             const doctorId = JSON.parse(userData).id;
 
             try {
-                console.log('DEBUG: Fetching today record for:', { patientId: cleanPatientId, doctorId, specialtyId: activeSpecialty.id });
                 const response = await api.get(`/medical-records/today/${cleanPatientId}/${doctorId}/${activeSpecialty.id}`);
-                console.log('DEBUG: Today record response:', response.data);
                 if (response.data && response.data.data) {
                     const dbData = response.data.data;
 
                     setFormData((prev: any) => ({
                         ...prev,
-                        emergency: dbData.emergency || prev.emergency,
-                        family: dbData.family || prev.family,
-                        vaccines: dbData.vaccines || prev.vaccines,
-                        risks: dbData.risks || prev.risks,
-                        labresults: Array.isArray(dbData.labresults) ? dbData.labresults : prev.labresults,
-                        diagnosis: Array.isArray(dbData.diagnosis) ? dbData.diagnosis : prev.diagnosis,
-                        exams: { ...prev.exams, ...dbData.exams },
-                        tricology: { ...prev.tricology, ...dbData.tricology },
+                        emergency: dbData.data?.emergency || prev.emergency,
+                        family: dbData.data?.family || prev.family,
+                        vaccines: dbData.data?.vaccines || prev.vaccines,
+                        risks: dbData.data?.risks || prev.risks,
+                        labresults: Array.isArray(dbData.data?.labresults) ? dbData.data?.labresults : prev.labresults,
+                        diagnosis: Array.isArray(dbData.data?.diagnosis) ? dbData.data?.diagnosis : prev.diagnosis,
+                        exams: { ...prev.exams, ...dbData.data?.exams },
+                        tricology: { ...prev.tricology, ...dbData.data?.tricology },
+                        sessionId: dbData.data?.sessionId || prev.sessionId
                     }));
 
-                    // Use patient data from the record if available
                     if (dbData.patient) {
-                        console.log('DEBUG: Found patient data in medical record:', dbData.patient);
                         setPatient((prev: any) => ({ ...prev, ...dbData.patient }));
+                    }
+
+                    if (dbData.id) {
+                        setCurrentRecordId(dbData.id);
+                        currentRecordIdRef.current = dbData.id;
                     }
                 }
             } catch (error) {
@@ -114,20 +198,24 @@ export default function MedicalHistory() {
             }
         };
 
-        fetchPatient();
-        fetchTodayRecord();
-    }, [patientId, activeSpecialty]);
+        if (recordId) {
+            // Set read-only if not in 'new' mode (viewing an existing record)
+            setIsReadOnly(mode !== 'new');
+            
+            // Only fetch if data is not already loaded for this record
+            // This prevents re-fetching immediately after an auto-save that updated the URL
+            if (recordId !== currentRecordIdRef.current || formData.emergency.name === '') {
+                fetchRecordById();
+            }
+            fetchPatient(patientId!);
+        } else if (patientId) {
+            setIsReadOnly(false);
+            fetchPatient(patientId);
+            if (mode !== 'new') fetchTodayRecord();
+        }
+        fetchCatalog();
+    }, [patientId, recordId, activeSpecialty, mode]);
 
-    // Auto-save logic
-    useEffect(() => {
-        if (!activeSpecialty || !patientId || patientId === 'generic') return;
-
-        const timer = setTimeout(() => {
-            handleSaveAll(true);
-        }, 3000); // 3 seconds delay
-
-        return () => clearTimeout(timer);
-    }, [formData]);
 
     const isSectionComplete = (section: SectionKey) => {
         const data = formData[section];
@@ -147,9 +235,9 @@ export default function MedicalHistory() {
         return Array.isArray(data) && data.length > 0;
     };
 
-    const handleSaveAll = async (isAuto = false) => {
-        if (!activeSpecialty || !patientId || patientId === 'generic') {
-            console.warn('Cannot save: missing specialty or patientId');
+    const handleSaveAll = useCallback(async (isAuto = false) => {
+        // Prevent overlapping saves using REF for absolute safety
+        if (isSavingRef.current || isGlobalUploading || !activeSpecialty || !patientId || patientId === 'generic' || isReadOnly) {
             return;
         }
 
@@ -157,18 +245,20 @@ export default function MedicalHistory() {
         if (!userData) return;
         const doctorId = JSON.parse(userData).id;
 
-        if (!isAuto) setSaving(true);
+        isSavingRef.current = true;
+        setSaving(true);
         setSaveStatus('saving');
 
         try {
-            // Extract main diagnosis from the diagnosis list if exams.diagnosis is blank
+            // Extract main diagnosis
             let mainDiagnosis = formData.exams.diagnosis || '';
             if (!mainDiagnosis && formData.diagnosis.length > 0) {
-                // Use the first item's description as main diagnosis
                 mainDiagnosis = formData.diagnosis[0].description;
             }
 
             const payload = {
+                id: currentRecordIdRef.current || recordId, // Use parameter or ref
+                forceNew: mode === 'new' && !currentRecordIdRef.current && !recordId,
                 patientId,
                 doctorId,
                 specialtyId: activeSpecialty.id,
@@ -181,10 +271,22 @@ export default function MedicalHistory() {
 
             const response = await api.post('/medical-records/upsert', payload);
 
-            // Sync patient data from response if available
+            // Sync record ID from response
             const recordData = response.data?.data || response.data;
+            if (recordData?.id) {
+                if (!currentRecordIdRef.current) {
+                    console.log('DEBUG: First save successful, set ID to', recordData.id);
+                    setCurrentRecordId(recordData.id);
+                    currentRecordIdRef.current = recordData.id;
+                    
+                    // Update URL silently if in new mode to prevent "new" logic on refresh
+                    // Since it's consolidated, it won't unmount MedicalHistory
+                    if (mode === 'new') {
+                        navigate(`/dashboard/medical-history/${patientId}/${recordData.id}`, { replace: true });
+                    }
+                }
+            }
             if (recordData?.patient) {
-                console.log('DEBUG: Updating patient state from upsert response:', recordData.patient);
                 setPatient((prev: any) => ({ ...prev, ...recordData.patient }));
             }
 
@@ -196,37 +298,65 @@ export default function MedicalHistory() {
             if (!isAuto) toast.error(msg);
             setSaveStatus('error');
         } finally {
-            if (!isAuto) setSaving(false);
+            isSavingRef.current = false;
+            setSaving(false);
         }
-    };
+    }, [activeSpecialty, patientId, isReadOnly, mode, formData]); // Removed volatile deps
+
+    // Auto-save logic
+    useEffect(() => {
+        if (!activeSpecialty || !patientId || patientId === 'generic' || isReadOnly) return;
+
+        const timer = setTimeout(() => {
+            handleSaveAll(true);
+        }, 5000); // Increased to 5 seconds to be safer
+
+        return () => clearTimeout(timer);
+    }, [formData, isReadOnly]); // ONLY depend on formData for auto-save trigger
 
 
 
     const renderActiveSection = () => {
+        const commonProps = { readOnly: isReadOnly };
+        
         switch (activeSection) {
             case 'emergency':
-                return <EmergencyContactForm data={formData.emergency} onChange={(d: any) => handleUpdateSection('emergency', d)} />;
+                return <EmergencyContactForm {...commonProps} data={formData.emergency} onChange={(d: any) => handleUpdateSection('emergency', d)} />;
             case 'family':
-                return <FamilyHistoryForm data={formData.family} onChange={(d: string[]) => handleUpdateSection('family', d)} />;
+                return <FamilyHistoryForm {...commonProps} data={formData.family} onChange={(d: string[]) => handleUpdateSection('family', d)} />;
             case 'vaccines':
-                return <RecentVaccinesForm data={formData.vaccines} onChange={(d: string[]) => handleUpdateSection('vaccines', d)} />;
+                return <RecentVaccinesForm {...commonProps} data={formData.vaccines} onChange={(d: string[]) => handleUpdateSection('vaccines', d)} />;
             case 'risks':
-                return <RiskFactorsForm data={formData.risks} onChange={(d: string[]) => handleUpdateSection('risks', d)} />;
+                return <RiskFactorsForm {...commonProps} data={formData.risks} onChange={(d: string[]) => handleUpdateSection('risks', d)} />;
             case 'tricology':
                 return <TricologyFindingsForm
+                    {...commonProps}
                     patientId={patientId || ''}
+                    recordId={currentRecordId}
+                    sessionId={formData.sessionId}
                     data={formData.tricology}
                     onChange={(d: any) => handleUpdateSection('tricology', d)}
+                    onUploadingChange={setIsGlobalUploading}
                 />;
             case 'labresults':
-                return <LabResultsForm patientId={patientId || ''} data={formData.labresults} onChange={(d: any[]) => handleUpdateSection('labresults', d)} />;
+                return <LabResultsForm
+                    {...commonProps}
+                    patientId={patientId || ''}
+                    recordId={currentRecordId}
+                    sessionId={formData.sessionId}
+                    data={formData.labresults}
+                    onChange={(d: any[]) => handleUpdateSection('labresults', d)}
+                    onUploadingChange={setIsGlobalUploading}
+                />;
             case 'diagnosis':
-                return <DiagnosisActivityForm data={formData.diagnosis} onChange={(d: any[]) => handleUpdateSection('diagnosis', d)} />;
+                return <DiagnosisActivityForm {...commonProps} data={formData.diagnosis} onChange={(d: any[]) => handleUpdateSection('diagnosis', d)} />;
             case 'exams':
                 return <ComplementaryExamsForm
+                    {...commonProps}
                     data={formData.exams}
                     onChange={(d: any) => handleUpdateSection('exams', d)}
                     patient={patient}
+                    fullCatalog={examCatalog}
                 />;
             default:
                 return null;
@@ -268,16 +398,31 @@ export default function MedicalHistory() {
                     zIndex: 10
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                        <button
+                            onClick={() => recordId ? navigate(`/dashboard/medical-history-list/${patientId}`) : navigate('/dashboard/patients')}
+                            title="Regresar"
+                            style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                width: '36px', height: '36px', backgroundColor: '#f8fafc', color: '#64748b',
+                                border: '1px solid #e2e8f0', borderRadius: '10px',
+                                cursor: 'pointer', transition: 'all 0.2s',
+                                marginRight: '4px'
+                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; e.currentTarget.style.color = '#1e293b'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#64748b'; }}
+                        >
+                            <ArrowLeft size={20} />
+                        </button>
                         <div style={{
-                            width: '56px',
-                            height: '56px',
+                            width: '48px',
+                            height: '48px',
                             background: '#eff6ff',
                             borderRadius: '12px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: '#3b82f6',
-                            fontSize: '20px',
+                            fontSize: '18px',
                             fontWeight: '700'
                         }}>
                             {patient?.firstName?.[0]}{patient?.lastName?.[0]}
@@ -316,15 +461,35 @@ export default function MedicalHistory() {
                             <button
                                 className="submit-btn"
                                 onClick={() => handleSaveAll(false)}
-                                disabled={saving}
-                                style={{ width: 'auto', padding: '0 16px', display: 'flex', alignItems: 'center', gap: '8px', height: '36px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '8px', border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}
+                                disabled={saving || isReadOnly}
+                                style={{ 
+                                    width: 'auto', 
+                                    padding: '0 16px', 
+                                    display: isReadOnly ? 'none' : 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '8px', 
+                                    height: '36px', 
+                                    backgroundColor: '#3b82f6', 
+                                    color: 'white', 
+                                    borderRadius: '8px', 
+                                    border: 'none', 
+                                    fontWeight: '600', 
+                                    cursor: 'pointer', 
+                                    fontSize: '13px' 
+                                }}
                             >
                                 {saving ? <div className="loader" style={{ width: '14px', height: '14px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} /> : <Save size={16} />}
                                 Guardar
                             </button>
                             <button
                                 className="submit-btn"
-                                onClick={() => setShowPreview(true)}
+                                onClick={() => {
+                                    if (!currentRecordId) {
+                                        toast.error('Guarde el registro antes de imprimir');
+                                        return;
+                                    }
+                                    window.open(`/print/history/${patientId}/${currentRecordId}`, '_blank');
+                                }}
                                 style={{
                                     width: 'auto', padding: '0 16px', display: 'flex', alignItems: 'center', gap: '8px',
                                     height: '36px', backgroundColor: '#64748b', color: 'white', borderRadius: '8px',
@@ -332,7 +497,7 @@ export default function MedicalHistory() {
                                 }}
                             >
                                 <Printer size={16} />
-                                Vista Previa
+                                Imprimir
                             </button>
 
                         </div>
@@ -400,101 +565,98 @@ export default function MedicalHistory() {
       `}</style>
 
 
-                {/* Modal de Vista Previa */}
-                {showPreview && (
-                    <div style={{
-                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex',
-                        alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-                        padding: '40px'
-                    }}>
-                        <div style={{
-                            backgroundColor: '#f1f5f9', borderRadius: '12px',
-                            width: '100%', maxWidth: '900px', height: '90vh',
-                            display: 'flex', flexDirection: 'column', overflow: 'hidden',
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-                        }}>
-                            <div style={{
-                                padding: '16px 24px', backgroundColor: 'white',
-                                borderBottom: '1px solid #e2e8f0', display: 'flex',
-                                justifyContent: 'space-between', alignItems: 'center'
-                            }}>
-                                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1e293b' }}>
-                                    Vista Previa de Historia Clínica
-                                </h3>
-                                <div style={{ display: 'flex', gap: '12px' }}>
-                                    <button
-                                        onClick={() => window.print()}
-                                        style={{
-                                            padding: '8px 16px', backgroundColor: '#3b82f6',
-                                            color: 'white', border: 'none', borderRadius: '6px',
-                                            fontWeight: '600', cursor: 'pointer', display: 'flex',
-                                            alignItems: 'center', gap: '8px'
-                                        }}
-                                    >
-                                        <Printer size={18} /> Imprimir
-                                    </button>
-                                    <button
-                                        onClick={() => setShowPreview(false)}
-                                        style={{
-                                            padding: '8px 16px', backgroundColor: '#64748b',
-                                            color: 'white', border: 'none', borderRadius: '6px',
-                                            fontWeight: '600', cursor: 'pointer'
-                                        }}
-                                    >
-                                        Cerrar
-                                    </button>
-                                </div>
-                            </div>
-                            <div style={{
-                                flex: 1, overflowY: 'auto', padding: '40px',
-                                display: 'flex', justifyContent: 'center',
-                                backgroundColor: '#cbd5e1'
-                            }}>
-                                <div style={{
-                                    backgroundColor: 'white', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                    width: '210mm', minHeight: '297mm', padding: '10mm'
-                                }}>
-                                    <PrintMedicalHistoryTemplate patient={patient} data={formData} />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
             </div>
 
             {/* Template para Impresión (Solo para el diálogo de impresión real) */}
-            <div id="print-root" className="print-history-template">
-                <PrintMedicalHistoryTemplate patient={patient} data={formData} />
+            <div id="print-root">
+                <div className="print-history-template">
+                    <PrintMedicalHistoryTemplate patient={patient} data={formData} />
+                </div>
+                <div className="print-exams-only-template">
+                    <PrintExamsTemplate 
+                        patient={patient} 
+                        data={formData.exams} 
+                        catalog={examCatalog}
+                    />
+                </div>
             </div>
 
             <style>{`
                 @media screen {
-                    .print-history-template { display: none; }
+                    #print-root { display: none; }
                 }
                 @media print {
-                    /* Ocultar interfaz de la app y modales */
-                    .management-container, div[style*="position: fixed"] {
+                    @page { margin: 0; size: A4; }
+                    
+                    /* Ocultar elementos de la UI principal y marcados con no-print */
+                    .management-container, 
+                    .dashboard-layout, 
+                    .sidebar, 
+                    .header, 
+                    .no-print,
+                    button,
+                    nav,
+                    div[style*="position: fixed"]:not(#print-root) {
                         display: none !important;
                     }
-                    /* Forzar que el template de impresión sea visible */
-                    .print-history-template {
+                    
+                    /* Forzar visibilidad de colores */
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+
+                    /* Asegurar que el root de impresión sea lo único visible */
+                    #print-root {
                         display: block !important;
+                        visibility: visible !important;
                         position: absolute !important;
                         left: 0 !important;
                         top: 0 !important;
                         width: 100% !important;
+                        height: auto !important;
                         margin: 0 !important;
                         padding: 0 !important;
-                        z-index: 9999 !important;
+                        z-index: 99999 !important;
                         background: white !important;
                     }
-                    /* Asegurar que el body permita ver el contenido absoluto */
-                    body {
-                        overflow: visible !important;
+
+                    /* Estilos específicos para el contenido de impresión */
+                    .print-only-content {
+                        display: block !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                        width: 210mm !important;
+                        min-height: 290mm !important;
+                        margin: 0 !important;
+                        padding: 10mm !important;
+                        box-sizing: border-box !important;
+                        background: white !important;
+                        position: relative !important;
                     }
-                    @page { margin: 0; size: A4; }
+
+                    /* Mostrar solo la plantilla correcta según la clase en el body */
+                    body.printing-exams .print-history-template {
+                        display: none !important;
+                    }
+                    body.printing-exams .print-exams-only-template {
+                        display: block !important;
+                        visibility: visible !important;
+                    }
+                    
+                    body:not(.printing-exams) .print-history-template {
+                        display: block !important;
+                        visibility: visible !important;
+                    }
+                    body:not(.printing-exams) .print-exams-only-template {
+                        display: none !important;
+                    }
+
+                    body {
+                        background: white !important;
+                        visibility: visible !important;
+                    }
                 }
             `}</style>
         </>

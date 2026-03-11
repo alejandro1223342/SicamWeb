@@ -4,9 +4,10 @@ import api from '../../api';
 interface Props {
     data: string[];
     onChange: (data: string[]) => void;
+    readOnly?: boolean;
 }
 
-export default function FamilyHistoryForm({ data = [], onChange }: Props) {
+export default function FamilyHistoryForm({ data = [], onChange, readOnly = false }: Props) {
     const [options, setOptions] = useState<{ id: string, name: string }[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -25,6 +26,8 @@ export default function FamilyHistoryForm({ data = [], onChange }: Props) {
     }, []);
 
     const toggleOption = (option: string) => {
+        if (readOnly) return;
+        
         if (option === 'NINGUNO') {
             onChange(data.includes('NINGUNO') ? [] : ['NINGUNO']);
             return;
@@ -49,7 +52,9 @@ export default function FamilyHistoryForm({ data = [], onChange }: Props) {
                 Antecedentes familiares
             </h3>
 
-            <label style={{ fontWeight: '500', color: '#475569', marginBottom: '16px', display: 'block' }}>Seleccione(*)</label>
+            <label style={{ fontWeight: '500', color: '#475569', marginBottom: '16px', display: 'block' }}>
+                {readOnly ? 'Registrados:' : 'Seleccione(*)'}
+            </label>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                 {loading ? (
@@ -58,6 +63,10 @@ export default function FamilyHistoryForm({ data = [], onChange }: Props) {
                     options.map((optItem) => {
                         const opt = optItem.name;
                         const isSelected = data.includes(opt);
+                        
+                        // En modo lectura, si no está seleccionado, no lo mostramos para limpiar la vista
+                        if (readOnly && !isSelected) return null;
+
                         return (
                             <div
                                 key={optItem.id}
@@ -65,10 +74,10 @@ export default function FamilyHistoryForm({ data = [], onChange }: Props) {
                                 style={{
                                     padding: '8px 16px',
                                     borderRadius: '20px',
-                                    border: `1px solid ${isSelected ? '#3b82f6' : '#cbd5e1'}`,
-                                    backgroundColor: isSelected ? '#eff6ff' : 'white',
-                                    color: isSelected ? '#1d4ed8' : '#475569',
-                                    cursor: 'pointer',
+                                    border: `1px solid ${isSelected ? (readOnly ? '#94a3b8' : '#3b82f6') : '#cbd5e1'}`,
+                                    backgroundColor: isSelected ? (readOnly ? '#f1f5f9' : '#eff6ff') : 'white',
+                                    color: isSelected ? (readOnly ? '#475569' : '#1d4ed8') : '#475569',
+                                    cursor: readOnly ? 'default' : 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '8px',
@@ -78,8 +87,8 @@ export default function FamilyHistoryForm({ data = [], onChange }: Props) {
                                 }}
                             >
                                 <div style={{
-                                    width: '18px', height: '18px', borderRadius: '4px', border: `2px solid ${isSelected ? '#3b82f6' : '#cbd5e1'}`,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? '#3b82f6' : 'transparent'
+                                    width: '18px', height: '18px', borderRadius: '4px', border: `2px solid ${isSelected ? (readOnly ? '#94a3b8' : '#3b82f6') : '#cbd5e1'}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? (readOnly ? '#94a3b8' : '#3b82f6') : 'transparent'
                                 }}>
                                     {isSelected && <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: '12px', height: '12px' }}><polyline points="20 6 9 17 4 12"></polyline></svg>}
                                 </div>
@@ -88,9 +97,10 @@ export default function FamilyHistoryForm({ data = [], onChange }: Props) {
                         );
                     })
                 )}
+                {readOnly && !loading && data.length === 0 && (
+                    <div style={{ padding: '8px 16px', color: '#64748b', fontSize: '14px', fontStyle: 'italic' }}>Ninguno registrado.</div>
+                )}
             </div >
-
-            
         </div >
     );
 }

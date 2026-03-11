@@ -9,9 +9,10 @@ interface Props {
         address: string;
     };
     onChange: (data: any) => void;
+    readOnly?: boolean;
 }
 
-export default function EmergencyContactForm({ data, onChange }: Props) {
+export default function EmergencyContactForm({ data, onChange, readOnly = false }: Props) {
     const [options, setOptions] = useState<{ id: string, name: string }[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -30,6 +31,7 @@ export default function EmergencyContactForm({ data, onChange }: Props) {
     }, []);
 
     const handleChange = (field: string, value: string) => {
+        if (readOnly) return;
         onChange({ ...data, [field]: value });
     };
 
@@ -47,9 +49,10 @@ export default function EmergencyContactForm({ data, onChange }: Props) {
                         className="form-input"
                         value={data?.name || ''}
                         onChange={(e) => handleChange('name', e.target.value)}
-                        style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none', transition: 'border-color 0.2s' }}
-                        onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                        onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                        readOnly={readOnly}
+                        style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none', transition: 'border-color 0.2s', backgroundColor: readOnly ? '#f8fafc' : 'white' }}
+                        onFocus={(e) => { if (!readOnly) e.target.style.borderColor = '#3b82f6'; }}
+                        onBlur={(e) => { if (!readOnly) e.target.style.borderColor = '#cbd5e1'; }}
                     />
                 </div>
 
@@ -59,10 +62,10 @@ export default function EmergencyContactForm({ data, onChange }: Props) {
                         className="form-input"
                         value={data?.relation || ''}
                         onChange={(e) => handleChange('relation', e.target.value)}
-                        style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none', backgroundColor: 'white', transition: 'border-color 0.2s' }}
-                        onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                        onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
-                        disabled={loading}
+                        style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none', backgroundColor: readOnly ? '#f8fafc' : 'white', transition: 'border-color 0.2s' }}
+                        onFocus={(e) => { if (!readOnly) e.target.style.borderColor = '#3b82f6'; }}
+                        onBlur={(e) => { if (!readOnly) e.target.style.borderColor = '#cbd5e1'; }}
+                        disabled={loading || readOnly}
                     >
                         <option value="">{loading ? 'Cargando...' : 'Seleccione'}</option>
                         {options.map((opt) => (
@@ -80,9 +83,10 @@ export default function EmergencyContactForm({ data, onChange }: Props) {
                         className="form-input"
                         value={data?.phone || ''}
                         onChange={(e) => handleChange('phone', e.target.value)}
-                        style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none', transition: 'border-color 0.2s' }}
-                        onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                        onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                        readOnly={readOnly}
+                        style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none', transition: 'border-color 0.2s', backgroundColor: readOnly ? '#f8fafc' : 'white' }}
+                        onFocus={(e) => { if (!readOnly) e.target.style.borderColor = '#3b82f6'; }}
+                        onBlur={(e) => { if (!readOnly) e.target.style.borderColor = '#cbd5e1'; }}
                     />
                 </div>
             </div>
@@ -94,9 +98,10 @@ export default function EmergencyContactForm({ data, onChange }: Props) {
                     className="form-input"
                     value={data?.address || ''}
                     onChange={(e) => handleChange('address', e.target.value)}
-                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none', transition: 'border-color 0.2s' }}
-                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                    onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                    readOnly={readOnly}
+                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none', transition: 'border-color 0.2s', backgroundColor: readOnly ? '#f8fafc' : 'white' }}
+                    onFocus={(e) => { if (!readOnly) e.target.style.borderColor = '#3b82f6'; }}
+                    onBlur={(e) => { if (!readOnly) e.target.style.borderColor = '#cbd5e1'; }}
                 />
             </div>
         </div>

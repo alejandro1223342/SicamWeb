@@ -1,5 +1,5 @@
-import  { useState } from 'react';
-import { Plus, X, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, X, Trash2, ClipboardList } from 'lucide-react';
 
 interface DiagnosisItem {
     id: string;
@@ -13,9 +13,10 @@ interface DiagnosisItem {
 interface Props {
     data: DiagnosisItem[];
     onChange: (data: DiagnosisItem[]) => void;
+    readOnly?: boolean;
 }
 
-export default function DiagnosisActivityForm({ data = [], onChange }: Props) {
+export default function DiagnosisActivityForm({ data = [], onChange, readOnly = false }: Props) {
     const [showModal, setShowModal] = useState(false);
     const [newItem, setNewItem] = useState<Partial<DiagnosisItem>>({
         description: '', p: false, d: false, r: false, cieCode: ''
@@ -40,60 +41,81 @@ export default function DiagnosisActivityForm({ data = [], onChange }: Props) {
     };
 
     const handleRemove = (id: string) => {
+        if (readOnly) return;
         onChange(data.filter(item => item.id !== id));
     };
 
     return (
-        <div className="section-container" style={{ animation: 'fadeIn 0.3s ease-in-out' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #f1f5f9', paddingBottom: '12px' }}>
-                <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#1e293b', margin: 0 }}>
-                    Diagnóstico/Actividad
+        <div className="section-container" style={{ animation: 'fadeIn 0.3s ease-in-out', backgroundColor: '#fcfcfd', borderRadius: '20px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.04)', border: '1px solid #f1f5f9', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', borderBottom: '2px solid #f1f5f9', paddingBottom: '16px' }}>
+                <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ padding: '8px', backgroundColor: '#ecfdf5', borderRadius: '12px', color: '#10b981', display: 'flex' }}>
+                        <ClipboardList size={24} />
+                    </div>
+                    Diagnóstico / Actividad
                 </h3>
-                <button
-                    onClick={() => setShowModal(true)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'transparent', color: '#22c55e', border: '1px solid #22c55e', padding: '8px 16px', borderRadius: '4px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s' }}
-                >
-                    Agregar Diagnóstico/actividad <Plus size={16} />
-                </button>
+                {!readOnly && (
+                    <button
+                        onClick={() => setShowModal(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#10b981', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.15)' }}
+                    >
+                        Agregar diagnóstico <Plus size={18} />
+                    </button>
+                )}
             </div>
 
-            <h4 style={{ textAlign: 'center', color: '#475569', fontWeight: '600', fontSize: '16px', marginBottom: '16px', textTransform: 'uppercase' }}>
-                DIAGNOSTICO / ACTIVIDAD
-            </h4>
-
-            {/* Table */}
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: '16px', overflow: 'hidden', backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-                    <thead style={{ backgroundColor: '#f8fafc', color: '#475569', fontWeight: '600', borderBottom: '1px solid #e2e8f0' }}>
+                    <thead style={{ backgroundColor: '#f8fafc', color: '#64748b', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>
                         <tr>
-                            <th style={{ padding: '12px 16px' }}>DIAGNOSTICO / ACTIVIDAD</th>
-                            <th style={{ padding: '12px 16px', width: '50px' }}>P</th>
-                            <th style={{ padding: '12px 16px', width: '50px' }}>D</th>
-                            <th style={{ padding: '12px 16px', width: '50px' }}>R</th>
-                            <th style={{ padding: '12px 16px', width: '150px' }}>COD CIE</th>
-                            <th style={{ padding: '12px 16px', width: '80px' }}>ACCIONES</th>
+                            <th style={{ padding: '16px 20px' }}>DIAGNÓSTICO / ACTIVIDAD</th>
+                            <th style={{ padding: '16px 20px', width: '60px', textAlign: 'center' }}>P</th>
+                            <th style={{ padding: '16px 20px', width: '60px', textAlign: 'center' }}>D</th>
+                            <th style={{ padding: '16px 20px', width: '60px', textAlign: 'center' }}>R</th>
+                            <th style={{ padding: '16px 20px', width: '180px' }}>COD CIE</th>
+                            {!readOnly && <th style={{ padding: '16px 20px', width: '80px', textAlign: 'center' }}>ACCIONES</th>}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody style={{ color: '#334155' }}>
                         {data.length === 0 ? (
                             <tr>
-                                <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', backgroundColor: '#f8fafc' }}>
-                                    No hay datos
+                                <td colSpan={readOnly ? 5 : 6} style={{ padding: '60px 40px', textAlign: 'center', color: '#94a3b8', backgroundColor: '#f8fafc' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                                        <div style={{ width: '64px', height: '64px', backgroundColor: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1' }}>
+                                            <ClipboardList size={32} />
+                                        </div>
+                                        <span style={{ fontSize: '16px', fontWeight: '700', color: '#475569' }}>Sin diagnósticos registrados</span>
+                                    </div>
                                 </td>
                             </tr>
                         ) : (
                             data.map((item) => (
-                                <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                    <td style={{ padding: '12px 16px', color: '#1e293b' }}>{item.description}</td>
-                                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>{item.p ? <span style={{ fontWeight: '700', color: '#4f46e5' }}>X</span> : ''}</td>
-                                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>{item.d ? <span style={{ fontWeight: '700', color: '#4f46e5' }}>X</span> : ''}</td>
-                                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>{item.r ? <span style={{ fontWeight: '700', color: '#4f46e5' }}>X</span> : ''}</td>
-                                    <td style={{ padding: '12px 16px', color: '#475569' }}>{item.cieCode}</td>
-                                    <td style={{ padding: '12px 16px' }}>
-                                        <button onClick={() => handleRemove(item.id)} style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}>
-                                            <Trash2 size={16} />
-                                        </button>
+                                <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseOut={e => e.currentTarget.style.backgroundColor = 'white'}>
+                                    <td style={{ padding: '16px 20px' }}>
+                                        <span style={{ fontWeight: '600', color: '#1e293b' }}>{item.description}</span>
                                     </td>
+                                    <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                                        {item.p && <span style={{ backgroundColor: '#eef2ff', color: '#4f46e5', padding: '4px 8px', borderRadius: '6px', fontWeight: '800', fontSize: '12px' }}>P</span>}
+                                    </td>
+                                    <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                                        {item.d && <span style={{ backgroundColor: '#f0fdf4', color: '#16a34a', padding: '4px 8px', borderRadius: '6px', fontWeight: '800', fontSize: '12px' }}>D</span>}
+                                    </td>
+                                    <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                                        {item.r && <span style={{ backgroundColor: '#fff7ed', color: '#ea580c', padding: '4px 8px', borderRadius: '6px', fontWeight: '800', fontSize: '12px' }}>R</span>}
+                                    </td>
+                                    <td style={{ padding: '16px 20px' }}>
+                                        <span style={{ fontWeight: '700', color: '#475569', backgroundColor: '#f1f5f9', padding: '6px 12px', borderRadius: '8px', fontSize: '13px' }}>{item.cieCode}</span>
+                                    </td>
+                                    {!readOnly && (
+                                        <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                                            <button 
+                                                onClick={() => handleRemove(item.id)} 
+                                                style={{ border: '1.5px solid #fee2e2', background: 'transparent', color: '#ef4444', padding: '8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </td>
+                                    )}
                                 </tr>
                             ))
                         )}
@@ -101,63 +123,65 @@ export default function DiagnosisActivityForm({ data = [], onChange }: Props) {
                 </table>
             </div>
 
-
-            {/* Fake Modal */}
             {showModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-                    <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
-
-                        <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#334155', margin: 0 }}>Diagnostico y actividad</h2>
-                            <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
-                                <X size={24} />
-                            </button>
+                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', backdropFilter: 'blur(4px)' }}>
+                    <div style={{ backgroundColor: 'white', borderRadius: '24px', width: '100%', maxWidth: '600px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)', animation: 'modalFadeIn 0.3s ease-out' }}>
+                        <div style={{ padding: '24px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Nuevo Diagnóstico / Actividad</h2>
+                            <button onClick={() => setShowModal(false)} style={{ background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
                         </div>
-
-                        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            <div>
-                                <label style={{ display: 'block', fontWeight: '600', fontSize: '16px', color: '#64748b', marginBottom: '8px' }}>Descripción(*)</label>
-                                <textarea
-                                    value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                                    style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '4px', resize: 'vertical', minHeight: '100px', outlineColor: '#3b82f6' }}
+                        
+                        <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label style={{ fontWeight: '600', color: '#475569', fontSize: '14px' }}>Descripción(*)</label>
+                                <textarea 
+                                    placeholder="Describa el diagnóstico o actividad..." 
+                                    value={newItem.description} 
+                                    onChange={e => setNewItem({...newItem, description: e.target.value})}
+                                    rows={3}
+                                    style={{ width: '100%', padding: '14px 18px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', transition: 'all 0.2s', fontSize: '15px', resize: 'vertical' }}
+                                    onFocus={e => { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 4px rgba(79, 70, 229, 0.1)'; }}
+                                    onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
                                 />
                             </div>
 
-                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                {(['p', 'd', 'r'] as const).map(key => (
-                                    <button
-                                        key={key}
-                                        type="button"
-                                        onClick={() => setNewItem({ ...newItem, [key]: !newItem[key] })}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            width: '60px',
-                                            height: '40px',
-                                            borderRadius: '8px',
-                                            border: '2px solid',
-                                            borderColor: newItem[key] ? '#4f46e5' : '#cbd5e1',
-                                            backgroundColor: newItem[key] ? '#f5f3ff' : 'white',
-                                            color: newItem[key] ? '#4f46e5' : '#64748b',
-                                            fontWeight: '800',
-                                            fontSize: '18px',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s ease'
-                                        }}
-                                    >
-                                        {key.toUpperCase()}
-                                    </button>
-                                ))}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <label style={{ fontWeight: '600', color: '#475569', fontSize: '14px' }}>Tipo de diagnóstico (Seleccione al menos uno)</label>
+                                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                    {(['p', 'd', 'r'] as const).map(key => (
+                                        <button
+                                            key={key}
+                                            onClick={() => setNewItem({ ...newItem, [key]: !newItem[key] })}
+                                            style={{
+                                                flex: 1,
+                                                padding: '12px',
+                                                borderRadius: '12px',
+                                                border: '2px solid',
+                                                borderColor: newItem[key] ? '#4f46e5' : '#cbd5e1',
+                                                backgroundColor: newItem[key] ? '#f5f3ff' : 'white',
+                                                color: newItem[key] ? '#4f46e5' : '#64748b',
+                                                fontWeight: '800',
+                                                fontSize: '18px',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            {key.toUpperCase()}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
-                            <div>
-                                <label style={{ display: 'block', fontWeight: '600', fontSize: '16px', color: '#64748b', marginBottom: '8px' }}>COD CIE(*)</label>
-                                <select
-                                    value={newItem.cieCode} onChange={(e) => setNewItem({ ...newItem, cieCode: e.target.value })}
-                                    style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '4px', outlineColor: '#3b82f6', backgroundColor: 'white' }}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label style={{ fontWeight: '600', color: '#475569', fontSize: '14px' }}>Código CIE-10 (*)</label>
+                                <select 
+                                    value={newItem.cieCode} 
+                                    onChange={e => setNewItem({...newItem, cieCode: e.target.value})}
+                                    style={{ width: '100%', padding: '12px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', transition: 'all 0.2s', fontSize: '15px', backgroundColor: 'white' }}
+                                    onFocus={e => { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 4px rgba(79, 70, 229, 0.1)'; }}
+                                    onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
                                 >
-                                    <option value="">SELECCIONE</option>
+                                    <option value="">Seleccione un código...</option>
                                     <option value="L64.X">L64.X - Alopecia androgénica</option>
                                     <option value="L65.9">L65.9 - Alopecia de tipo no especificado</option>
                                     <option value="L66.1">L66.1 - Liquen planopilaris</option>
@@ -167,17 +191,18 @@ export default function DiagnosisActivityForm({ data = [], onChange }: Props) {
                             </div>
                         </div>
 
-                        <div style={{ padding: '20px 24px', display: 'flex', justifyContent: 'center' }}>
-                            <button
-                                onClick={handleAddItem}
-                                style={{ backgroundColor: '#4f46e5', color: 'white', padding: '12px 48px', borderRadius: '4px', fontSize: '16px', fontWeight: '600', border: 'none', cursor: 'pointer' }}
-                            >
-                                Guardar
-                            </button>
+                        <div style={{ padding: '24px 32px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '12px', backgroundColor: '#f8fafc', borderBottomLeftRadius: '24px', borderBottomRightRadius: '24px' }}>
+                            <button onClick={() => setShowModal(false)} style={{ padding: '10px 24px', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: 'white', color: '#475569', fontWeight: '600', cursor: 'pointer' }}>Cancelar</button>
+                            <button onClick={handleAddItem} style={{ padding: '10px 32px', borderRadius: '12px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' }}>Guardar</button>
                         </div>
                     </div>
                 </div>
             )}
+
+            <style>{`
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+            `}</style>
         </div>
     );
 }

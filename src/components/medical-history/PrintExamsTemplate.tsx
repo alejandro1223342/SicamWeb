@@ -1,5 +1,46 @@
 import React from 'react';
-import { EXAMS_CATALOG } from './ComplementaryExamsForm';
+
+export const EXAMS_CATALOG = {
+    "AUTOINMUNIDAD": [
+        "AC. ANTI DNA", "AC. ANTI. CENTRÓMERO", "AC. ANTI. MITOCONDRIALES", "ANA (AC. ANTINUCLEARES)", 
+        "ANCA C (ANTI-PR3)", "ANCA P (ANTI-MPO)", "ANTI-JO", "ANTI-LA (SSB)", "ANTI-RNP", 
+        "ANTI-RO (SSA)", "ANTI-SM", "ANTI. MÚSCULO LISO", "CARDIOPLINA IGG", "CARDIOPLINA IGM", 
+        "CCP (CITRULINADO)", "COMPLEMENTO C3", "COMPLEMENTO C4", "FOSFOLIPÍDO IGG", "FOSFOLIPÍDO IGM"
+    ],
+    "BACTERIOLOGÍA": [
+        "ANTIBIOGRAMA (POR CULTIVO)", "BACILOSCOPIA (BK)", "CULTIVO (OTRAS MUESTRAS)", "CULTIVO DE EXUDADO FARINGEO", 
+        "CULTIVO DE SECRECION VAGINAL", "FROTIS / TINCION GRAM", "KOH (MICROSCOPICO)", "UROCULTIVO"
+    ],
+    "BIOLOGÍA MOLECULAR": [
+        "HPV (VIRUS PAPILOMA HUMANO)", "MYCOBACTERIUM TUBERCULOSIS (PCR)", "SARS-COV-2 (RT-PCR)"
+    ],
+    "CITOLOGÍA / HISTOPATOLOGÍA": [
+        "BIOPSIA (POR ÓRGANO)", "CITOLOGÍA CERVICO-VAGINAL", "CITOLOGÍA LIQUIDOS CORPORALES"
+    ],
+    "DROGAS DE ABUSO": [
+        "ANFETAMINAS", "BENZODIAZEPINAS", "COCAINA", "MARIHUANA"
+    ],
+    "HEMATOLOGÍA": [
+        "BIOMETRÍA HEMÁTICA", "GRUPO SANGUÍNEO Y FACTOR RH", "VELOCIDAD DE SEDIMENTACIÓN (VSG)",
+        "TIEMPO DE PROTROMBINA (TP)", "TIEMPO DE TROMBOPLASTINA (TTP)", "RETICULOCITOS"
+    ],
+    "QUÍMICA SANGUÍNEA": [
+        "GLUCOSA EN AYUNAS", "UREA", "CREATININA", "ÁCIDO ÚRICO", "COLESTEROL TOTAL", 
+        "COLESTEROL HDL", "COLESTEROL LDL", "TRIGLICÉRIDOS", "BILIRRUBINAS", "TGO / AST", 
+        "TGP / ALT", "FOSFATASA ALCALINA", "PROTEÍNAS TOTALES", "ALBÚMINA", "HEMOGLOBINA GLICOSILADA"
+    ],
+    "HORMONAS / MARCADORES": [
+        "TSH", "T3 LIBRE", "T4 LIBRE", "PSA TOTAL", "PSA LIBRE", "PROLACTINA",
+        "ESTRADIOL", "PROGESTERONA", "TESTOSTERONA", "BETA-HCG"
+    ],
+    "SEROLOGÍA": [
+        "VDRL / RPR", "VIH (ELISA)", "HELICOBACTER PYLORI", "HEPATITIS A", "HEPATITIS B", "HEPATITIS C"
+    ],
+    "ORINA Y HECES": [
+        "ELEMENTAL Y MICROSCÓPICO DE ORINA (EMO)", "PRUEBA DE EMBARAZO EN ORINA",
+        "COPROPARASITARIO SIMPLE", "SANGRE OCULTA EN HECES", "POLIMORFONUCLEARES EN HECES"
+    ]
+};
 
 interface PrintExamsTemplateProps {
     patient: any;
@@ -7,20 +48,26 @@ interface PrintExamsTemplateProps {
         options: string[];
         other: string;
         diagnosis: string;
+        treatment?: string;
     };
+    catalog?: any;
 }
 
-const PrintExamsTemplate: React.FC<PrintExamsTemplateProps> = ({ patient, data }) => {
+const PrintExamsTemplate: React.FC<PrintExamsTemplateProps> = ({ patient, data, catalog }) => {
     const today = new Date().toLocaleDateString('es-ES');
     
+    // Use dynamic catalog if provided, otherwise fallback to static
+    const activeCatalog = catalog && Object.keys(catalog).length > 0 ? catalog : EXAMS_CATALOG;
+    
+    // Safety check for data
+    const safeData = data || { options: [], other: '', diagnosis: '' };
+    const selectedOptions = safeData.options || [];
+
     // Robust patient data extraction
-    // It could be a simple User object or a MedicalRecord containing a patient
     const pData = (patient?.patient || patient?.data || patient) || {};
     
-    console.log('PRINT TEMPLATE DATA:', { pData, patient, data });
-    
     // Fallback fields for display
-    const patientName = pData.firstName ? `${pData.firstName} ${pData.lastName || ''}`.toUpperCase() : (pData.name ? pData.name.toUpperCase() : 'N/A');
+    const patientName = pData.firstName ? `${pData.firstName} ${pData.lastName || ''}`.trim().toUpperCase() : (pData.name ? pData.name.toUpperCase() : 'N/A');
     const patientId = pData.idNumber || pData.dni || pData.identification || 'N/A';
     const patientPhone = pData.phone || pData.phoneNumber || pData.cellphone || 'N/A';
     
@@ -40,20 +87,16 @@ const PrintExamsTemplate: React.FC<PrintExamsTemplateProps> = ({ patient, data }
     };
     const patientAge = getAge(pData.birthDate);
 
-    const categories = Object.keys(EXAMS_CATALOG);
-    
-    // El objetivo es ocupar TODA la hoja A4 (210x297mm aprox)
-    // Reducir de 5 a 4 columnas para ganar espacio horizontal y vertical
-    // Aumentar interlineado y tamaños de fuente.
+    const categories = Object.keys(activeCatalog);
     
     return (
-        <div id="print-exams-container" style={{ 
+        <div className="print-exams-container print-only-content" style={{ 
             fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
             color: '#000',
             padding: '4mm 8mm',
             backgroundColor: 'white',
             width: '210mm',
-            minHeight: '200mm', // Reducir más para que no fuerce página extra si no es necesario
+            minHeight: '200mm', 
             margin: '0 auto',
             fontSize: '9.5px',
             lineHeight: '1.0',
@@ -100,30 +143,32 @@ const PrintExamsTemplate: React.FC<PrintExamsTemplateProps> = ({ patient, data }
             {/* Grid of Exams */}
             <div style={{ 
                 columnCount: 4, 
-                columnGap: '10px',
+                columnGap: '8px',
                 width: '100%',
-                flex: 1
+                flex: 1,
+                fontSize: '8px'
             }}>
                 {categories.map((catName) => (
-                    <div key={catName} style={{ marginBottom: '6px', breakInside: 'avoid', display: 'inline-block', width: '100%' }}>
+                    <div key={catName} style={{ marginBottom: '4px', breakInside: 'avoid' }}>
                         <div style={{ 
                             borderBottom: '1.2px solid #000',
-                            fontSize: '9px', 
+                            fontSize: '8.5px', 
                             fontWeight: '900', 
-                            paddingBottom: '1px',
-                            marginBottom: '2px',
+                            paddingBottom: '0.5px',
+                            marginBottom: '1.5px',
                             textTransform: 'uppercase'
                         }}>
                             {catName}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
-                            {EXAMS_CATALOG[catName as keyof typeof EXAMS_CATALOG].map((opt: string) => {
-                                const isSelected = data.options.includes(opt);
+                            {activeCatalog[catName as keyof typeof activeCatalog].map((opt: string) => {
+                                // Búsqueda insensible a mayúsculas/minúsculas
+                                const isSelected = selectedOptions.some(sel => sel.trim().toUpperCase() === opt.trim().toUpperCase());
                                 return (
-                                    <div key={opt} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '8px', lineHeight: '1.0' }}>
+                                    <div key={opt} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '7.5px', lineHeight: '1.0' }}>
                                         <div style={{ 
-                                            width: '8px', 
-                                            height: '8px', 
+                                            width: '7px', 
+                                            height: '7px', 
                                             border: '0.8px solid #000', 
                                             display: 'flex', 
                                             alignItems: 'center', 
@@ -131,13 +176,11 @@ const PrintExamsTemplate: React.FC<PrintExamsTemplateProps> = ({ patient, data }
                                             flexShrink: 0,
                                             backgroundColor: isSelected ? '#eee' : 'transparent'
                                         }}>
-                                            {isSelected && <span style={{ fontSize: '7px', fontWeight: '900' }}>X</span>}
+                                            {isSelected && <span style={{ fontSize: '6px', fontWeight: '900' }}>X</span>}
                                         </div>
                                         <span style={{ 
                                             fontWeight: isSelected ? '800' : '500',
-                                            whiteSpace: 'nowrap',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis'
+                                            whiteSpace: 'nowrap'
                                         }}>
                                             {opt}
                                         </span>
@@ -154,11 +197,11 @@ const PrintExamsTemplate: React.FC<PrintExamsTemplateProps> = ({ patient, data }
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
                     <div>
                         <div style={{ fontWeight: '900', fontSize: '9px', marginBottom: '2px' }}>OTROS:</div>
-                        <div style={{ border: '1.2px solid #000', height: '30px', padding: '4px', fontSize: '9px', borderRadius: '4px' }}>{data.other || ''}</div>
+                        <div style={{ border: '1.2px solid #000', height: '30px', padding: '4px', fontSize: '9px', borderRadius: '4px' }}>{safeData.other || ''}</div>
                     </div>
                     <div>
                         <div style={{ fontWeight: '900', fontSize: '9px', marginBottom: '2px' }}>DIAGNÓSTICO:</div>
-                        <div style={{ border: '1.2px solid #000', height: '30px', padding: '4px', fontSize: '9px', borderRadius: '4px' }}>{data.diagnosis || ''}</div>
+                        <div style={{ border: '1.2px solid #000', height: '30px', padding: '4px', fontSize: '9px', borderRadius: '4px' }}>{safeData.diagnosis || ''}</div>
                     </div>
                 </div>
 
@@ -173,29 +216,6 @@ const PrintExamsTemplate: React.FC<PrintExamsTemplateProps> = ({ patient, data }
                     </div>
                 </div>
             </div>
-
-            <style>{`
-                @media print {
-                    @page {
-                        size: A4;
-                        margin: 0;
-                    }
-                    * {
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
-                    }
-                    #print-exams-container {
-                        display: block !important;
-                        visibility: visible !important;
-                        width: 210mm !important;
-                        minHeight: '290mm' !important; // Un poco menos de A4 para evitar desbordes por redondeo
-                        background-color: white !important;
-                        margin: 0 !important;
-                        padding: 3mm 6mm !important; // Padding mínimo
-                        box-sizing: border-box;
-                    }
-                }
-            `}</style>
         </div>
     );
 };

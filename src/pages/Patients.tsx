@@ -135,9 +135,6 @@ const Patients: React.FC = () => {
         (patient.idNumber && patient.idNumber.includes(searchTerm))
     );
 
-    const goToMedicalHistory = (patientId: string) => {
-        navigate(`/dashboard/medical-history/${patientId}`);
-    };
 
     return (
         <div className="management-page">
@@ -245,7 +242,10 @@ const Patients: React.FC = () => {
                                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                                     <button
                                                         className="action-btn-outline"
-                                                        onClick={() => goToMedicalHistory(patient.id)}
+                                                        onClick={() => {
+                                                            const sessionId = crypto.randomUUID();
+                                                            navigate(`/dashboard/medical-history/${patient.id}?mode=new&session=${sessionId}`);
+                                                        }}
                                                         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px', color: 'var(--primary)', borderColor: '#E5E7EB' }}
                                                         title="Nueva Historia Clínica"
                                                     >
@@ -253,6 +253,7 @@ const Patients: React.FC = () => {
                                                     </button>
                                                     <button
                                                         className="action-btn-outline"
+                                                        onClick={() => navigate(`/dashboard/medical-history-list/${patient.id}`)}
                                                         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px', color: 'var(--success)', borderColor: '#d1fae5' }}
                                                         title="Historias Previas"
                                                     >

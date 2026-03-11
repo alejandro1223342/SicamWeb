@@ -296,6 +296,32 @@ const PrintMedicalHistoryTemplate: React.FC<PrintMedicalHistoryTemplateProps> = 
                </tbody>
             </table>
 
+            {/* Exámenes Complementarios */}
+            {data?.exams && (
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px' }}>
+                    <thead>
+                        <tr><HeaderCell colSpan={2}>EXÁMENES COMPLEMENTARIOS SOLICITADOS</HeaderCell></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style={{ border: '1px solid #000', padding: '4px', width: '50%', verticalAlign: 'top' }}>
+                                <div style={{ fontSize: '7px', fontWeight: '800', marginBottom: '2px' }}>EXÁMENES:</div>
+                                <div style={{ fontSize: '8px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                    {data.exams.options?.join(', ') || 'Ninguno'}
+                                </div>
+                            </td>
+                            <td style={{ border: '1px solid #000', padding: '4px', width: '50%', verticalAlign: 'top' }}>
+                                <div style={{ fontSize: '7px', fontWeight: '800', marginBottom: '2px' }}>OTROS / DIAGNÓSTICO:</div>
+                                <div style={{ fontSize: '8px' }}>
+                                    {data.exams.other && <p style={{ margin: '0 0 4px 0' }}><b>Otro:</b> {data.exams.other}</p>}
+                                    {data.exams.diagnosis && <p style={{ margin: '0' }}><b>Dx:</b> {data.exams.diagnosis}</p>}
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            )}
+
             {/* Footer Signatures */}
             <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div style={{ width: '250px' }}>
