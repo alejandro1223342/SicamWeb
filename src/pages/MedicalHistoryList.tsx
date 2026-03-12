@@ -3,6 +3,7 @@ import api from '../api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, Loader2, Calendar, User, Stethoscope } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import { useSpecialty } from '../context/SpecialtyContext';
 
 interface MedicalRecord {
     id: string;
@@ -30,16 +31,20 @@ const MedicalHistoryList: React.FC = () => {
     const [patient, setPatient] = useState<Patient | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const { activeSpecialty } = useSpecialty();
+
     useEffect(() => {
         const fetchData = async () => {
-            if (!patientId) return;
+            if (!patientId || !activeSpecialty) return;
             try {
                 // Fetch patient info
                 const patientRes = await api.get(`/users/patients/${patientId}`);
                 setPatient(patientRes.data.data || patientRes.data);
 
-                // Fetch medical records
-                const recordsRes = await api.get(`/medical-records/patient/${patientId}`);
+                // Fetch medical records filtered by specialty
+                const recordsRes = await api.get(`/medical-records/patient/${patientId}`, {
+                    params: { specialtyId: activeSpecialty.id }
+                });
                 setRecords(recordsRes.data);
             } catch (error) {
                 console.error('Error fetching medical history:', error);
@@ -50,10 +55,11 @@ const MedicalHistoryList: React.FC = () => {
         };
 
         fetchData();
-    }, [patientId]);
+    }, [patientId, activeSpecialty]);
 
     const handleViewRecord = (recordId: string) => {
-        navigate(`/dashboard/medical-history/${patientId}/${recordId}`);
+        const path = activeSpecialty?.name === 'Estética' ? 'aesthetic-history' : 'medical-history';
+        navigate(`/dashboard/${path}/${patientId}/${recordId}`);
     };
 
     if (loading) {

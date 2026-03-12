@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api';
 import { Calendar, Clock, MapPin, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import { useSpecialty } from '../context/SpecialtyContext';
 
 interface Patient {
     id: string;
@@ -38,12 +39,13 @@ interface Appointment {
 
 export default function Appointments() {
     const { showToast } = useToast();
+    const { activeSpecialty } = useSpecialty();
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchAppointments();
-    }, []);
+    }, [activeSpecialty]);
 
     const fetchAppointments = async () => {
         try {
@@ -51,7 +53,9 @@ export default function Appointments() {
             if (!userData) return;
             const user = JSON.parse(userData);
 
-            const response = await api.get(`/appointments/doctor/${user.id}`);
+            const response = await api.get(`/appointments/doctor/${user.id}`, {
+                params: { specialtyId: activeSpecialty?.id }
+            });
             setAppointments(response.data);
         } catch (error) {
             console.error('Error fetching appointments:', error);

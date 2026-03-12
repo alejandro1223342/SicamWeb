@@ -51,9 +51,10 @@ interface PrintExamsTemplateProps {
         treatment?: string;
     };
     catalog?: any;
+    specialtyName?: string;
 }
 
-const PrintExamsTemplate: React.FC<PrintExamsTemplateProps> = ({ patient, data, catalog }) => {
+const PrintExamsTemplate: React.FC<PrintExamsTemplateProps> = ({ patient, data, catalog, specialtyName }) => {
     const today = new Date().toLocaleDateString('es-ES');
     
     // Use dynamic catalog if provided, otherwise fallback to static
@@ -107,7 +108,9 @@ const PrintExamsTemplate: React.FC<PrintExamsTemplateProps> = ({ patient, data, 
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px', borderBottom: '1.5px solid #000', paddingBottom: '4px' }}>
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: '#000', textTransform: 'uppercase' }}>EXÁMENES COMPLEMENTARIOS SOLICITADOS</h1>
+                    <h1 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#000', textTransform: 'uppercase' }}>
+                        ORDEN DE EXÁMENES {specialtyName ? specialtyName.toUpperCase() : ''}
+                    </h1>
                 </div>
                 <div style={{ textAlign: 'right', fontSize: '9px' }}>
                     <div style={{ fontWeight: 'bold' }}>sicam-web</div>

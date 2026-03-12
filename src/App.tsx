@@ -15,6 +15,8 @@ import { SpecialtyProvider, useSpecialty } from './context/SpecialtyContext';
 import PatientClinicalOffices from './pages/PatientClinicalOffices';
 import Appointments from './pages/Appointments';
 import PrintHistoryPage from './pages/PrintHistoryPage';
+import AestheticHistory from './pages/AestheticHistory';
+import PrintAestheticPage from './pages/PrintAestheticPage';
 import PrintExamsPage from './pages/PrintExamsPage';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
@@ -394,6 +396,7 @@ function App() {
             <Route path="doctor/new" element={<DoctorRegistration />} />
             <Route path="medical-offices" element={<MedicalOffices />} />
             <Route path="medical-history/:patientId/:recordId?" element={<MedicalHistory />} />
+            <Route path="aesthetic-history/:patientId/:recordId?" element={<AestheticHistory />} />
             <Route path="medical-history-list/:patientId" element={<MedicalHistoryList />} />
             <Route path="patients" element={<Patients />} />
             <Route path="schedules" element={<Schedules />} />
@@ -402,6 +405,7 @@ function App() {
 
           {/* Dedicated Print Routes (No Layout) */}
           <Route path="/print/history/:patientId/:recordId" element={<PrintHistoryPage />} />
+          <Route path="/print/aesthetic/:patientId/:recordId" element={<PrintAestheticPage />} />
           <Route path="/print/exams/:patientId/:recordId" element={<PrintExamsPage />} />
 
           <Route path="*" element={<div style={{ padding: '50px', textAlign: 'center' }}>

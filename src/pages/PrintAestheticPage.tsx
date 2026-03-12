@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import PrintMedicalHistoryTemplate from '../components/medical-history/PrintMedicalHistoryTemplate';
+import PrintAestheticHistoryTemplate from '../components/medical-history/PrintAestheticHistoryTemplate';
 import api from '../api';
 import { Loader2 } from 'lucide-react';
 
-export default function PrintHistoryPage() {
+export default function PrintAestheticPage() {
     const { recordId } = useParams<{ patientId: string; recordId: string }>();
     const [data, setData] = useState<any>(null);
     const [patient, setPatient] = useState<any>(null);
@@ -46,7 +46,7 @@ export default function PrintHistoryPage() {
 
     return (
         <div className="print-page-container">
-            <PrintMedicalHistoryTemplate patient={patient} data={data} />
+            <PrintAestheticHistoryTemplate patient={patient} data={data} />
             <style>{`
                 @media screen {
                     body { background-color: #f1f5f9; }

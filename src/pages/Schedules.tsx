@@ -86,11 +86,11 @@ export default function Schedules() {
                 const officesRes = await api.get(`/medical-offices/doctor/${user.id}`);
                 setOffices(officesRes.data);
 
-                if (officesRes.data.length > 0) {
+                if (officesRes.data.length > 0 && !selectedOfficeId) {
                     setSelectedOfficeId(officesRes.data[0].id);
                 }
 
-                // Fetch Schedules
+                // Fetch Schedules with active specialty filter
                 fetchSchedules(user.id);
             } catch (error) {
                 console.error('Error loading initial data:', error);
@@ -99,7 +99,7 @@ export default function Schedules() {
         };
 
         fetchInitialized();
-    }, []);
+    }, [activeSpecialty]);
 
     // Helper to map Spanish backend days to FullCalendar integers (0=Sunday, 1=Monday...)
     const getDayId = (dayName: string) => {
@@ -109,7 +109,9 @@ export default function Schedules() {
 
     const fetchSchedules = async (doctorId: string) => {
         try {
-            const response = await api.get(`/schedules/doctor/${doctorId}`);
+            const response = await api.get(`/schedules/doctor/${doctorId}`, {
+                params: { specialtyId: activeSpecialty?.id }
+            });
 
             setEvents(response.data.map((s: any) => {
                 // Correctly parse ISO string to Local Time (HH:mm)

@@ -26,7 +26,6 @@ export default function Sidebar() {
     const [user, setUser] = useState<any>(null);
     const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({
         Acceso: true,
-        Tricología: true
     });
     const location = useLocation();
 
@@ -79,17 +78,27 @@ export default function Sidebar() {
 
     // Specialty-specific menu items (Only for Doctors)
     const specialtyItems: MenuItem[] = [];
-    if (activeSpecialty && user?.role === 'MEDICO') {
-        specialtyItems.push({
-            title: activeSpecialty.name,
-            icon: <Stethoscope size={20} />,
-            children: [
-                { title: 'Mi Agenda', icon: <Calendar size={20} />, path: '/dashboard/schedules' },
-                { title: 'Citas', icon: <ClipboardList size={20} />, path: '/dashboard/appointments' },
-                { title: 'Mis Pacientes', icon: <Users size={20} />, path: '/dashboard/patients' },
-            ],
+    if (user?.role === 'MEDICO') {
+        availableSpecialties.forEach(spec => {
+            specialtyItems.push({
+                title: spec.name,
+                icon: <Stethoscope size={20} />,
+                children: [
+                    { title: 'Mi Agenda', icon: <Calendar size={20} />, path: '/dashboard/schedules' },
+                    { title: 'Citas', icon: <ClipboardList size={20} />, path: '/dashboard/appointments' },
+                    { title: 'Mis Pacientes', icon: <Users size={20} />, path: '/dashboard/patients' },
+                ],
+            });
         });
     }
+
+    const handleItemClick = (item: MenuItem) => {
+        const selectedSpec = availableSpecialties.find(s => s.name === item.title);
+        if (selectedSpec) {
+            setActiveSpecialty(selectedSpec);
+        }
+        toggleMenu(item.title);
+    };
 
     return (
         <aside className="sidebar">
@@ -111,28 +120,6 @@ export default function Sidebar() {
                 </Link>
             </div>
 
-            {/* Specialty Switcher (Only for Doctors with multiple specialties) */}
-            {user?.role === 'MEDICO' && availableSpecialties.length > 1 && (
-                <div style={{ padding: '0 20px 20px', borderBottom: '1px solid var(--border)' }}>
-                    <label style={{ fontSize: '11px', color: 'var(--text-gray)', marginBottom: '8px', display: 'block' }}>
-                        ESPECIALIDAD ACTIVA
-                    </label>
-                    <select
-                        className="form-input"
-                        style={{ padding: '8px', fontSize: '13px' }}
-                        value={activeSpecialty?.id || ''}
-                        onChange={(e) => {
-                            const selected = availableSpecialties.find(s => s.id === e.target.value);
-                            if (selected) setActiveSpecialty(selected);
-                        }}
-                    >
-                        {availableSpecialties.map(s => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                    </select>
-                </div>
-            )}
-
             {/* Menu Section */}
             <nav className="sidebar-nav">
                 <div className="nav-section">
@@ -141,7 +128,7 @@ export default function Sidebar() {
                     {[...patientItems, ...specialtyItems, ...managementItems].map((item) => (
                         <div key={item.title}>
                             <button
-                                onClick={() => toggleMenu(item.title)}
+                                onClick={() => handleItemClick(item)}
                                 className={`nav-item ${openMenus[item.title] ? 'active' : ''}`}
                             >
                                 <div className="nav-item-content">
@@ -158,8 +145,8 @@ export default function Sidebar() {
                                     {item.children.map((child) => (
                                         <Link
                                             key={child.title}
-                                            to={child.path || '#'}
-                                            className={`nav-subitem ${isActive(child.path) ? 'active' : ''}`}
+                                            to={child.path === '/dashboard/patients' ? child.path : (item.title === 'Estética' ? child.path?.replace('medical-history', 'aesthetic-history') : child.path) || '#'}
+                                            className={`nav-subitem ${(isActive(child.path) || (item.title === 'Estética' && location.pathname.includes('aesthetic-history') && child.path?.includes('medical-history'))) && activeSpecialty?.name === item.title ? 'active' : ''}`}
                                         >
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                 {child.title}

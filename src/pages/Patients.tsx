@@ -39,7 +39,7 @@ const Patients: React.FC = () => {
 
     useEffect(() => {
         fetchPatients();
-    }, []);
+    }, [activeSpecialty]);
 
     const fetchPatients = async () => {
         setFetchingPatients(true);
@@ -53,7 +53,9 @@ const Patients: React.FC = () => {
             const user = JSON.parse(userData);
 
             if (user.role === 'MEDICO') {
-                const response = await api.get(`/users/patients/doctor/${user.id}`);
+                const response = await api.get(`/users/patients/doctor/${user.id}`, {
+                    params: { specialtyId: activeSpecialty?.id }
+                });
                 setPatients(response.data);
             } else {
                 // For admin or receptionist
@@ -244,7 +246,8 @@ const Patients: React.FC = () => {
                                                         className="action-btn-outline"
                                                         onClick={() => {
                                                             const sessionId = crypto.randomUUID();
-                                                            navigate(`/dashboard/medical-history/${patient.id}?mode=new&session=${sessionId}`);
+                                                            const path = activeSpecialty?.name === 'Estética' ? 'aesthetic-history' : 'medical-history';
+                                                            navigate(`/dashboard/${path}/${patient.id}?mode=new&session=${sessionId}`);
                                                         }}
                                                         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px', color: 'var(--primary)', borderColor: '#E5E7EB' }}
                                                         title="Nueva Historia Clínica"

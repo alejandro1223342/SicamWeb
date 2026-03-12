@@ -8,6 +8,7 @@ export default function PrintExamsPage() {
     const { patientId, recordId } = useParams<{ patientId: string; recordId: string }>();
     const [data, setData] = useState<any>(null);
     const [patient, setPatient] = useState<any>(null);
+    const [specialtyName, setSpecialtyName] = useState<string>('');
     const [catalog, setCatalog] = useState<any>({});
     const [loading, setLoading] = useState(true);
 
@@ -17,8 +18,10 @@ export default function PrintExamsPage() {
                 // Fetch record 
                 const recordRes = await api.get(`/medical-records/${recordId}`);
                 if (recordRes.data) {
-                    setData(recordRes.data.data?.exams || {});
-                    setPatient(recordRes.data.patient);
+                    const record = recordRes.data;
+                    setData(record.data?.exams || {});
+                    setPatient(record.patient || record.data?.patient);
+                    setSpecialtyName(record.specialty?.name);
                 }
 
                 // Fetch catalog
@@ -65,7 +68,12 @@ export default function PrintExamsPage() {
 
     return (
         <div className="print-page-container">
-            <PrintExamsTemplate patient={patient} data={data} catalog={catalog} />
+            <PrintExamsTemplate 
+                patient={patient} 
+                data={data} 
+                catalog={catalog} 
+                specialtyName={specialtyName}
+            />
             
             <style>{`
                 @media screen {

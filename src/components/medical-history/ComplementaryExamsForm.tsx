@@ -23,9 +23,10 @@ interface Props {
     patient?: any;
     readOnly?: boolean;
     fullCatalog?: any;
+    recordId?: string | null;
 }
 
-export default function ComplementaryExamsForm({ data, onChange, patient: propPatient, readOnly = false,}: Props) {
+export default function ComplementaryExamsForm({ data, onChange, patient: propPatient, readOnly = false, recordId }: Props) {
     const { patientId } = useParams<{ patientId: string }>();
     const [categories, setCategories] = useState<ExamCategory[]>([]);
     const [loading, setLoading] = useState(true);
@@ -268,21 +269,22 @@ export default function ComplementaryExamsForm({ data, onChange, patient: propPa
 
             <div className="no-print" style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'center' }}>
                 <button
-                    onClick={() => {
+                    type="button"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         if (!patientId || patientId === 'generic') {
-                            toast.error('No se puede generar la orden para un paciente genérico o sin guardar');
+                            toast.error('No se puede generar la orden para un paciente genérico');
                             return;
                         }
-                        const currentPath = window.location.pathname;
-                        const segments = currentPath.split('/');
-                        const rId = segments[segments.length - 1];
                         
-                        if (!rId || rId === 'medical-history' || rId === patientId) {
+                        if (!recordId) {
                             toast.error('Guarde el registro antes de imprimir los exámenes');
                             return;
                         }
                         
-                        window.open(`/print/exams/${patientId}/${rId}`, '_blank');
+                        const url = `${window.location.origin}/print/exams/${patientId}/${recordId}`;
+                        window.open(url, '_blank');
                     }}
                     style={{ 
                         display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'transparent', color: '#ef4444', border: '1px solid #ef4444', padding: '10px 30px', borderRadius: '6px', fontWeight: '700', fontSize: '14px', cursor: 'pointer'
