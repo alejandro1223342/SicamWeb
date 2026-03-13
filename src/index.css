@@ -1561,3 +1561,57 @@ body {
 .print-only {
   display: none;
 }
+/* ===== Patient Profile Styles ===== */
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+}
+
+.profile-form .form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.profile-form .section-header {
+  margin-bottom: 0.5rem;
+}
+
+.profile-form .section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.profile-form .section-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-gray);
+  margin-top: 0.25rem;
+}
+
+.profile-form .section-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5rem 0;
+}
+
+.profile-form .form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.profile-form .disabled-input {
+  background-color: #f1f5f9;
+  cursor: not-allowed;
+  color: #64748b;
+  opacity: 0.8;
+}
+
+.profile-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}

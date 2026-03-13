@@ -72,6 +72,8 @@ export default function Sidebar() {
             icon: <LayoutDashboard size={20} />,
             children: [
                 { title: 'Consultorios Clinicos', icon: <Building2 size={20} />, path: '/patient/clinics' },
+                { title: 'Mi Perfil', icon: <UserCircle size={20} />, path: '/patient/profile' },
+                { title: 'Mis Citas', icon: <Calendar size={20} />, path: '/patient/appointments' },
             ],
         });
     }

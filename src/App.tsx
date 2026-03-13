@@ -20,6 +20,9 @@ import NutritionHistory from './pages/NutritionHistory';
 import PrintAestheticPage from './pages/PrintAestheticPage';
 import PrintExamsPage from './pages/PrintExamsPage';
 import PrintMealPlanPage from './pages/PrintMealPlanPage';
+// Patient routes
+import PatientProfilePage from './pages/patient/PatientProfilePage';
+import PatientAppointmentsPage from './pages/patient/PatientAppointmentsPage';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
 function SignIn() {
@@ -392,6 +395,8 @@ function App() {
             <Route index element={<Navigate to="/patient/clinics" replace />} />
             <Route path="dashboard" element={<Navigate to="/patient/clinics" replace />} />
             <Route path="clinics" element={<PatientClinicalOffices />} />
+            <Route path="profile" element={<PatientProfilePage />} />
+            <Route path="appointments" element={<PatientAppointmentsPage />} />
           </Route>
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Dashboard />} />
