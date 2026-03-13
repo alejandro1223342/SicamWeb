@@ -16,8 +16,10 @@ import PatientClinicalOffices from './pages/PatientClinicalOffices';
 import Appointments from './pages/Appointments';
 import PrintHistoryPage from './pages/PrintHistoryPage';
 import AestheticHistory from './pages/AestheticHistory';
+import NutritionHistory from './pages/NutritionHistory';
 import PrintAestheticPage from './pages/PrintAestheticPage';
 import PrintExamsPage from './pages/PrintExamsPage';
+import PrintMealPlanPage from './pages/PrintMealPlanPage';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
 function SignIn() {
@@ -397,6 +399,7 @@ function App() {
             <Route path="medical-offices" element={<MedicalOffices />} />
             <Route path="medical-history/:patientId/:recordId?" element={<MedicalHistory />} />
             <Route path="aesthetic-history/:patientId/:recordId?" element={<AestheticHistory />} />
+            <Route path="nutrition-history/:patientId/:recordId?" element={<NutritionHistory />} />
             <Route path="medical-history-list/:patientId" element={<MedicalHistoryList />} />
             <Route path="patients" element={<Patients />} />
             <Route path="schedules" element={<Schedules />} />
@@ -407,6 +410,7 @@ function App() {
           <Route path="/print/history/:patientId/:recordId" element={<PrintHistoryPage />} />
           <Route path="/print/aesthetic/:patientId/:recordId" element={<PrintAestheticPage />} />
           <Route path="/print/exams/:patientId/:recordId" element={<PrintExamsPage />} />
+          <Route path="/print/meal-plan/:patientId/:recordId" element={<PrintMealPlanPage />} />
 
           <Route path="*" element={<div style={{ padding: '50px', textAlign: 'center' }}>
             <h1>404 - Página no encontrada</h1>

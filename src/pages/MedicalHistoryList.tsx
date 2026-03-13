@@ -58,7 +58,10 @@ const MedicalHistoryList: React.FC = () => {
     }, [patientId, activeSpecialty]);
 
     const handleViewRecord = (recordId: string) => {
-        const path = activeSpecialty?.name === 'Estética' ? 'aesthetic-history' : 'medical-history';
+        let path = 'medical-history';
+        if (activeSpecialty?.name === 'Estética') path = 'aesthetic-history';
+        if (activeSpecialty?.name === 'Nutrición') path = 'nutrition-history';
+        
         navigate(`/dashboard/${path}/${patientId}/${recordId}`);
     };
 

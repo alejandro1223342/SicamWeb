@@ -246,7 +246,10 @@ const Patients: React.FC = () => {
                                                         className="action-btn-outline"
                                                         onClick={() => {
                                                             const sessionId = crypto.randomUUID();
-                                                            const path = activeSpecialty?.name === 'Estética' ? 'aesthetic-history' : 'medical-history';
+                                                            let path = 'medical-history';
+                                                            if (activeSpecialty?.name === 'Estética') path = 'aesthetic-history';
+                                                            if (activeSpecialty?.name === 'Nutrición') path = 'nutrition-history';
+                                                            
                                                             navigate(`/dashboard/${path}/${patient.id}?mode=new&session=${sessionId}`);
                                                         }}
                                                         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px', color: 'var(--primary)', borderColor: '#E5E7EB' }}
