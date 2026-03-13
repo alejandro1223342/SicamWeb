@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, X, Trash2, ClipboardList } from 'lucide-react';
+import { Autocomplete, TextField, CircularProgress } from '@mui/material';
+import api from '../../api';
+import { debounce } from '@mui/material/utils';
 
 interface DiagnosisItem {
     id: string;
@@ -16,11 +19,46 @@ interface Props {
     readOnly?: boolean;
 }
 
+interface CieOption {
+    code: string;
+    description: string;
+}
+
 export default function DiagnosisActivityForm({ data = [], onChange, readOnly = false }: Props) {
     const [showModal, setShowModal] = useState(false);
     const [newItem, setNewItem] = useState<Partial<DiagnosisItem>>({
         description: '', p: false, d: false, r: false, cieCode: ''
     });
+    
+    const [open, setOpen] = useState(false);
+    const [options, setOptions] = useState<CieOption[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [inputValue, setInputValue] = useState('');
+
+    const fetchCieCodes = useCallback(
+        debounce(async (searchValue: string) => {
+            if (searchValue.length < 2) {
+                setOptions([]);
+                return;
+            }
+            setLoading(true);
+            try {
+                const response = await api.get('/catalogs/cie-codes', {
+                    params: { search: searchValue }
+                });
+                setOptions(response.data);
+            } catch (error) {
+                console.error('Error fetching CIE codes:', error);
+            } finally {
+                setLoading(false);
+            }
+        }, 500),
+        []
+    );
+
+    useEffect(() => {
+        fetchCieCodes(inputValue);
+    }, [inputValue, fetchCieCodes]);
 
     const handleAddItem = () => {
         if (!newItem.description || (!newItem.p && !newItem.d && !newItem.r) || !newItem.cieCode) {
@@ -37,6 +75,7 @@ export default function DiagnosisActivityForm({ data = [], onChange, readOnly = 
         };
         onChange([...data, result]);
         setNewItem({ description: '', p: false, d: false, r: false, cieCode: '' });
+        setInputValue('');
         setShowModal(false);
     };
 
@@ -174,20 +213,41 @@ export default function DiagnosisActivityForm({ data = [], onChange, readOnly = 
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <label style={{ fontWeight: '600', color: '#475569', fontSize: '14px' }}>Código CIE-10 (*)</label>
-                                <select 
-                                    value={newItem.cieCode} 
-                                    onChange={e => setNewItem({...newItem, cieCode: e.target.value})}
-                                    style={{ width: '100%', padding: '12px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', transition: 'all 0.2s', fontSize: '15px', backgroundColor: 'white' }}
-                                    onFocus={e => { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 4px rgba(79, 70, 229, 0.1)'; }}
-                                    onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
-                                >
-                                    <option value="">Seleccione un código...</option>
-                                    <option value="L64.X">L64.X - Alopecia androgénica</option>
-                                    <option value="L65.9">L65.9 - Alopecia de tipo no especificado</option>
-                                    <option value="L66.1">L66.1 - Liquen planopilaris</option>
-                                    <option value="L63.0">L63.0 - Alopecia total</option>
-                                    <option value="L63.1">L63.1 - Alopecia universal</option>
-                                </select>
+                                <Autocomplete
+                                    open={open}
+                                    onOpen={() => setOpen(true)}
+                                    onClose={() => setOpen(false)}
+                                    isOptionEqualToValue={(option, value) => option.code === value.code}
+                                    getOptionLabel={(option) => `${option.code} - ${option.description}`}
+                                    options={options}
+                                    loading={loading}
+                                    onInputChange={(event, newInputValue) => {
+                                        setInputValue(newInputValue);
+                                    }}
+                                    onChange={(event, newValue) => {
+                                        setNewItem({ ...newItem, cieCode: newValue ? newValue.code : '' });
+                                        if (newValue && !newItem.description) {
+                                            setNewItem(prev => ({ ...prev, description: newValue.description, cieCode: newValue.code }));
+                                        }
+                                    }}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            placeholder="Busque por código o descripción..."
+                                            variant="outlined"
+                                            InputProps={{
+                                                ...params.InputProps,
+                                                style: { borderRadius: '12px', fontSize: '15px' },
+                                                endAdornment: (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px' }}>
+                                                        {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                                                        {params.InputProps.endAdornment}
+                                                    </div>
+                                                ),
+                                            }}
+                                        />
+                                    )}
+                                />
                             </div>
                         </div>
 
@@ -198,6 +258,7 @@ export default function DiagnosisActivityForm({ data = [], onChange, readOnly = 
                     </div>
                 </div>
             )}
+
 
             <style>{`
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
