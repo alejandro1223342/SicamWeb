@@ -1,26 +1,31 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { MoreVertical } from 'lucide-react';
 
-const data = [
-    { month: 'Jan', sales: 250 },
-    { month: 'Feb', sales: 350 },
-    { month: 'Mar', sales: 300 },
-    { month: 'Apr', sales: 350 },
-    { month: 'May', sales: 300 },
-    { month: 'Jun', sales: 350 },
-    { month: 'Jul', sales: 400 },
-    { month: 'Aug', sales: 250 },
-    { month: 'Sep', sales: 350 },
-    { month: 'Oct', sales: 400 },
-    { month: 'Nov', sales: 350 },
-    { month: 'Dec', sales: 300 },
-];
+interface MonthlyStats {
+    month: string;
+    sales: number;
+}
 
-export default function MonthlySales() {
+const monthNamesES: { [key: string]: string } = {
+    'Jan': 'Ene', 'Feb': 'Feb', 'Mar': 'Mar', 'Apr': 'Abr',
+    'May': 'May', 'Jun': 'Jun', 'Jul': 'Jul', 'Aug': 'Ago',
+    'Sep': 'Sep', 'Oct': 'Oct', 'Nov': 'Nov', 'Dec': 'Dic'
+};
+
+interface MonthlySalesProps {
+    salesData: MonthlyStats[];
+}
+
+export default function MonthlySales({ salesData }: MonthlySalesProps) {
+    const data = salesData.map(item => ({
+        ...item,
+        month: monthNamesES[item.month] || item.month
+    }));
+
     return (
         <div className="chart-card">
             <div className="chart-header">
-                <h3 className="chart-title">Monthly Sales</h3>
+                <h3 className="chart-title">Citas Mensuales</h3>
                 <button className="chart-menu-btn">
                     <MoreVertical size={20} />
                 </button>
@@ -39,7 +44,6 @@ export default function MonthlySales() {
                             axisLine={false}
                             tickLine={false}
                             tick={{ fill: '#64748B', fontSize: 12 }}
-                            ticks={[0, 100, 200, 300, 400]}
                         />
                         <Tooltip
                             cursor={{ fill: 'rgba(93, 95, 239, 0.1)' }}
@@ -48,8 +52,9 @@ export default function MonthlySales() {
                                 border: '1px solid #E5E7EB',
                                 borderRadius: '8px',
                             }}
+                            formatter={(value: any) => [value, 'Citas']}
                         />
-                        <Bar dataKey="sales" fill="#5D5FEF" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="sales" name="Citas" fill="#5D5FEF" radius={[4, 4, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
