@@ -24,6 +24,8 @@ import PrintMealPlanPage from './pages/PrintMealPlanPage';
 // Patient routes
 import PatientProfilePage from './pages/patient/PatientProfilePage';
 import PatientAppointmentsPage from './pages/patient/PatientAppointmentsPage';
+import PaymentConfirmPage from './pages/PaymentConfirmPage';
+import PaymentRedirectPage from './pages/PaymentRedirectPage';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
 function SignIn() {
@@ -420,6 +422,10 @@ function App() {
           <Route path="/print/aesthetic/:patientId/:recordId" element={<PrintAestheticPage />} />
           <Route path="/print/exams/:patientId/:recordId" element={<PrintExamsPage />} />
           <Route path="/print/meal-plan/:patientId/:recordId" element={<PrintMealPlanPage />} />
+
+          {/* Payment Routes */}
+          <Route path="/payment/confirm" element={<PaymentConfirmPage />} />
+          <Route path="/payment/redirecting" element={<PaymentRedirectPage />} />
 
           <Route path="*" element={<div style={{ padding: '50px', textAlign: 'center' }}>
             <h1>404 - Página no encontrada</h1>

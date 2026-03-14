@@ -17,6 +17,7 @@ interface Doctor {
     licenseId: string | null;
     specialties: Specialty[];
     isActive: boolean;
+    appointmentRate: number;
 }
 
 const DoctorRegistration: React.FC = () => {
@@ -37,7 +38,8 @@ const DoctorRegistration: React.FC = () => {
         password: '',
         phone: '',
         licenseId: '',
-        specialtyIds: [] as string[]
+        specialtyIds: [] as string[],
+        appointmentRate: 0
     });
 
     useEffect(() => {
@@ -80,7 +82,8 @@ const DoctorRegistration: React.FC = () => {
             password: '',
             phone: '',
             licenseId: '',
-            specialtyIds: []
+            specialtyIds: [],
+            appointmentRate: 0
         });
         setIsEditing(false);
         setSelectedDoctorId(null);
@@ -96,7 +99,8 @@ const DoctorRegistration: React.FC = () => {
             password: '', // Contraseña vacía para editar (solo se cambia si se ingresa una nueva)
             phone: doctor.phone || '',
             licenseId: doctor.licenseId || '',
-            specialtyIds: doctor.specialties.map(s => s.id)
+            specialtyIds: doctor.specialties.map(s => s.id),
+            appointmentRate: doctor.appointmentRate || 0
         });
         setIsEditing(true);
         setSelectedDoctorId(doctor.id);
@@ -213,20 +217,21 @@ const DoctorRegistration: React.FC = () => {
                                     <th>Contacto</th>
                                     <th>Especialidades</th>
                                     <th>Cédula</th>
+                                    <th>Tarifa</th>
                                     <th className="text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {fetchingDoctors ? (
                                     <tr>
-                                        <td colSpan={6} className="text-center py-12">
+                                        <td colSpan={7} className="text-center py-12">
                                             <div className="loader" style={{ margin: '0 auto' }}></div>
                                             <p className="mt-4 text-muted">Cargando médicos...</p>
                                         </td>
                                     </tr>
                                 ) : filteredDoctors.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="text-center py-12">
+                                        <td colSpan={7} className="text-center py-12">
                                             <p className="text-muted">No se encontraron médicos registrados.</p>
                                         </td>
                                     </tr>
@@ -267,6 +272,11 @@ const DoctorRegistration: React.FC = () => {
                                             <td>
                                                 <div className="license-cell">
                                                     <Hash size={14} /> {doctor.licenseId || 'N/A'}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="license-cell" style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                                                    ${doctor.appointmentRate.toLocaleString('es-EC', { minimumFractionDigits: 2 })}
                                                 </div>
                                             </td>
                                             <td className="text-right">
@@ -376,6 +386,25 @@ const DoctorRegistration: React.FC = () => {
                                         <div className="input-with-icon">
                                             <input type="text" name="licenseId" value={formData.licenseId} onChange={handleChange} placeholder="Número de registro" className="form-input" disabled={loading} />
                                             <Hash className="input-icon" size={18} />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label className="form-label">Tarifa de Consulta ($) <span className="text-danger">*</span></label>
+                                        <div className="input-with-icon">
+                                            <input 
+                                                type="number" 
+                                                name="appointmentRate" 
+                                                value={formData.appointmentRate} 
+                                                onChange={handleChange} 
+                                                placeholder="0.00" 
+                                                required 
+                                                step="0.01"
+                                                min="0"
+                                                className="form-input" 
+                                                disabled={loading} 
+                                            />
+                                            <span className="input-icon" style={{ left: 'auto', right: '12px', fontSize: '18px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>$</span>
                                         </div>
                                     </div>
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { Building2, Phone, MapPin, ArrowRight, User, Stethoscope, X, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { useToast } from '../components/Toast';
@@ -25,6 +26,7 @@ interface Doctor {
     firstName: string;
     lastName: string;
     specialties: { specialty: Specialty }[];
+    appointmentRate: number;
 }
 
 interface Office {
@@ -44,9 +46,11 @@ interface DoctorCardData {
     phone: string;
     specialties: Specialty[];
     schedules: Schedule[];
+    appointmentRate: number;
 }
 
 export default function PatientClinicalOffices() {
+    const navigate = useNavigate();
     const { showToast } = useToast();
     const [doctorCards, setDoctorCards] = useState<DoctorCardData[]>([]);
     const [loading, setLoading] = useState(true);
@@ -77,7 +81,8 @@ export default function PatientClinicalOffices() {
                                 address: office.address,
                                 phone: office.phone,
                                 specialties: d.doctor.specialties.map(s => s.specialty),
-                                schedules: filteredSchedules
+                                schedules: filteredSchedules,
+                                appointmentRate: d.doctor.appointmentRate || 0
                             });
                         });
                     }
@@ -184,12 +189,11 @@ export default function PatientClinicalOffices() {
         try {
             setLoading(true);
 
-            // Reconstruct full DateTime for the appointment
+            // 1. Prepare appointment data
             const [hours, minutes] = selectedSlot.split(':').map(Number);
             const appointmentDate = new Date(selectedDate);
             appointmentDate.setHours(hours, minutes, 0, 0);
 
-            // Find the correct schedule ID based on the day of week
             const dayNames = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
             const dayName = dayNames[appointmentDate.getDay()];
             const schedule = selectedDoctor.schedules.find(s => s.dayOfWeek === dayName);
@@ -199,7 +203,6 @@ export default function PatientClinicalOffices() {
                 return;
             }
 
-            // Get logged-in patient user
             const userData = localStorage.getItem('user');
             if (!userData) {
                 showToast('Debe iniciar sesión para agendar una cita.', 'warning');
@@ -207,24 +210,45 @@ export default function PatientClinicalOffices() {
             }
             const user = JSON.parse(userData);
 
-            const payload = {
+            const rate = Number(selectedDoctor.appointmentRate || 0);
+
+            // 2. Case: FREE Appointment ($0)
+            if (rate === 0) {
+                const payload = {
+                    patientId: user.id,
+                    scheduleId: schedule.id,
+                    appointmentDate: appointmentDate.toISOString(),
+                    notes: 'Agendado desde el portal de pacientes (Gratuita)'
+                };
+                await api.post('/appointments', payload);
+                showToast('¡Cita agendada exitosamente!', 'success');
+                setShowAgenda(false);
+                return;
+            }
+
+            // 3. Case: PAID Appointment -> Redirect to intermediate page
+            const appointmentPayload = {
                 patientId: user.id,
                 scheduleId: schedule.id,
                 appointmentDate: appointmentDate.toISOString(),
-                notes: 'Agendado desde el portal de pacientes'
+                notes: 'Agendado desde el portal de pacientes (Redirección PayPhone)'
             };
 
-            await api.post('/appointments', payload);
+            // Save details to be used by the redirect page
+            sessionStorage.setItem('pending_appointment', JSON.stringify(appointmentPayload));
+            sessionStorage.setItem('pending_rate', rate.toString());
 
-            showToast('¡Cita agendada exitosamente!', 'success');
-            setShowAgenda(false);
-        } catch (error) {
-            console.error('Error al agendar cita:', error);
-            showToast('Ocurrió un error al intentar agendar la cita. Por favor intente de nuevo.', 'error');
+            // Jump to the redirecting page as requested by user
+            navigate('/payment/redirecting');
+
+        } catch (error: any) {
+            console.error('Payment preparation error:', error);
+            showToast('Error al preparar el pago. Intente nuevamente.', 'error');
         } finally {
             setLoading(false);
         }
     };
+
 
     if (loading) {
         return (
@@ -287,6 +311,10 @@ export default function PatientClinicalOffices() {
                                     <div className="info-item-premium">
                                         <Phone size={16} className="text-muted" />
                                         <span>{card.phone}</span>
+                                    </div>
+                                    <div className="info-item-premium price-info">
+                                        <span className="price-label">Costo Consulta:</span>
+                                        <span className="price-value">${card.appointmentRate?.toLocaleString('es-EC', { minimumFractionDigits: 2 })}</span>
                                     </div>
                                 </div>
                             </div>
@@ -361,14 +389,32 @@ export default function PatientClinicalOffices() {
                         </div>
 
                         <div className="modal-footer-premium">
+                            <div className="payment-summary-premium">
+                                <div className="summary-row">
+                                    <span>Consulta Médica:</span>
+                                    <span>${selectedDoctor.appointmentRate?.toLocaleString('es-EC', { minimumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="summary-row total">
+                                    <span>Total a pagar:</span>
+                                    <span>${selectedDoctor.appointmentRate?.toLocaleString('es-EC', { minimumFractionDigits: 2 })}</span>
+                                </div>
+                            </div>
                             <p className="footer-notice">* Las citas tienen una duración estimada de 60 minutos.</p>
                             <button
                                 className="btn-confirm-selection"
-                                disabled={!selectedDate || !selectedSlot}
+                                disabled={!selectedDate || !selectedSlot || loading}
                                 onClick={handleConfirmAppointment}
+                                style={{ marginTop: '1.5rem' }}
                             >
-                                Confirmar Fecha y Hora
+                                {loading ? 'Procesando...' : 
+                                 Number(selectedDoctor.appointmentRate || 0) > 0 ? 'Confirmar y Pagar con PayPhone' : 'Confirmar Cita (Gratuita)'}
                             </button>
+
+                            {!selectedSlot && (
+                                <p className="footer-notice" style={{ color: '#64748B', fontStyle: 'italic', marginTop: '10px' }}>
+                                    * Seleccione una fecha y turno para habilitar el agendamiento.
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -443,6 +489,9 @@ export default function PatientClinicalOffices() {
                 .office-card-body-premium { background: #F8FAFC; border-radius: 16px; padding: 15px; margin-top: auto; }
                 .info-group { display: flex; flex-direction: column; gap: 10px; }
                 .info-item-premium { display: flex; align-items: center; gap: 10px; color: #64748B; font-size: 0.9rem; }
+                .price-info { margin-top: 5px; padding-top: 10px; border-top: 1px dashed #E2E8F0; display: flex; justify-content: space-between; width: 100%; }
+                .price-label { font-weight: 600; color: #475569; }
+                .price-value { font-weight: 800; color: #10B981; font-size: 1.1rem; }
                 .office-tag { color: #3C50E0; font-weight: 600; }
 
                 .btn-book-now { width: 100%; padding: 14px; background: #3C50E0; border: none; border-radius: 14px; color: white; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.2s ease; }
@@ -467,25 +516,23 @@ export default function PatientClinicalOffices() {
                 .modal-content-premium {
                     background: white;
                     width: 100%;
-                    max-width: 600px;
+                    max-width: 650px;
+                    max-height: 95vh;
                     border-radius: 28px;
-                    overflow: hidden;
+                    overflow-y: auto;
                     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-                    animation: modalSlideIn 0.3s ease-out;
-                }
-
-                @keyframes modalSlideIn {
-                    from { transform: translateY(30px); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
                 }
 
                 .modal-header-premium {
-                    padding: 25px 30px;
+                    padding: 20px 30px;
                     background: #F8FAFC;
                     border-bottom: 1px solid #E2E8F0;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
+                    position: sticky;
+                    top: 0;
+                    z-index: 10;
                 }
 
                 .modal-title-group h2 { margin: 0; font-size: 1.5rem; font-weight: 800; color: #1C2434; }
@@ -494,49 +541,44 @@ export default function PatientClinicalOffices() {
                 .close-btn-premium { background: white; border: 1px solid #E2E8F0; border-radius: 12px; padding: 8px; cursor: pointer; color: #64748B; transition: all 0.2s; }
                 .close-btn-premium:hover { background: #F1F5F9; color: #ef4444; }
 
-                .modal-body-premium { padding: 30px; display: flex; flex-direction: column; gap: 40px; }
+                .modal-body-premium { padding: 25px 30px; display: flex; flex-direction: column; gap: 30px; }
 
                 .section-title { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; font-weight: 700; color: #1C2434; margin-bottom: 20px; }
 
                 .dates-horizontal-scroll {
                     display: flex;
-                    gap: 16px;
-                    overflow-x: auto;
-                    padding: 10px 5px 20px 5px;
-                    scrollbar-width: none;
-                    -webkit-overflow-scrolling: touch;
+                    flex-wrap: wrap;
+                    gap: 12px;
+                    padding: 5px;
                 }
-                .dates-horizontal-scroll::-webkit-scrollbar { display: none; }
 
                 .date-chip {
-                    flex: 0 0 90px;
-                    height: 120px;
+                    flex: 1 1 100px;
+                    height: 100px;
                     background: #F8FAFC;
                     border: 1px solid #E2E8F0;
-                    border-radius: 24px;
+                    border-radius: 20px;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    gap: 6px;
+                    gap: 4px;
                     cursor: pointer;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
                 }
 
                 .date-chip:hover { 
                     border-color: #3C50E0; 
                     background: white;
-                    transform: translateY(-4px);
-                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+                    transform: translateY(-2px);
                 }
 
                 .date-chip.active { 
                     background: #3C50E0; 
                     border-color: #3C50E0; 
                     color: white;
-                    transform: translateY(-4px);
-                    box-shadow: 0 10px 20px -5px rgba(60, 80, 224, 0.4);
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 15px -5px rgba(60, 80, 224, 0.4);
                 }
 
                 .day-name { 
@@ -584,13 +626,16 @@ export default function PatientClinicalOffices() {
 
                 .slot-empty-state { text-align: center; padding: 40px 0; background: #F8FAFC; border-radius: 20px; color: #94A3B8; border: 2px dashed #E2E8F0; }
 
-                .modal-footer-premium { padding: 25px 30px; border-top: 1px solid #E2E8F0; display: flex; flex-direction: column; gap: 15px; }
+                .modal-footer-premium { padding: 25px 30px; border-top: 1px solid #E2E8F0; display: flex; flex-direction: column; gap: 20px; }
+                .payment-summary-premium { background: #F0FDF4; border-radius: 16px; padding: 20px; border: 1px solid #DCFCE7; }
+                .summary-row { display: flex; justify-content: space-between; font-size: 0.95rem; color: #374151; margin-bottom: 10px; }
+                .summary-row.total { margin-top: 10px; padding-top: 10px; border-top: 1px solid #BBF7D0; font-weight: 800; font-size: 1.2rem; color: #065F46; margin-bottom: 0; }
                 .footer-notice { margin: 0; font-size: 0.85rem; color: #94A3B8; text-align: center; }
 
                 .btn-confirm-selection {
                     width: 100%;
                     padding: 16px;
-                    background: #10B981;
+                    background: #3C50E0;
                     color: white;
                     border: none;
                     border-radius: 16px;
@@ -600,7 +645,7 @@ export default function PatientClinicalOffices() {
                     transition: all 0.2s;
                 }
 
-                .btn-confirm-selection:hover:not(:disabled) { background: #059669; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); }
+                .btn-confirm-selection:hover:not(:disabled) { background: #2D3EAF; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(60, 80, 224, 0.2); }
                 .btn-confirm-selection:disabled { background: #E2E8F0; color: #94A3B8; cursor: not-allowed; }
 
                 .loader-premium { font-weight: 700; color: #3C50E0; display: flex; align-items: center; gap: 15px; }
