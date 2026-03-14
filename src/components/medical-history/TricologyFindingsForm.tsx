@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useToast } from '../Toast';
 import { Upload, Trash2, Eye, X, FileImage, ChevronLeft, ChevronRight, FileText, Download, ExternalLink } from 'lucide-react';
 import api from '../../api';
 
@@ -16,6 +17,7 @@ interface TricologyFindingsFormProps {
 }
 
 export default function TricologyFindingsForm({ patientId, recordId, sessionId, data, onChange, onUploadingChange, readOnly = false }: TricologyFindingsFormProps) {
+    const { showToast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
     const [dragActive, setDragActive] = useState(false);
     const [previewFiles, setPreviewFiles] = useState<any[]>([]);
@@ -99,7 +101,7 @@ export default function TricologyFindingsForm({ patientId, recordId, sessionId, 
             // Validar tipo de archivo
             const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
             if (!allowedTypes.includes(file.type)) {
-                alert(`El archivo ${file.name} no es un tipo permitido (Imágenes o PDF).`);
+                showToast(`El archivo ${file.name} no es un tipo permitido (Imágenes o PDF).`, 'error');
                 continue;
             }
 
@@ -170,7 +172,7 @@ export default function TricologyFindingsForm({ patientId, recordId, sessionId, 
                 }
             } catch (error) {
                 console.error('❌ Error al eliminar archivo de Drive:', error);
-                alert('No se pudo eliminar el archivo del servidor.');
+                showToast('No se pudo eliminar el archivo del servidor.', 'error');
                 return; // No lo quitamos de la vista si falló el borrado (opcional)
             }
         }

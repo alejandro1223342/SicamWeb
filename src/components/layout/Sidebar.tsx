@@ -9,7 +9,8 @@ import {
     Stethoscope,
     Calendar,
     Users,
-    ClipboardList
+    ClipboardList,
+    Archive
 } from 'lucide-react';
 import { useSpecialty } from '../../context/SpecialtyContext';
 
@@ -59,8 +60,9 @@ export default function Sidebar() {
             title: 'Configuracion',
             icon: <LayoutDashboard size={20} />,
             children: [
-                { title: 'Gestion de Medicos', icon: <UserCircle size={20} />, path: '/dashboard/doctor/new' },
+                { title: 'Gestion de Medicos', icon: <Users size={20} />, path: '/dashboard/doctors' },
                 { title: 'Gestion de Consultorios', icon: <Building2 size={20} />, path: '/dashboard/medical-offices' },
+                { title: 'Gestión de Catálogos', icon: <Archive size={20} />, path: '/dashboard/catalogs' },
             ],
         });
     }

@@ -1,4 +1,4 @@
-import { Dumbbell, Clock, Zap, Activity } from 'lucide-react';
+import { Dumbbell, Activity } from 'lucide-react';
 
 interface PhysicalActivityFormProps {
     data: {

@@ -1,4 +1,3 @@
-import React from 'react';
 import { FileText, Droplets, Activity, AlertCircle, ShieldAlert } from 'lucide-react';
 
 interface MainDataFormProps {

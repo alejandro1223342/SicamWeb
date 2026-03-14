@@ -3,6 +3,7 @@ import { Plus, X, Trash2, ClipboardList } from 'lucide-react';
 import { Autocomplete, TextField, CircularProgress } from '@mui/material';
 import api from '../../api';
 import { debounce } from '@mui/material/utils';
+import { useToast } from '../Toast';
 
 interface DiagnosisItem {
     id: string;
@@ -25,6 +26,7 @@ interface CieOption {
 }
 
 export default function DiagnosisActivityForm({ data = [], onChange, readOnly = false }: Props) {
+    const { showToast } = useToast();
     const [showModal, setShowModal] = useState(false);
     const [newItem, setNewItem] = useState<Partial<DiagnosisItem>>({
         description: '', p: false, d: false, r: false, cieCode: ''
@@ -62,7 +64,7 @@ export default function DiagnosisActivityForm({ data = [], onChange, readOnly = 
 
     const handleAddItem = () => {
         if (!newItem.description || (!newItem.p && !newItem.d && !newItem.r) || !newItem.cieCode) {
-            alert('Por favor llene todos los campos obligatorios (*) y seleccione al menos una opción (P, D o R)');
+            showToast('Por favor llene todos los campos obligatorios (*) y seleccione al menos una opción (P, D o R)', 'warning');
             return;
         }
         const result: DiagnosisItem = {
@@ -221,10 +223,10 @@ export default function DiagnosisActivityForm({ data = [], onChange, readOnly = 
                                     getOptionLabel={(option) => `${option.code} - ${option.description}`}
                                     options={options}
                                     loading={loading}
-                                    onInputChange={(event, newInputValue) => {
+                                    onInputChange={(_, newInputValue) => {
                                         setInputValue(newInputValue);
                                     }}
-                                    onChange={(event, newValue) => {
+                                    onChange={(_, newValue) => {
                                         setNewItem({ ...newItem, cieCode: newValue ? newValue.code : '' });
                                         if (newValue && !newItem.description) {
                                             setNewItem(prev => ({ ...prev, description: newValue.description, cieCode: newValue.code }));

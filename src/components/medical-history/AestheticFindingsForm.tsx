@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Upload, Trash2, Eye, X, FileImage, ChevronLeft, ChevronRight, FileText, Download, ExternalLink } from 'lucide-react';
+import { useToast } from '../Toast';
+import { Upload, Trash2, Eye, X, FileImage, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import api from '../../api';
 
 interface AestheticFindingsFormProps {
@@ -16,6 +17,7 @@ interface AestheticFindingsFormProps {
 }
 
 export default function AestheticFindingsForm({ patientId, recordId, sessionId, data, onChange, onUploadingChange, readOnly = false }: AestheticFindingsFormProps) {
+    const { showToast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
     const [dragActive, setDragActive] = useState(false);
     const [previewFiles, setPreviewFiles] = useState<any[]>([]);
@@ -90,7 +92,7 @@ export default function AestheticFindingsForm({ patientId, recordId, sessionId, 
         for (const file of batchFiles) {
             const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
             if (!allowedTypes.includes(file.type)) {
-                alert(`El archivo ${file.name} no es un tipo permitido (Imágenes o PDF).`);
+                showToast(`El archivo ${file.name} no es un tipo permitido (Imágenes o PDF).`, 'error');
                 continue;
             }
 
@@ -125,6 +127,7 @@ export default function AestheticFindingsForm({ patientId, recordId, sessionId, 
             } catch (error) {
                 console.error('Error uploading file (Estética):', error);
                 setPreviewFiles(prev => prev.map(p => p.url === tempUrl ? { ...p, status: 'error' } : p));
+                showToast('Error al subir el archivo. Inténtalo de nuevo.', 'error');
             }
         }
         setIsUploading(false);
@@ -154,7 +157,7 @@ export default function AestheticFindingsForm({ patientId, recordId, sessionId, 
                 if (fileId) await api.delete(`/drive/file/${fileId}`);
             } catch (error) {
                 console.error('❌ Error al eliminar archivo de Estética:', error);
-                alert('No se pudo eliminar el archivo del servidor.');
+                showToast('No se pudo eliminar el archivo del servidor.', 'error');
                 return;
             }
         }

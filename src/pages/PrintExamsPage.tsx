@@ -5,7 +5,7 @@ import api from '../api';
 import { Loader2 } from 'lucide-react';
 
 export default function PrintExamsPage() {
-    const { patientId, recordId } = useParams<{ patientId: string; recordId: string }>();
+    const {recordId } = useParams<{ recordId: string }>();
     const [data, setData] = useState<any>(null);
     const [patient, setPatient] = useState<any>(null);
     const [specialtyName, setSpecialtyName] = useState<string>('');

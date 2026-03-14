@@ -11,6 +11,7 @@ import MedicalHistory from './pages/MedicalHistory';
 import MedicalHistoryList from './pages/MedicalHistoryList';
 import Patients from './pages/Patients';
 import Schedules from './pages/Schedules';
+import AdminCatalogsPage from './pages/admin/AdminCatalogsPage';
 import { SpecialtyProvider, useSpecialty } from './context/SpecialtyContext';
 import PatientClinicalOffices from './pages/PatientClinicalOffices';
 import Appointments from './pages/Appointments';
@@ -173,6 +174,7 @@ function SignIn() {
 // Componente de Sign Up con diseño TailAdmin y conexión al backend
 function SignUp() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -237,7 +239,7 @@ function SignUp() {
       console.log('Usuario creado exitosamente:', response.data);
 
       // Redirigir al login después de registro exitoso
-      alert('¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.');
+      showToast('¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.', 'success');
       navigate('/signin');
     } catch (err: any) {
       console.error('Error al crear usuario:', err);
@@ -372,7 +374,7 @@ function SignUp() {
   );
 }
 
-import { ToastProvider } from './components/Toast';
+import { ToastProvider, useToast } from './components/Toast';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
 // ... (Skipping auth components update context, doing inline replacement for routes)
@@ -401,7 +403,9 @@ function App() {
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="doctor/new" element={<DoctorRegistration />} />
+            <Route path="doctors" element={<DoctorRegistration />} />
             <Route path="medical-offices" element={<MedicalOffices />} />
+            <Route path="catalogs" element={<AdminCatalogsPage />} />
             <Route path="medical-history/:patientId/:recordId?" element={<MedicalHistory />} />
             <Route path="aesthetic-history/:patientId/:recordId?" element={<AestheticHistory />} />
             <Route path="nutrition-history/:patientId/:recordId?" element={<NutritionHistory />} />

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { 
-    Utensils, Calendar, Scale, Activity, Ruler, Zap, Compass, 
-    Plus, Trash2, Edit2, X, Check, Coffee, Apple, Clock, AlertCircle, Printer, FileText 
+import {
+    Utensils, Calendar, Scale, Activity, Ruler, Zap, Compass,
+    Plus, Trash2, Edit2, X, Check, Coffee, Apple, Clock, AlertCircle, Printer, FileText
 } from 'lucide-react';
+import { useToast } from '../Toast';
 import { useParams } from 'react-router-dom';
 
 interface MealPlanDetail {
@@ -45,11 +46,12 @@ export default function MealPlanForm({ data, onChange, readOnly, mealTimes = [],
     const { patientId } = useParams<{ patientId: string }>();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDetail, setEditingDetail] = useState<MealPlanDetail | null>(null);
+    const { showToast } = useToast();
 
     const handlePrint = () => {
-        const recordId = data.id; 
+        const recordId = data.id;
         if (!recordId) {
-            alert('Por favor guarde los cambios antes de imprimir para asegurar que el PDF tenga la información más reciente.');
+            showToast('Por favor guarde los cambios antes de imprimir para asegurar que el PDF tenga la información más reciente.', 'warning');
             return;
         }
         window.open(`/print/meal-plan/${patientId}/${recordId}`, '_blank');
