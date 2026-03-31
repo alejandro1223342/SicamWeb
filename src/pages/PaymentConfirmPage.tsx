@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useToast } from '../components/Toast';
@@ -10,9 +10,13 @@ export default function PaymentConfirmPage() {
     const { showToast } = useToast();
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
     const [message, setMessage] = useState('Verificando pago...');
+    const hasConfirmed = useRef(false);
 
     useEffect(() => {
         const confirmPayment = async () => {
+            if (hasConfirmed.current) return;
+            hasConfirmed.current = true;
+
             const id = searchParams.get('id');
             const clientTransactionId = searchParams.get('clientTransactionId');
             const errorMsg = searchParams.get('msg');
@@ -43,9 +47,10 @@ export default function PaymentConfirmPage() {
                     appointmentPayload.paymentId = id;
 
                     // 3. Create the appointment
+                    // Remove before API call to avoid double triggering if this function is re-entered somehow
+                    sessionStorage.removeItem('pending_appointment');
                     await api.post('/appointments', appointmentPayload);
                     
-                    sessionStorage.removeItem('pending_appointment');
                     setStatus('success');
                     setMessage('¡Pago aprobado y cita agendada exitosamente!');
                     showToast('Cita confirmada correctamente.', 'success');
