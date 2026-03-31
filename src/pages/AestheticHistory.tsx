@@ -11,12 +11,15 @@ import DiagnosisActivityForm from '../components/medical-history/DiagnosisActivi
 import ComplementaryExamsForm from '../components/medical-history/ComplementaryExamsForm';
 import PrintAestheticHistoryTemplate from '../components/medical-history/PrintAestheticHistoryTemplate';
 import BodyMapForm from '../components/medical-history/BodyMapForm';
+import ConsultationReasonForm from '../components/medical-history/ConsultationReasonForm';
+import TreatmentForm from '../components/medical-history/TreatmentForm';
+import ConsentForm from '../components/medical-history/ConsentForm';
 import { useSpecialty } from '../context/SpecialtyContext';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { CheckCircle, CloudUpload } from 'lucide-react';
 
-type SectionKey = 'emergency' | 'family' | 'vaccines' | 'risks' | 'labresults' | 'diagnosis' | 'exams' | 'findings' | 'bodymap_male' | 'bodymap_female' | 'bodymap_face' | 'bodymap_face_male' | 'bodymap_face_female';
+type SectionKey = 'reason' | 'emergency' | 'family' | 'vaccines' | 'risks' | 'labresults' | 'diagnosis' | 'exams' | 'findings' | 'consents' | 'bodymap_male' | 'bodymap_female' | 'bodymap_face' | 'bodymap_face_male' | 'bodymap_face_female' | 'treatment_details';
 
 interface SectionDef {
     id: SectionKey;
@@ -32,9 +35,9 @@ export default function AestheticHistory() {
     const queryParams = new URLSearchParams(location.search);
     const mode = queryParams.get('mode');
     const navigate = useNavigate();
-    
+
     const { activeSpecialty } = useSpecialty(); // Still useful for context, but we know we are in Aesthetic
-    const [activeSection, setActiveSection] = useState<SectionKey>('emergency');
+    const [activeSection, setActiveSection] = useState<SectionKey>('reason');
     const [patient, setPatient] = useState<any>(null);
     const [examCatalog, setExamCatalog] = useState<any>({});
     const [saving, setSaving] = useState(false);
@@ -47,11 +50,12 @@ export default function AestheticHistory() {
 
     const getSections = useCallback((): SectionDef[] => {
         const baseSections: SectionDef[] = [
+            { id: 'reason', title: 'Motivo de la consulta', icon: <FileSignature size={18} /> },
             { id: 'emergency', title: 'Contactos de emergencia', icon: <User size={18} /> },
             { id: 'family', title: 'Antecedentes familiares', icon: <ShieldAlert size={18} /> },
             { id: 'vaccines', title: 'Vacunas recientes', icon: <Syringe size={18} /> },
             { id: 'risks', title: 'Factores y conductas de riesgo', icon: <AlertTriangle size={18} /> },
-            { id: 'findings', title: 'Hallazgos en Estética', icon: <Search size={18} /> },
+            { id: 'findings', title: 'Hallazgos en Dermatoscopía', icon: <Search size={18} /> },
         ];
 
         const g = (patient?.gender || '').toString().toUpperCase().trim();
@@ -60,7 +64,7 @@ export default function AestheticHistory() {
 
         console.log('DEBUG - AestheticHistory Patient:', patient);
         console.log('DEBUG - AestheticHistory Gender Logic:', { raw: patient?.gender, normalized: g, isMale, isFemale });
-        
+
         if (isMale) {
             baseSections.push({ id: 'bodymap_male', title: 'Análisis Corporal (Hombre)', icon: <User size={18} /> });
             baseSections.push({ id: 'bodymap_face_male', title: 'Análisis Facial (Hombre)', icon: <Smile size={18} /> });
@@ -77,11 +81,13 @@ export default function AestheticHistory() {
         }
 
         baseSections.push({ id: 'bodymap_face', title: 'Análisis Facial (Músculos)', icon: <Smile size={18} /> });
-        
+
         baseSections.push(
             { id: 'labresults', title: 'Resultados de laboratorio e imágenes', icon: <FileText size={18} /> },
             { id: 'diagnosis', title: 'Diagnóstico/Actividad', icon: <Stethoscope size={18} /> },
             { id: 'exams', title: 'Exámenes complementarios solicitados', icon: <FileSignature size={18} /> },
+            { id: 'consents', title: 'Consentimientos Informados', icon: <FileText size={18} /> },
+            { id: 'treatment_details', title: 'Procedimiento / Tratamiento y Observaciones', icon: <FileText size={18} /> },
         );
 
         return baseSections;
@@ -92,6 +98,7 @@ export default function AestheticHistory() {
     }, [currentRecordId]);
 
     const [formData, setFormData] = useState({
+        reason: '',
         emergency: { name: '', relation: '', phone: '', address: '' },
         family: [] as string[],
         vaccines: [] as string[],
@@ -99,7 +106,9 @@ export default function AestheticHistory() {
         labresults: [] as any[],
         diagnosis: [] as any[],
         exams: { options: [] as string[], other: '', diagnosis: '', treatment: '' },
-        tricology: { observations: '', files: [] as any[] }, 
+        treatment_details: { treatment: '', observations: '' },
+        consents: { signedFiles: [] as any[] },
+        tricology: { observations: '', files: [] as any[] },
         bodymap_male: {} as Record<string, number>,
         bodymap_female: {} as Record<string, number>,
         bodymap_face: {} as Record<string, number>,
@@ -115,27 +124,60 @@ export default function AestheticHistory() {
     };
 
     useEffect(() => {
-        if (mode === 'new') {
-            setFormData({
+        if (mode === 'new' && patientId && activeSpecialty?.id) {
+            const initialEmptyState = {
+                reason: '',
                 emergency: { name: '', relation: '', phone: '', address: '' },
-                family: [],
-                vaccines: [],
-                risks: [],
-                labresults: [],
-                diagnosis: [],
-                exams: { options: [], other: '', diagnosis: '', treatment: '' },
-                tricology: { observations: '', files: [] },
-                bodymap_male: {},
-                bodymap_female: {},
-                bodymap_face: {},
-                bodymap_face_male: {},
-                bodymap_face_female: {},
-                sessionId: queryParams.get('session') || null
-            });
+                family: [] as string[],
+                vaccines: [] as string[],
+                risks: [] as string[],
+                labresults: [] as any[],
+                diagnosis: [] as any[],
+                exams: { options: [] as string[], other: '', diagnosis: '', treatment: '' },
+                treatment_details: { treatment: '', observations: '' },
+                consents: { signedFiles: [] as any[] },
+                tricology: { observations: '', files: [] as any[] },
+                bodymap_male: {} as Record<string, number>,
+                bodymap_female: {} as Record<string, number>,
+                bodymap_face: {} as Record<string, number>,
+                bodymap_face_male: {} as Record<string, number>,
+                bodymap_face_female: {} as Record<string, number>,
+                sessionId: queryParams.get('session') || (null as string | null)
+            };
+
+            const fetchPreviousRecord = async () => {
+                try {
+                    const response = await api.get(`/medical-records/patient/${patientId}`, {
+                        params: { specialtyId: activeSpecialty.id }
+                    });
+
+                    const records = response.data || [];
+                    if (records.length > 0) {
+                        const lastRecord = records[0]; // Backend returns sorted by createdAt DESC
+                        const lastData = lastRecord.data || {};
+
+                        setFormData({
+                            ...initialEmptyState,
+                            reason: lastData.reason || initialEmptyState.reason,
+                            emergency: lastData.emergency || initialEmptyState.emergency,
+                            family: lastData.family || initialEmptyState.family,
+                            vaccines: lastData.vaccines || initialEmptyState.vaccines,
+                            risks: lastData.risks || initialEmptyState.risks,
+                        });
+                    } else {
+                        setFormData(initialEmptyState);
+                    }
+                } catch (error) {
+                    console.error('Error fetching last record for pre-fill:', error);
+                    setFormData(initialEmptyState);
+                }
+            };
+
+            fetchPreviousRecord();
             setCurrentRecordId(null);
             currentRecordIdRef.current = null;
         }
-    }, [mode, patientId]);
+    }, [mode, patientId, activeSpecialty?.id]);
 
     useEffect(() => {
         const fetchCatalog = async () => {
@@ -168,6 +210,7 @@ export default function AestheticHistory() {
                     const dbData = response.data;
                     setFormData((prev: any) => ({
                         ...prev,
+                        reason: dbData.data?.reason || prev.reason,
                         emergency: dbData.data?.emergency || prev.emergency,
                         family: dbData.data?.family || prev.family,
                         vaccines: dbData.data?.vaccines || prev.vaccines,
@@ -175,6 +218,8 @@ export default function AestheticHistory() {
                         labresults: Array.isArray(dbData.data?.labresults) ? dbData.data?.labresults : prev.labresults,
                         diagnosis: Array.isArray(dbData.data?.diagnosis) ? dbData.data?.diagnosis : prev.diagnosis,
                         exams: { ...prev.exams, ...dbData.data?.exams },
+                        treatment_details: dbData.data?.treatment_details || prev.treatment_details,
+                        consents: dbData.data?.consents || prev.consents,
                         tricology: { ...prev.tricology, ...dbData.data?.tricology },
                         bodymap_male: dbData.data?.bodymap_male || dbData.data?.bodymap || prev.bodymap_male,
                         bodymap_female: dbData.data?.bodymap_female || prev.bodymap_female,
@@ -200,7 +245,7 @@ export default function AestheticHistory() {
 
     const handleSaveAll = useCallback(async (isAuto = false) => {
         if (isSavingRef.current || isGlobalUploading || !activeSpecialty || !patientId || patientId === 'generic' || isReadOnly) return;
-        
+
         const userData = localStorage.getItem('user');
         if (!userData) return;
         const doctorId = JSON.parse(userData).id;
@@ -251,6 +296,7 @@ export default function AestheticHistory() {
     const renderActiveSection = () => {
         const commonProps = { readOnly: isReadOnly };
         switch (activeSection) {
+            case 'reason': return <ConsultationReasonForm {...commonProps} data={formData.reason} onChange={(d: string) => handleUpdateSection('reason', d)} />;
             case 'emergency': return <EmergencyContactForm {...commonProps} data={formData.emergency} onChange={(d: any) => handleUpdateSection('emergency', d)} />;
             case 'family': return <FamilyHistoryForm {...commonProps} data={formData.family} onChange={(d: string[]) => handleUpdateSection('family', d)} />;
             case 'vaccines': return <RecentVaccinesForm {...commonProps} data={formData.vaccines} onChange={(d: string[]) => handleUpdateSection('vaccines', d)} />;
@@ -259,15 +305,17 @@ export default function AestheticHistory() {
             case 'labresults': return <AestheticLabResultsForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.labresults} onChange={(d: any[]) => handleUpdateSection('labresults', d)} onUploadingChange={setIsGlobalUploading} />;
             case 'diagnosis': return <DiagnosisActivityForm {...commonProps} data={formData.diagnosis} onChange={(d: any[]) => handleUpdateSection('diagnosis', d)} />;
             case 'exams': return <ComplementaryExamsForm {...commonProps} data={formData.exams} onChange={(d: any) => handleUpdateSection('exams', d)} patient={patient} fullCatalog={examCatalog} recordId={currentRecordId} />;
-            case 'bodymap_male': 
+            case 'treatment_details': return <TreatmentForm {...commonProps} data={formData.treatment_details} onChange={(d: any) => handleUpdateSection('treatment_details', d)} />;
+            case 'consents': return <ConsentForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.consents} onChange={(d: any) => handleUpdateSection('consents', d)} onUploadingChange={setIsGlobalUploading} />;
+            case 'bodymap_male':
                 return <BodyMapForm {...commonProps} gender="male" data={formData.bodymap_male} onChange={(d: any) => handleUpdateSection('bodymap_male' as any, d)} />;
-            case 'bodymap_female': 
+            case 'bodymap_female':
                 return <BodyMapForm {...commonProps} gender="female" data={formData.bodymap_female} onChange={(d: any) => handleUpdateSection('bodymap_female' as any, d)} />;
-            case 'bodymap_face': 
+            case 'bodymap_face':
                 return <BodyMapForm {...commonProps} gender="face" data={formData.bodymap_face} onChange={(d: any) => handleUpdateSection('bodymap_face' as any, d)} />;
-            case 'bodymap_face_male': 
+            case 'bodymap_face_male':
                 return <BodyMapForm {...commonProps} gender="face_male" data={formData.bodymap_face_male} onChange={(d: any) => handleUpdateSection('bodymap_face_male' as any, d)} />;
-            case 'bodymap_face_female': 
+            case 'bodymap_face_female':
                 return <BodyMapForm {...commonProps} gender="face_female" data={formData.bodymap_face_female} onChange={(d: any) => handleUpdateSection('bodymap_face_female' as any, d)} />;
             default: return null;
         }
@@ -303,8 +351,8 @@ export default function AestheticHistory() {
                     <div style={{ textAlign: 'right' }}><div style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Especialidad</div><div style={{ fontSize: '14px', fontWeight: '600', color: '#3b82f6' }}>Estética</div></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b', fontSize: '12px' }}>
-                           {saveStatus === 'saving' ? <Loader2 className="animate-spin" size={14} /> : saveStatus === 'saved' ? <CheckCircle size={14} color="#22c55e" /> : <CloudUpload size={14} />}
-                           {saveStatus === 'saving' ? 'Guardando...' : saveStatus === 'saved' ? 'Guardado' : 'Auto-save'}
+                            {saveStatus === 'saving' ? <Loader2 className="animate-spin" size={14} /> : saveStatus === 'saved' ? <CheckCircle size={14} color="#22c55e" /> : <CloudUpload size={14} />}
+                            {saveStatus === 'saving' ? 'Guardando...' : saveStatus === 'saved' ? 'Guardado' : 'Auto-save'}
                         </div>
                         <button onClick={() => handleSaveAll(false)} disabled={saving || isReadOnly} style={{ padding: '0 16px', height: '36px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '8px', border: 'none', fontWeight: '600', cursor: 'pointer', display: isReadOnly ? 'none' : 'flex', alignItems: 'center', gap: '8px' }}>
                             {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Guardar
@@ -327,7 +375,7 @@ export default function AestheticHistory() {
                     {renderActiveSection()}
                 </div>
             </div>
-            
+
             {/* Hidden Templates for local use if needed, but we prefer Redirect to dedicated page */}
             <div id="print-root" style={{ display: 'none' }}>
                 <PrintAestheticHistoryTemplate patient={patient} data={formData} />

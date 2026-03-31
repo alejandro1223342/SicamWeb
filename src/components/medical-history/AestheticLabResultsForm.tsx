@@ -186,7 +186,7 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
         if (!selectedFilePreview) return;
         const { allFiles, currentIndex } = selectedFilePreview;
         let nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
-        
+
         if (nextIndex >= allFiles.length) nextIndex = 0;
         if (nextIndex < 0) nextIndex = allFiles.length - 1;
 
@@ -343,15 +343,15 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                             <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Nuevo Resultado de Laboratorio (Estética)</h2>
                             <button onClick={() => setShowModal(false)} style={{ background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b', transition: 'all 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor = '#fee2e2'} onMouseOut={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}><X size={20} /></button>
                         </div>
-                        
+
                         <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     <label style={{ fontWeight: '600', color: '#475569', fontSize: '14px' }}>Tipo de examen (*)</label>
-                                    <input 
-                                        placeholder="Ej: Biometría Hemática" 
-                                        value={newItem.exam} 
-                                        onChange={e => setNewItem({...newItem, exam: e.target.value})}
+                                    <input
+                                        placeholder="Ej: Biometría Hemática"
+                                        value={newItem.exam}
+                                        onChange={e => setNewItem({ ...newItem, exam: e.target.value })}
                                         style={{ width: '100%', padding: '12px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', transition: 'all 0.2s', fontSize: '15px' }}
                                         onFocus={e => { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 4px rgba(79, 70, 229, 0.1)'; }}
                                         onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
@@ -359,10 +359,10 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     <label style={{ fontWeight: '600', color: '#475569', fontSize: '14px' }}>Fecha (*)</label>
-                                    <input 
-                                        type="date" 
-                                        value={newItem.date} 
-                                        onChange={e => setNewItem({...newItem, date: e.target.value})}
+                                    <input
+                                        type="date"
+                                        value={newItem.date}
+                                        onChange={e => setNewItem({ ...newItem, date: e.target.value })}
                                         style={{ width: '100%', padding: '12px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', transition: 'all 0.2s', fontSize: '15px' }}
                                         onFocus={e => { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 4px rgba(79, 70, 229, 0.1)'; }}
                                         onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
@@ -372,10 +372,10 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <label style={{ fontWeight: '600', color: '#475569', fontSize: '14px' }}>Valor / NSH (*)</label>
-                                <input 
-                                    placeholder="Ej: 14.5 g/dL" 
-                                    value={newItem.value} 
-                                    onChange={e => setNewItem({...newItem, value: e.target.value})}
+                                <input
+                                    placeholder="Ej: 14.5 g/dL"
+                                    value={newItem.value}
+                                    onChange={e => setNewItem({ ...newItem, value: e.target.value })}
                                     style={{ width: '100%', padding: '12px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', transition: 'all 0.2s', fontSize: '15px' }}
                                     onFocus={e => { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 4px rgba(79, 70, 229, 0.1)'; }}
                                     onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
@@ -384,10 +384,10 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <label style={{ fontWeight: '600', color: '#475569', fontSize: '14px' }}>Observaciones (*)</label>
-                                <textarea 
-                                    placeholder="Detalles relevantes del resultado..." 
-                                    value={newItem.observations} 
-                                    onChange={e => setNewItem({...newItem, observations: e.target.value})}
+                                <textarea
+                                    placeholder="Detalles relevantes del resultado..."
+                                    value={newItem.observations}
+                                    onChange={e => setNewItem({ ...newItem, observations: e.target.value })}
                                     rows={3}
                                     style={{ width: '100%', padding: '12px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', transition: 'all 0.2s', fontSize: '15px', resize: 'vertical' }}
                                     onFocus={e => { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 4px rgba(79, 70, 229, 0.1)'; }}
@@ -397,7 +397,7 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <label style={{ fontWeight: '600', color: '#475569', fontSize: '14px' }}>Adjuntar Archivos (Imágenes o PDF)</label>
-                                <div 
+                                <div
                                     style={{ border: dragActive ? '2px dashed #4f46e5' : '2px dashed #cbd5e1', borderRadius: '16px', padding: '24px', backgroundColor: dragActive ? '#f5f3ff' : '#f8fafc', textAlign: 'center', transition: 'all 0.2s' }}
                                     onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
                                 >
@@ -406,10 +406,10 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                                             <Upload size={20} />
                                         </div>
                                         <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b' }}>{isUploading ? 'Subiendo...' : 'Seleccione o arrastre archivos'}</span>
-                                        <input type="file" multiple accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => { if(e.target.files) handleFileSelection(e.target.files) }} />
+                                        <input type="file" multiple accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => { if (e.target.files) handleFileSelection(e.target.files) }} />
                                     </label>
                                 </div>
-                                
+
                                 {newItem.files && newItem.files.length > 0 && (
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '12px' }}>
                                         {newItem.files.map((_, idx) => (
@@ -424,41 +424,41 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                         </div>
 
                         <div style={{ padding: '24px 32px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '12px', backgroundColor: '#f8fafc', borderBottomLeftRadius: '24px', borderBottomRightRadius: '24px' }}>
-                            <button 
+                            <button
                                 onClick={() => !isUploading && setShowModal(false)}
                                 disabled={isUploading}
-                                style={{ 
-                                    padding: '10px 24px', 
-                                    borderRadius: '12px', 
-                                    border: '1px solid #e2e8f0', 
-                                    backgroundColor: 'white', 
-                                    color: isUploading ? '#cbd5e1' : '#475569', 
-                                    fontWeight: '600', 
-                                    cursor: isUploading ? 'not-allowed' : 'pointer', 
-                                    transition: 'all 0.2s' 
+                                style={{
+                                    padding: '10px 24px',
+                                    borderRadius: '12px',
+                                    border: '1px solid #e2e8f0',
+                                    backgroundColor: 'white',
+                                    color: isUploading ? '#cbd5e1' : '#475569',
+                                    fontWeight: '600',
+                                    cursor: isUploading ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.2s'
                                 }}
                             >
                                 Cancelar
                             </button>
-                            <button 
+                            <button
                                 onClick={handleAddItem}
                                 disabled={isUploading}
-                                style={{ 
-                                    padding: '10px 32px', 
-                                    borderRadius: '12px', 
-                                    border: 'none', 
-                                    backgroundColor: isUploading ? '#94a3b8' : '#4f46e5', 
-                                    color: 'white', 
-                                    fontWeight: '700', 
-                                    cursor: isUploading ? 'not-allowed' : 'pointer', 
-                                    transition: 'all 0.2s', 
+                                style={{
+                                    padding: '10px 32px',
+                                    borderRadius: '12px',
+                                    border: 'none',
+                                    backgroundColor: isUploading ? '#94a3b8' : '#4f46e5',
+                                    color: 'white',
+                                    fontWeight: '700',
+                                    cursor: isUploading ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.2s',
                                     boxShadow: isUploading ? 'none' : '0 4px 12px rgba(79, 70, 229, 0.2)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '8px'
                                 }}
-                                onMouseOver={e => { if(!isUploading) e.currentTarget.style.backgroundColor = '#4338ca' }}
-                                onMouseOut={e => { if(!isUploading) e.currentTarget.style.backgroundColor = '#4f46e5' }}
+                                onMouseOver={e => { if (!isUploading) e.currentTarget.style.backgroundColor = '#4338ca' }}
+                                onMouseOut={e => { if (!isUploading) e.currentTarget.style.backgroundColor = '#4f46e5' }}
                             >
                                 {isUploading && <Loader2 className="animate-spin" size={18} />}
                                 {isUploading ? 'Subiendo Archivos...' : 'Guardar Resultado'}
@@ -471,13 +471,13 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
             {selectedFilePreview && (
                 <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.95)', zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(8px)' }} onClick={() => setSelectedFilePreview(null)}>
                     <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
-                        
+
                         {/* Botón Cerrar */}
                         <button onClick={() => setSelectedFilePreview(null)} style={{ position: 'fixed', top: '24px', right: '24px', color: 'white', background: 'rgba(255,255,255,0.1)', border: 'none', width: '44px', height: '44px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2001 }}><X size={24} /></button>
-                        
+
                         {/* Navegación Anterior */}
                         {selectedFilePreview.allFiles.length > 1 && (
-                            <button 
+                            <button
                                 onClick={() => handleNav('prev')}
                                 style={{ position: 'fixed', left: '24px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.1)', border: 'none', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', color: 'white', transition: 'all 0.2s', zIndex: 2001 }}
                                 onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
@@ -511,7 +511,7 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
 
                         {/* Navegación Siguiente */}
                         {selectedFilePreview.allFiles.length > 1 && (
-                            <button 
+                            <button
                                 onClick={() => handleNav('next')}
                                 style={{ position: 'fixed', right: '24px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.1)', border: 'none', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', color: 'white', transition: 'all 0.2s', zIndex: 2001 }}
                                 onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}

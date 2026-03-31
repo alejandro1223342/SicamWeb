@@ -16,13 +16,15 @@ const PrintAestheticHistoryTemplate: React.FC<PrintAestheticHistoryTemplateProps
     const patientPhone = pData.phone || 'N/A';
     const birthDate = pData.birthDate ? new Date(pData.birthDate).toLocaleDateString('es-ES') : 'N/A';
 
+    const reason = data?.reason || '';
     const emergency = data?.emergency || {};
     const family = data?.family || [];
     const vaccines = data?.vaccines || [];
     const risks = data?.risks || [];
     const labresults = data?.labresults || [];
     const diagnosis = data?.diagnosis || '';
-    const observations = data?.aesthetic?.observations || data?.tricology?.observations || '';
+    const treatmentDetails = data?.treatment_details || {};
+    const observations = data?.aesthetic?.observations || data?.tricology?.observations || treatmentDetails.observations || '';
 
     // Helper for table cells
     const Cell = ({ label, value, width, rowSpan, colSpan, height }: any) => (
@@ -107,6 +109,11 @@ const PrintAestheticHistoryTemplate: React.FC<PrintAestheticHistoryTemplateProps
                     </tr>
                 </tbody>
             </table>
+            
+            <div style={{ border: '1px solid #000', marginBottom: '10px' }}>
+                <div style={{ backgroundColor: '#000', color: '#fff', padding: '3px 6px', fontWeight: '900', fontSize: '9px' }}>MOTIVO DE LA CONSULTA</div>
+                <div style={{ padding: '5px', minHeight: '30px', fontSize: '10px' }}>{reason || 'No registrado'}</div>
+            </div>
 
             <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px' }}>
                 <tbody>
@@ -220,7 +227,7 @@ const PrintAestheticHistoryTemplate: React.FC<PrintAestheticHistoryTemplateProps
             </table>
 
             <div style={{ border: '1px solid #000', marginBottom: '10px' }}>
-                <div style={{ backgroundColor: '#000', color: '#fff', padding: '3px 6px', fontWeight: '900', fontSize: '9px' }}>HALLAZGOS EN ESTÉTICA</div>
+                <div style={{ backgroundColor: '#000', color: '#fff', padding: '3px 6px', fontWeight: '900', fontSize: '9px' }}>HALLAZGOS EN DERMATOSCOPÍA</div>
                 <div style={{ padding: '5px', minHeight: '40px', fontSize: '10px' }}>{observations}</div>
             </div>
 
@@ -310,6 +317,16 @@ const PrintAestheticHistoryTemplate: React.FC<PrintAestheticHistoryTemplateProps
                     </tbody>
                 </table>
             )}
+
+            <div style={{ border: '1px solid #000', marginBottom: '10px' }}>
+                <div style={{ backgroundColor: '#000', color: '#fff', padding: '3px 6px', fontWeight: '900', fontSize: '9px' }}>PROCEDIMIENTO / TRATAMIENTO REALIZADO</div>
+                <div style={{ padding: '5px', minHeight: '40px', fontSize: '10px' }}>{treatmentDetails.treatment || 'No registrado'}</div>
+            </div>
+
+            <div style={{ border: '1px solid #000', marginBottom: '10px' }}>
+                <div style={{ backgroundColor: '#f0f0f0', padding: '3px 6px', fontWeight: '800', fontSize: '8px', borderBottom: '1px solid #000' }}>OBSERVACIONES ADICIONALES</div>
+                <div style={{ padding: '5px', minHeight: '30px', fontSize: '9px' }}>{treatmentDetails.observations || 'Sin observaciones'}</div>
+            </div>
 
             <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div style={{ width: '250px' }}>

@@ -17,8 +17,8 @@ interface BodyMapFormProps {
     gender?: 'male' | 'female' | 'face' | 'face_male' | 'face_female';
 }
 
-const ROWS = 14;
-const COLS = 10;
+const ROWS = 30;
+const COLS = 20;
 
 export default function BodyMapForm({ data, onChange, readOnly, gender = 'male' }: BodyMapFormProps) {
     const [view, setView] = useState<'front' | 'back'>('front');
@@ -69,16 +69,17 @@ export default function BodyMapForm({ data, onChange, readOnly, gender = 'male' 
                         onClick={() => handleCellClick(r, c)}
                         style={{
                             border: '1px solid rgba(0,0,0,0.03)',
-                            backgroundColor: hasValue ? 'rgba(59, 130, 246, 0.4)' : 'transparent',
+                            backgroundColor: hasValue ? 'rgba(59, 130, 246, 0.5)' : 'transparent',
                             cursor: readOnly ? 'default' : 'pointer',
-                            transition: 'all 0.2s ease',
+                            transition: 'all 0.1s ease',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '10px',
-                            fontWeight: 'bold',
+                            fontSize: '9px',
+                            fontWeight: '700',
                             color: '#1e3a8a',
-                            zIndex: 2
+                            zIndex: 2,
+                            pointerEvents: 'auto'
                         }}
                         onMouseEnter={(e) => {
                             if (!readOnly && !hasValue) e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';

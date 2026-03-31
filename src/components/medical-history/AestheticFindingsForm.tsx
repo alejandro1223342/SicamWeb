@@ -174,18 +174,18 @@ export default function AestheticFindingsForm({ patientId, recordId, sessionId, 
     return (
         <div className="section-container" style={{ animation: 'fadeIn 0.3s ease-in-out', backgroundColor: '#fcfcfd', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
             <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '24px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <FileImage size={24} color="#4f46e5" /> Hallazgos en Estética
+                <FileImage size={24} color="#4f46e5" /> Hallazgos en Dermatoscopía
             </h3>
 
             <div style={{ marginBottom: '32px' }}>
-                <label style={{ fontWeight: '600', color: '#475569', marginBottom: '10px', display: 'block', fontSize: '14px' }}>Descripción de los hallazgos de Estética</label>
+                <label style={{ fontWeight: '600', color: '#475569', marginBottom: '10px', display: 'block', fontSize: '14px' }}>Descripción de los hallazgos de Dermatoscopia</label>
                 <textarea
                     className="form-input"
                     value={data?.observations || ''}
                     onChange={(e) => !readOnly && onChange({ ...data, observations: e.target.value })}
                     readOnly={readOnly}
                     rows={4}
-                    placeholder={readOnly ? "Sin observaciones" : "Escriba aquí los hallazgos de Estética observados..."}
+                    placeholder={readOnly ? "Sin observaciones" : "Escriba aquí los hallazgos de Dermatoscopía observados..."}
                     style={{ width: '100%', padding: '14px 18px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', resize: 'vertical', minHeight: '120px', transition: 'all 0.2s', fontSize: '15px', backgroundColor: readOnly ? '#f8fafc' : 'white' }}
                 />
             </div>
@@ -219,7 +219,7 @@ export default function AestheticFindingsForm({ patientId, recordId, sessionId, 
                                 </div>
                                 <div>
                                     <p style={{ fontWeight: '700', color: '#1e293b', marginBottom: '4px', fontSize: '16px' }}>
-                                        {isUploading ? 'Subiendo archivos...' : 'Agregar o arrastre imágenes de Estética'}
+                                        {isUploading ? 'Subiendo archivos...' : 'Agregar o arrastre imágenes de Dermatoscopía'}
                                     </p>
                                     <p style={{ fontSize: '13px', color: '#64748b' }}>PNG, JPG hasta 10MB</p>
                                 </div>
@@ -227,7 +227,7 @@ export default function AestheticFindingsForm({ patientId, recordId, sessionId, 
                             </>
                         )}
                         {readOnly && previewFiles.length === 0 && (
-                            <p style={{ color: '#64748b', fontSize: '14px' }}>No hay imágenes cargadas en este registro de Estética.</p>
+                            <p style={{ color: '#64748b', fontSize: '14px' }}>No hay imágenes cargadas en este registro de Dermatoscopia.</p>
                         )}
                     </label>
 
