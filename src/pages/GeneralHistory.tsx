@@ -12,6 +12,7 @@ import toast, { Toaster } from 'react-hot-toast';
 // Components
 import GeneralAnamnesisForm from '../components/medical-history/general/GeneralAnamnesisForm';
 import GeneralAnamnesis003Form from '../components/medical-history/general/GeneralAnamnesis003Form';
+import GeneralEpicrisisForm from '../components/medical-history/general/GeneralEpicrisisForm';
 import EmergencyContactForm from '../components/medical-history/EmergencyContactForm';
 import ConsentForm from '../components/medical-history/ConsentForm';
 
@@ -103,7 +104,29 @@ export default function GeneralHistory() {
             diagnosis: [],
             plans: ''
         },
-        epicrisis: {},
+        epicrisis: {
+            clinicalSummary: '',
+            evolutionSummary: '',
+            relevantFindings: '',
+            diagnosis: [],
+            treatmentSummary: '',
+            dischargeConditions: '',
+            attendingDoctors: [],
+            discharge: {
+                finalDischarge: null,
+                transitoryDischarge: null,
+                asymptomatic: null,
+                mildDisability: null,
+                moderateDisability: null,
+                severeDisability: null,
+                voluntaryRetirement: null,
+                involuntaryRetirement: null,
+                deathBefore48h: null,
+                deathAfter48h: null,
+                stayDays: '',
+                disabilityDays: ''
+            }
+        },
         inter_req: {},
         inter_rep: {},
         emerg_01: {},
@@ -287,6 +310,7 @@ export default function GeneralHistory() {
             case 'anamnesis': return <GeneralAnamnesis003Form readOnly={isReadOnly} data={formData.anamnesis} onChange={(d) => handleUpdateSection('anamnesis', d)} />;
             case 'emergency': return <EmergencyContactForm readOnly={isReadOnly} data={formData.emergency} onChange={(d) => handleUpdateSection('emergency', d)} />;
             case 'consents': return <ConsentForm readOnly={isReadOnly} specialty="Medicina General" patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.consents} onChange={(d) => handleUpdateSection('consents', d)} onUploadingChange={() => {}} />;
+            case 'epicrisis': return <GeneralEpicrisisForm readOnly={isReadOnly} data={formData.epicrisis} onChange={(d) => handleUpdateSection('epicrisis', d)} />;
             default: 
                 const section = getSections().find(s => s.id === activeSection);
                 return (
