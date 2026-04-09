@@ -15,6 +15,7 @@ import GeneralAnamnesis003Form from '../components/medical-history/general/Gener
 import GeneralEpicrisisForm from '../components/medical-history/general/GeneralEpicrisisForm';
 import GeneralInterconsultationRequestForm from '../components/medical-history/general/GeneralInterconsultationRequestForm';
 import GeneralInterconsultationReportForm from '../components/medical-history/general/GeneralInterconsultationReportForm';
+import GeneralEmergency01Form from '../components/medical-history/general/GeneralEmergency01Form';
 import EmergencyContactForm from '../components/medical-history/EmergencyContactForm';
 import ConsentForm from '../components/medical-history/ConsentForm';
 
@@ -153,7 +154,59 @@ export default function GeneralHistory() {
             proposedEducationalPlan: '',
             clinicalCriteriaSummary: ''
         },
-        emerg_01: {},
+        emerg_01: {
+            admissionRecord: {
+                date: '',
+                time: '',
+                age: '',
+                civilStatus: '',
+                occupation: '',
+                insuranceType: null,
+                companionName: '',
+                companionId: '',
+                address: '',
+                phone: '',
+                arrivalMethod: null,
+                informationSource: '',
+                deliveryPerson: '',
+                deliveryPhone: ''
+            },
+            startOfCare: {
+                time: '',
+                bloodType: '',
+                airwayState: null,
+                arrivalCondition: null,
+                arrivalReason: ''
+            },
+            accidentViolencePoisoning: {
+                eventPlace: '',
+                eventAddress: '',
+                eventDate: '',
+                eventTime: '',
+                vehicleOrWeapon: '',
+                eventType: null,
+                otherEventType: '',
+                reportTime: '',
+                policeCustody: null,
+                reportObservations: '',
+                alcoholBreath: null,
+                alcocheckValue: '',
+                examTime: '',
+                substanceSelection: null,
+                abuseSuspicion: null,
+                generalObservations: '',
+                burnDegree: null,
+                burnPercentage: '',
+                stingDetail: '',
+                biteDetail: ''
+            },
+            relevantHistory: {
+                selectedTypes: [],
+                details: ''
+            },
+            currentIllnessReview: '',
+            painCharacteristics: []
+        },
         emerg_02: {},
         ref: {},
         counter_ref: {},
@@ -337,6 +390,7 @@ export default function GeneralHistory() {
             case 'epicrisis': return <GeneralEpicrisisForm readOnly={isReadOnly} data={formData.epicrisis} onChange={(d) => handleUpdateSection('epicrisis', d)} />;
             case 'inter_req': return <GeneralInterconsultationRequestForm readOnly={isReadOnly} data={formData.inter_req} onChange={(d) => handleUpdateSection('inter_req', d)} />;
             case 'inter_rep': return <GeneralInterconsultationReportForm readOnly={isReadOnly} data={formData.inter_rep} onChange={(d) => handleUpdateSection('inter_rep', d)} />;
+            case 'emerg_01': return <GeneralEmergency01Form readOnly={isReadOnly} data={formData.emerg_01} onChange={(d) => handleUpdateSection('emerg_01', d)} patient={patient} />;
             default: 
                 const section = getSections().find(s => s.id === activeSection);
                 return (
