@@ -19,6 +19,7 @@ import GeneralEmergency01Form from '../components/medical-history/general/Genera
 import GeneralReferenceForm from '../components/medical-history/general/GeneralReferenceForm';
 import GeneralCounterReferenceForm from '../components/medical-history/general/GeneralCounterReferenceForm';
 import GeneralImagingRequestForm from '../components/medical-history/general/GeneralImagingRequestForm';
+import GeneralImagingReportForm from '../components/medical-history/general/GeneralImagingReportForm';
 import EmergencyContactForm from '../components/medical-history/EmergencyContactForm';
 import ConsentForm from '../components/medical-history/ConsentForm';
 
@@ -248,7 +249,48 @@ export default function GeneralHistory() {
             diagnosis: [],
             clinicalSummary: ''
         },
-        img_rep: {},
+        img_rep: {
+            studiesPerformed: {
+                service: '',
+                room: '',
+                bed: '',
+                priority: 'NORMAL',
+                collectionDate: '',
+                studyType: '',
+                description: ''
+            },
+            imagingReport: {
+                files: [] as { url: string, name: string }[],
+                comments: ''
+            },
+            obstetricData: {
+                biparietalDiameter: { value: '', age: '', weight: '' },
+                femurLength: { value: '', age: '', weight: '' },
+                abdominalPerimeter: { value: '', age: '', weight: '' },
+                placentaLocation: '',
+                fetusGender: '',
+                maturityGrade: ''
+            },
+            gynecologicData: {
+                uterus: '',
+                annexes: '',
+                uterineCavity: '',
+                douglasPouch: ''
+            },
+            diagnosis: [],
+            recommendations: '',
+            extraData: {
+                platesSent: '',
+                size30x40: '',
+                size8x10: '',
+                size14x14: '',
+                size14x17: '',
+                size18x24: '',
+                odont: '',
+                damagedPlates: '',
+                withContrast: ''
+            }
+        },
         path_req: {},
         path_rep: {},
         emergency: { name: '', relation: '', phone: '', address: '' },
@@ -431,6 +473,7 @@ export default function GeneralHistory() {
             case 'ref': return <GeneralReferenceForm readOnly={isReadOnly} data={formData.ref} onChange={(d) => handleUpdateSection('ref', d)} />;
             case 'counter_ref': return <GeneralCounterReferenceForm readOnly={isReadOnly} data={formData.counter_ref} onChange={(d) => handleUpdateSection('counter_ref', d)} />;
             case 'img_req': return <GeneralImagingRequestForm readOnly={isReadOnly} data={formData.img_req} onChange={(d) => handleUpdateSection('img_req', d)} />;
+            case 'img_rep': return <GeneralImagingReportForm readOnly={isReadOnly} data={formData.img_rep} onChange={(d) => handleUpdateSection('img_rep', d)} patientId={patientId || ''} specialty="Medicina General" recordId={currentRecordId} sessionId={formData.sessionId} />;
             default: 
                 const section = getSections().find(s => s.id === activeSection);
                 return (
