@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { 
     Save, FileText, Activity, Search, 
-    FileSignature, Loader2, ArrowLeft, CheckCircle, CloudUpload 
+    FileSignature, Loader2, ArrowLeft, CheckCircle, CloudUpload, User
 } from 'lucide-react';
 import { useSpecialty } from '../context/SpecialtyContext';
 import api from '../api';
@@ -11,6 +11,7 @@ import toast, { Toaster } from 'react-hot-toast';
 // Components
 import GeneralAnamnesisForm from '../components/medical-history/general/GeneralAnamnesisForm';
 import GeneralVitalsForm from '../components/medical-history/general/GeneralVitalsForm';
+import EmergencyContactForm from '../components/medical-history/EmergencyContactForm';
 import ConsentForm from '../components/medical-history/ConsentForm';
 
 type SectionKey = 'anamnesis' | 'vitals' | 'epicrisis' | 'emergency' | 'evolution' | 'consents';
@@ -29,7 +30,7 @@ export default function GeneralHistory() {
     const navigate = useNavigate();
 
     const { activeSpecialty } = useSpecialty();
-    const [activeSection, setActiveSection] = useState<SectionKey>('anamnesis');
+    const [activeSection, setActiveSection] = useState<SectionKey>('emergency');
     const [patient, setPatient] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -43,17 +44,17 @@ export default function GeneralHistory() {
         anamnesis: {},
         vitals: {},
         epicrisis: {},
-        emergency: {},
+        emergency: { name: '', relation: '', phone: '', address: '' },
         evolution: {},
         consents: { signedFiles: [] as any[] },
         sessionId: queryParams.get('session') || null as string | null
     });
 
     const getSections = (): SectionDef[] => [
+        { id: 'emergency', title: 'Contactos de emergencia', icon: <User size={18} /> },
         { id: 'anamnesis', title: 'Anamnesis', icon: <FileText size={18} /> },
         { id: 'vitals', title: 'Signos Vitales', icon: <Activity size={18} /> },
         { id: 'epicrisis', title: 'Epicrisis', icon: <FileSignature size={18} /> },
-        { id: 'emergency', title: 'Emergencia', icon: <Search size={18} /> },
         { id: 'evolution', title: 'Evolución', icon: <Activity size={18} /> },
         { id: 'consents', title: 'Consentimientos', icon: <FileSignature size={18} /> },
     ];
@@ -102,19 +103,52 @@ export default function GeneralHistory() {
                 if (existingRecord) {
                     setCurrentRecordId(existingRecord.id);
                     currentRecordIdRef.current = existingRecord.id;
+                    const dbData = existingRecord.data || {};
                     setFormData(prev => ({
                         ...prev,
-                        ...(existingRecord.data || {}),
-                        sessionId: existingRecord.data?.sessionId || prev.sessionId
+                        ...dbData,
+                        sessionId: dbData.sessionId || prev.sessionId
                     }));
                     // If we have a recordId in the URL, we are likely viewing an old record
                     if (recordId) setIsReadOnly(true);
+                } else if (mode === 'new') {
+                    // Pre-fill Emergency Contact if it's a new record
+                    // 1. Try to fetch the most recent previous record for this patient/specialty
+                    try {
+                        const historyRes = await api.get(`/general-records/patient/${patientId}`, {
+                            params: { specialtyId: activeSpecialty.id }
+                        });
+                        const previousRecords = historyRes.data || [];
+                        if (previousRecords.length > 0) {
+                            const lastRecordData = previousRecords[0].data || {};
+                            if (lastRecordData.emergency?.name) {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    emergency: lastRecordData.emergency
+                                }));
+                                return; // Found it in history
+                            }
+                        }
+                    } catch (err) { console.error('Error fetching history for pre-fill:', err); }
+
+                    // 2. Fallback to onboarding data if available (after patient is loaded)
+                    // We'll handle this in another useEffect or once patient data is available
                 }
             } catch (error) { console.error('Error fetching record:', error); }
             finally { setLoading(false); }
         };
         fetchRecord();
     }, [patientId, recordId, activeSpecialty, mode]);
+
+    // Fallback pre-fill from patient onboarding data
+    useEffect(() => {
+        if (mode === 'new' && patient?.onboardingData?.emergency && !formData.emergency.name) {
+            setFormData(prev => ({
+                ...prev,
+                emergency: patient.onboardingData.emergency
+            }));
+        }
+    }, [patient, mode, formData.emergency.name]);
 
     const handleSaveAll = useCallback(async (isAuto = false) => {
         if (isSavingRef.current || !activeSpecialty || !patientId || isReadOnly) return;
@@ -172,6 +206,7 @@ export default function GeneralHistory() {
     const renderActiveSection = () => {
         switch (activeSection) {
             case 'anamnesis': return <GeneralAnamnesisForm readOnly={isReadOnly} data={formData.anamnesis} onChange={(d) => handleUpdateSection('anamnesis', d)} />;
+            case 'emergency': return <EmergencyContactForm readOnly={isReadOnly} data={formData.emergency} onChange={(d) => handleUpdateSection('emergency', d)} />;
             case 'vitals': return <GeneralVitalsForm readOnly={isReadOnly} data={formData.vitals} onChange={(d) => handleUpdateSection('vitals', d)} />;
             case 'consents': return <ConsentForm readOnly={isReadOnly} specialty="Medicina General" patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.consents} onChange={(d) => handleUpdateSection('consents', d)} onUploadingChange={() => {}} />;
             default: return <div className="p-8 text-center text-gray-500">Sección en desarrollo...</div>;
