@@ -27,8 +27,8 @@ interface GeneralFileUploadFormProps {
     color?: string;
 }
 
-const GeneralFileUploadForm: React.FC<GeneralFileUploadFormProps> = ({ 
-    data, onChange, readOnly, patientId, specialty, recordId, sessionId, folderName, label, placeholder, color = '#22c55e'
+const GeneralFileUploadForm: React.FC<GeneralFileUploadFormProps & { fileNamePrefix?: string }> = ({ 
+    data, onChange, readOnly, patientId, specialty, recordId, sessionId, folderName, label, placeholder, color = '#22c55e', fileNamePrefix
 }) => {
     const { showToast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
@@ -53,7 +53,7 @@ const GeneralFileUploadForm: React.FC<GeneralFileUploadFormProps> = ({
             formData.append('file', file);
 
             try {
-                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=${normalizedSpec}&folder=${folderName}&recordId=${recordId || ''}&sessionId=${sessionId || ''}`, formData, {
+                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=${normalizedSpec}&folder=${folderName}&recordId=${recordId || ''}&sessionId=${sessionId || ''}&fileNamePrefix=${fileNamePrefix || ''}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
 

@@ -332,10 +332,21 @@ export default function GeneralHistory() {
             }
         },
         path_rep: {
-            macroscopic: '',
-            microscopic: '',
-            diagnosis: [],
-            comments: '',
+            macroscopic: {
+                service: '',
+                room: '',
+                bed: '',
+                receptionDate: '',
+                deliveryDate: '',
+                pieceNumber: '',
+                description: ''
+            },
+            histopathologicalDiagnosis: {
+                detail: '',
+                codes: []
+            },
+            recommendations: '',
+            cytologyReport: '',
             files: [] as { url: string, name: string }[]
         },
         emergency: { name: '', relation: '', phone: '', address: '' },
@@ -520,7 +531,7 @@ export default function GeneralHistory() {
             case 'img_req': return <GeneralImagingRequestForm readOnly={isReadOnly} data={formData.img_req} onChange={(d) => handleUpdateSection('img_req', d)} />;
             case 'img_rep': return <GeneralImagingReportForm readOnly={isReadOnly} data={formData.img_rep} onChange={(d) => handleUpdateSection('img_rep', d)} patientId={patientId || ''} specialty="Medicina General" recordId={currentRecordId} sessionId={formData.sessionId} />;
             case 'path_req': return <GeneralPathologyRequestForm readOnly={isReadOnly} data={formData.path_req} onChange={(d) => handleUpdateSection('path_req', d)} />;
-            case 'path_rep': return <GeneralPathologyReportForm readOnly={isReadOnly} data={formData.path_rep} onChange={(d) => handleUpdateSection('path_rep', d)} patientId={patientId || ''} specialty="Histopatologia" recordId={currentRecordId} sessionId={formData.sessionId} />;
+            case 'path_rep': return <GeneralPathologyReportForm readOnly={isReadOnly} data={formData.path_rep} onChange={(d) => handleUpdateSection('path_rep', d)} patientId={patientId || ''} specialty="Medicina General" recordId={currentRecordId} sessionId={formData.sessionId} />;
             default: 
                 const section = getSections().find(s => s.id === activeSection);
                 return (
