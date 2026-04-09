@@ -20,6 +20,8 @@ import GeneralReferenceForm from '../components/medical-history/general/GeneralR
 import GeneralCounterReferenceForm from '../components/medical-history/general/GeneralCounterReferenceForm';
 import GeneralImagingRequestForm from '../components/medical-history/general/GeneralImagingRequestForm';
 import GeneralImagingReportForm from '../components/medical-history/general/GeneralImagingReportForm';
+import GeneralPathologyRequestForm from '../components/medical-history/general/GeneralPathologyRequestForm';
+import GeneralPathologyReportForm from '../components/medical-history/general/GeneralPathologyReportForm';
 import EmergencyContactForm from '../components/medical-history/EmergencyContactForm';
 import ConsentForm from '../components/medical-history/ConsentForm';
 
@@ -291,8 +293,51 @@ export default function GeneralHistory() {
                 withContrast: ''
             }
         },
-        path_req: {},
-        path_rep: {},
+        path_req: {
+            requestedStudy: {
+                service: '',
+                room: '',
+                bed: '',
+                collectionDate: '',
+                priority: '',
+                studyType: '',
+                otherStudyDetails: ''
+            },
+            sampleDetails: {
+                anatomicalSite: '',
+                procedureType: '',
+                description: ''
+            },
+            vaginalCytology: {
+                material: '',
+                contraception: '',
+                hormonalTherapy: '',
+                ages: {
+                    menarche: '',
+                    menopause: '',
+                    sexualDebut: ''
+                },
+                parity: {
+                    gestations: '',
+                    births: '',
+                    abortions: '',
+                    cesareans: ''
+                },
+                dates: {
+                    lastMenstruation: '',
+                    lastBirth: '',
+                    lastCytology: ''
+                },
+                description: ''
+            }
+        },
+        path_rep: {
+            macroscopic: '',
+            microscopic: '',
+            diagnosis: [],
+            comments: '',
+            files: [] as { url: string, name: string }[]
+        },
         emergency: { name: '', relation: '', phone: '', address: '' },
         evolution: {},
         consents: { signedFiles: [] as any[] },
@@ -474,6 +519,8 @@ export default function GeneralHistory() {
             case 'counter_ref': return <GeneralCounterReferenceForm readOnly={isReadOnly} data={formData.counter_ref} onChange={(d) => handleUpdateSection('counter_ref', d)} />;
             case 'img_req': return <GeneralImagingRequestForm readOnly={isReadOnly} data={formData.img_req} onChange={(d) => handleUpdateSection('img_req', d)} />;
             case 'img_rep': return <GeneralImagingReportForm readOnly={isReadOnly} data={formData.img_rep} onChange={(d) => handleUpdateSection('img_rep', d)} patientId={patientId || ''} specialty="Medicina General" recordId={currentRecordId} sessionId={formData.sessionId} />;
+            case 'path_req': return <GeneralPathologyRequestForm readOnly={isReadOnly} data={formData.path_req} onChange={(d) => handleUpdateSection('path_req', d)} />;
+            case 'path_rep': return <GeneralPathologyReportForm readOnly={isReadOnly} data={formData.path_rep} onChange={(d) => handleUpdateSection('path_rep', d)} patientId={patientId || ''} specialty="Histopatologia" recordId={currentRecordId} sessionId={formData.sessionId} />;
             default: 
                 const section = getSections().find(s => s.id === activeSection);
                 return (
