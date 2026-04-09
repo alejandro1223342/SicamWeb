@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { 
     Save, FileText, Activity, 
-    FileSignature, Loader2, ArrowLeft, CheckCircle, CloudUpload, User
+    FileSignature, Loader2, ArrowLeft, CheckCircle, CloudUpload, User,
+    ClipboardList, AlertTriangle, ArrowRight, Scan, Microscope
 } from 'lucide-react';
 import { useSpecialty } from '../context/SpecialtyContext';
 import api from '../api';
@@ -10,10 +11,21 @@ import toast, { Toaster } from 'react-hot-toast';
 
 // Components
 import GeneralAnamnesisForm from '../components/medical-history/general/GeneralAnamnesisForm';
+import GeneralAnamnesis003Form from '../components/medical-history/general/GeneralAnamnesis003Form';
 import EmergencyContactForm from '../components/medical-history/EmergencyContactForm';
 import ConsentForm from '../components/medical-history/ConsentForm';
 
-type SectionKey = 'anamnesis' | 'epicrisis' | 'emergency' | 'evolution' | 'consents';
+type SectionKey = 
+    | 'emergency' 
+    | 'anamnesis_002' 
+    | 'anamnesis' 
+    | 'epicrisis' 
+    | 'inter_req' | 'inter_rep' 
+    | 'emerg_01' | 'emerg_02' 
+    | 'ref' | 'counter_ref' 
+    | 'img_req' | 'img_rep' 
+    | 'path_req' | 'path_rep'
+    | 'evolution' | 'consents';
 
 interface SectionDef {
     id: SectionKey;
@@ -29,7 +41,7 @@ export default function GeneralHistory() {
     const navigate = useNavigate();
 
     const { activeSpecialty } = useSpecialty();
-    const [activeSection, setActiveSection] = useState<SectionKey>('emergency');
+    const [activeSection, setActiveSection] = useState<SectionKey>('anamnesis_002');
     const [patient, setPatient] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -40,7 +52,7 @@ export default function GeneralHistory() {
     const isSavingRef = useRef(false);
 
     const [formData, setFormData] = useState({
-        anamnesis: {
+        anamnesis_002: {
             reason: '',
             personalHistory: '',
             familyHistory: '',
@@ -52,7 +64,56 @@ export default function GeneralHistory() {
             plans: '',
             finalData: []
         },
+        anamnesis: {
+            reason: '',
+            personalHistory: {
+                description: '',
+                datos: {
+                    menarquiaEdad: '', menopausiaEdad: '', ciclos: '', vidaSexualActiva: null,
+                    gesta: '', partos: '', abortos: '', cesareas: '', hijosVivos: '',
+                    fum: '', fup: '', fuc: '',
+                    biopsia: null, terapiaHormonal: null, colposcopia: null, mamografia: null,
+                    metodoPlanificacion: ''
+                }
+            },
+            familyHistory: '',
+            currentIllness: '',
+            organsReview: {
+                description: '',
+                systems: {
+                    senses: null, respiratory: null, cardiovascular: null, digestive: null, 
+                    genital: null, urinary: null, musculoskeletal: null, endocrine: null, 
+                    hemolymphatic: null, nervous: null
+                }
+            },
+            vitals: {
+                bloodPressure: '', heartRate: '', respiratoryRate: '',
+                oralTemp: '', axillaryTemp: '', weight: '',
+                height: '', bmi: '', headCircumference: ''
+            },
+            physicalExam: {
+                description: '',
+                areas: {
+                    skin: null, head: null, eyes: null, ears: null, nose: null,
+                    mouth: null, oropharynx: null, neck: null, axillaeBreasts: null,
+                    thorax: null, abdomen: null, spine: null, groinPerineum: null,
+                    upperLimbs: null, lowerLimbs: null
+                }
+            },
+            diagnosis: [],
+            plans: ''
+        },
         epicrisis: {},
+        inter_req: {},
+        inter_rep: {},
+        emerg_01: {},
+        emerg_02: {},
+        ref: {},
+        counter_ref: {},
+        img_req: {},
+        img_rep: {},
+        path_req: {},
+        path_rep: {},
         emergency: { name: '', relation: '', phone: '', address: '' },
         evolution: {},
         consents: { signedFiles: [] as any[] },
@@ -61,10 +122,19 @@ export default function GeneralHistory() {
 
     const getSections = (): SectionDef[] => [
         { id: 'emergency', title: 'Contactos de emergencia', icon: <User size={18} /> },
-        { id: 'anamnesis', title: 'Anamnesis (Form. 002)', icon: <FileText size={18} /> },
-        { id: 'epicrisis', title: 'Epicrisis', icon: <FileSignature size={18} /> },
-        { id: 'evolution', title: 'Evolución', icon: <Activity size={18} /> },
-        { id: 'consents', title: 'Consentimientos', icon: <FileSignature size={18} /> },
+        { id: 'anamnesis_002', title: 'CONSULTA EXTERNA - ANAMNESIS Y EF-002', icon: <FileText size={18} /> },
+        { id: 'anamnesis', title: 'ANAMNESIS', icon: <Activity size={18} /> },
+        { id: 'epicrisis', title: 'EPICRISIS', icon: <FileSignature size={18} /> },
+        { id: 'inter_req', title: 'INTERCONSULTA - SOLICITUD', icon: <ClipboardList size={18} /> },
+        { id: 'inter_rep', title: 'INTERCONSULTA - INFORME', icon: <FileText size={18} /> },
+        { id: 'emerg_01', title: 'EMERGENCIA 01', icon: <AlertTriangle size={18} /> },
+        { id: 'emerg_02', title: 'EMERGENCIA 02', icon: <AlertTriangle size={18} /> },
+        { id: 'ref', title: 'REFERENCIA', icon: <ArrowRight size={18} /> },
+        { id: 'counter_ref', title: 'CONTRARREFERENCIA', icon: <ArrowLeft size={18} /> },
+        { id: 'img_req', title: 'IMAGENOLOGIA - SOLICITUD', icon: <Scan size={18} /> },
+        { id: 'img_rep', title: 'IMAGENOLOGIA - INFORME', icon: <FileText size={18} /> },
+        { id: 'path_req', title: 'HISTOPATOLOGIA - SOLICITUD', icon: <Microscope size={18} /> },
+        { id: 'path_rep', title: 'HISTOPATOLOGIA - INFORME', icon: <FileText size={18} /> },
     ];
 
     const handleUpdateSection = (section: SectionKey, data: any) => {
@@ -213,10 +283,21 @@ export default function GeneralHistory() {
 
     const renderActiveSection = () => {
         switch (activeSection) {
-            case 'anamnesis': return <GeneralAnamnesisForm readOnly={isReadOnly} data={formData.anamnesis} onChange={(d) => handleUpdateSection('anamnesis', d)} />;
+            case 'anamnesis_002': return <GeneralAnamnesisForm readOnly={isReadOnly} data={formData.anamnesis_002} onChange={(d) => handleUpdateSection('anamnesis_002', d)} />;
+            case 'anamnesis': return <GeneralAnamnesis003Form readOnly={isReadOnly} data={formData.anamnesis} onChange={(d) => handleUpdateSection('anamnesis', d)} />;
             case 'emergency': return <EmergencyContactForm readOnly={isReadOnly} data={formData.emergency} onChange={(d) => handleUpdateSection('emergency', d)} />;
             case 'consents': return <ConsentForm readOnly={isReadOnly} specialty="Medicina General" patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.consents} onChange={(d) => handleUpdateSection('consents', d)} onUploadingChange={() => {}} />;
-            default: return <div className="p-8 text-center text-gray-500">Sección en desarrollo...</div>;
+            default: 
+                const section = getSections().find(s => s.id === activeSection);
+                return (
+                    <div className="p-8 text-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px dashed #e2e8f0' }}>
+                        <div style={{ padding: '20px', backgroundColor: 'white', borderRadius: '50%', marginBottom: '16px', color: '#94a3b8' }}>
+                            {section?.icon && React.cloneElement(section.icon as React.ReactElement<any>, { size: 48 })}
+                        </div>
+                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b', marginBottom: '8px' }}>{section?.title}</h3>
+                        <p style={{ color: '#64748b' }}>Esta sección está en desarrollo para la especialidad de Medicina General.</p>
+                    </div>
+                );
         }
     };
 
@@ -272,7 +353,19 @@ export default function GeneralHistory() {
 
             {/* Layout identical to Aesthetic */}
             <div style={{ display: 'flex', gap: '24px', flex: 1, alignItems: 'flex-start' }}>
-                <div style={{ width: '280px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', flexShrink: 0, position: 'sticky', top: '24px' }}>
+                <div style={{ 
+                    width: '300px', 
+                    backgroundColor: 'white', 
+                    border: '1px solid #e2e8f0', 
+                    borderRadius: '12px', 
+                    padding: '16px', 
+                    flexShrink: 0, 
+                    position: 'sticky', 
+                    top: '110px', 
+                    maxHeight: 'calc(100vh - 140px)', 
+                    overflowY: 'auto',
+                    scrollbarWidth: 'thin'
+                }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {getSections().map((section) => (
                             <button key={section.id} onClick={() => setActiveSection(section.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '12px', borderRadius: '8px', border: 'none', backgroundColor: activeSection === section.id ? '#eff6ff' : 'transparent', color: activeSection === section.id ? '#1d4ed8' : '#475569', fontWeight: '600', cursor: 'pointer', textAlign: 'left' }}>

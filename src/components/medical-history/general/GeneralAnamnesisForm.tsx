@@ -33,31 +33,31 @@ const GeneralAnamnesisForm: React.FC<GeneralAnamnesisFormProps> = ({ data = {}, 
     switch (sectionId) {
       case 'vitals':
         return (
-          <GeneralVitalsForm 
-            data={data.vitals || {}} 
-            onChange={(v) => handleChange('vitals', v)} 
-            readOnly={readOnly} 
+          <GeneralVitalsForm
+            data={data.vitals || {}}
+            onChange={(v) => handleChange('vitals', v)}
+            readOnly={readOnly}
           />
         );
-      
+
       case 'diagnosis':
         return (
-          <GeneralDiagnosisForm 
-            data={data.diagnosis || []} 
-            onChange={(d) => handleChange('diagnosis', d)} 
-            readOnly={readOnly} 
+          <GeneralDiagnosisForm
+            data={data.diagnosis || []}
+            onChange={(d) => handleChange('diagnosis', d)}
+            readOnly={readOnly}
           />
         );
-      
+
       case 'finalData':
         return (
-          <GeneralFinalDataForm 
-            data={data.finalData || []} 
-            onChange={(d) => handleChange('finalData', d)} 
-            readOnly={readOnly} 
+          <GeneralFinalDataForm
+            data={data.finalData || []}
+            onChange={(d) => handleChange('finalData', d)}
+            readOnly={readOnly}
           />
         );
-      
+
       case 'reason':
       case 'personalHistory':
       case 'familyHistory':
@@ -87,15 +87,15 @@ const GeneralAnamnesisForm: React.FC<GeneralAnamnesisFormProps> = ({ data = {}, 
                 {labels[sectionId]}
               </label>
               <textarea
-                style={{ 
-                  width: '100%', 
-                  padding: '16px', 
-                  borderRadius: '12px', 
-                  border: '1.5px solid #e2e8f0', 
-                  minHeight: '300px', 
-                  fontSize: '16px', 
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  border: '1.5px solid #e2e8f0',
+                  minHeight: '300px',
+                  fontSize: '16px',
                   lineHeight: '1.6',
-                  transition: 'all 0.2s', 
+                  transition: 'all 0.2s',
                   outline: 'none',
                   backgroundColor: readOnly ? '#f8fafc' : 'white'
                 }}
@@ -109,16 +109,16 @@ const GeneralAnamnesisForm: React.FC<GeneralAnamnesisFormProps> = ({ data = {}, 
             </div>
           </div>
         );
-      
+
       default:
         return null;
     }
   };
 
   return (
-    <SectionNavigator 
-      sections={sections} 
-      renderSection={renderSectionContent} 
+    <SectionNavigator
+      sections={sections}
+      renderSection={renderSectionContent}
     />
   );
 };

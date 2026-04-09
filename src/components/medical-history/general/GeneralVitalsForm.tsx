@@ -12,17 +12,32 @@ const GeneralVitalsForm: React.FC<GeneralVitalsFormProps> = ({ data = {}, onChan
     onChange({ ...data, [field]: value });
   };
 
+  const handleNumericUpdate = (field: string, value: string) => {
+    if (readOnly) return;
+    // Allow only digits and decimal point
+    const cleanValue = value.replace(/[^0-9.]/g, '');
+    // Prevent multiple decimal points
+    const parts = cleanValue.split('.');
+    const finalValue = parts[0] + (parts.length > 1 ? '.' + parts[1] : '');
+    handleChange(field, finalValue);
+  };
+
   const fields = [
-    { id: 'date', label: 'Fecha(*)', type: 'date', placeholder: 'dd/mm/aaaa' },
-    { id: 'bloodPressure', label: 'Presión arterial(*)', type: 'text', placeholder: 'Ingrese la presión.' },
-    { id: 'pulse', label: 'Pulso X min(*)', type: 'text', placeholder: 'Ingrese el pulso.' },
-    { id: 'temperature', label: 'Temperatura °C(*)', type: 'text', placeholder: 'Ingrese la temperatura.' },
+    { id: 'bloodPressure', label: 'Presión arterial', placeholder: 'Ej: 120/80' },
+    { id: 'heartRate', label: 'Frecuencia cardiaca min', placeholder: 'Ej: 75' },
+    { id: 'respiratoryRate', label: 'Frecuencia respira min', placeholder: 'Ej: 18' },
+    { id: 'oralTemp', label: 'Temperatura bucal °C', placeholder: 'Ej: 36.5' },
+    { id: 'axillaryTemp', label: 'Temperatura axilar °C', placeholder: 'Ej: 36.2' },
+    { id: 'weight', label: 'Peso Kg', placeholder: 'Ej: 70' },
+    { id: 'height', label: 'Talla m', placeholder: 'Ej: 1.75' },
+    { id: 'bmi', label: 'Masa corporal', placeholder: 'Ej: 22.5' },
+    { id: 'headCircumference', label: 'Perimetro cefalic cm', placeholder: 'Ej: 54' },
   ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#9d174d', margin: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ fontSize: '10px' }}>▼</span> 06-Signos vitales
+      <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+         06-Signos vitales y mediciones
       </h3>
       
       <div style={{ 
@@ -36,23 +51,26 @@ const GeneralVitalsForm: React.FC<GeneralVitalsFormProps> = ({ data = {}, onChan
       }}>
         {fields.map(field => (
           <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontSize: '14px', fontWeight: '600', color: '#64748b' }}>{field.label}</label>
+            <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{field.label}</label>
             <input
-              type={field.type}
+              type="text"
               style={{ 
                 width: '100%', 
-                padding: '10px 14px', 
-                borderRadius: '6px', 
+                padding: '12px 14px', 
+                borderRadius: '8px', 
                 border: '1px solid #e2e8f0', 
                 fontSize: '14px', 
                 outline: 'none',
                 backgroundColor: readOnly ? '#f8fafc' : 'white',
-                color: '#334155'
+                color: '#334155',
+                transition: 'all 0.2s'
               }}
               value={data[field.id] || ''}
-              onChange={(e) => handleChange(field.id, e.target.value)}
+              onChange={(e) => field.id === 'bloodPressure' ? handleChange(field.id, e.target.value) : handleNumericUpdate(field.id, e.target.value)}
               disabled={readOnly}
               placeholder={field.placeholder}
+              onFocus={(e) => !readOnly && (e.target.style.borderColor = '#3b82f6')}
+              onBlur={(e) => !readOnly && (e.target.style.borderColor = '#e2e8f0')}
             />
           </div>
         ))}
