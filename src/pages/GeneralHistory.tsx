@@ -14,6 +14,7 @@ import GeneralAnamnesisForm from '../components/medical-history/general/GeneralA
 import GeneralAnamnesis003Form from '../components/medical-history/general/GeneralAnamnesis003Form';
 import GeneralEpicrisisForm from '../components/medical-history/general/GeneralEpicrisisForm';
 import GeneralInterconsultationRequestForm from '../components/medical-history/general/GeneralInterconsultationRequestForm';
+import GeneralInterconsultationReportForm from '../components/medical-history/general/GeneralInterconsultationReportForm';
 import EmergencyContactForm from '../components/medical-history/EmergencyContactForm';
 import ConsentForm from '../components/medical-history/ConsentForm';
 
@@ -144,7 +145,14 @@ export default function GeneralHistory() {
             therapeuticPlan: '',
             educationalPlan: ''
         },
-        inter_rep: {},
+        inter_rep: {
+            clinicalSummary: '',
+            proposedTests: '',
+            diagnosis: [],
+            proposedTherapeuticPlan: '',
+            proposedEducationalPlan: '',
+            clinicalCriteriaSummary: ''
+        },
         emerg_01: {},
         emerg_02: {},
         ref: {},
@@ -328,6 +336,7 @@ export default function GeneralHistory() {
             case 'consents': return <ConsentForm readOnly={isReadOnly} specialty="Medicina General" patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.consents} onChange={(d) => handleUpdateSection('consents', d)} onUploadingChange={() => {}} />;
             case 'epicrisis': return <GeneralEpicrisisForm readOnly={isReadOnly} data={formData.epicrisis} onChange={(d) => handleUpdateSection('epicrisis', d)} />;
             case 'inter_req': return <GeneralInterconsultationRequestForm readOnly={isReadOnly} data={formData.inter_req} onChange={(d) => handleUpdateSection('inter_req', d)} />;
+            case 'inter_rep': return <GeneralInterconsultationReportForm readOnly={isReadOnly} data={formData.inter_rep} onChange={(d) => handleUpdateSection('inter_rep', d)} />;
             default: 
                 const section = getSections().find(s => s.id === activeSection);
                 return (
