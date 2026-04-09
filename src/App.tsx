@@ -26,6 +26,7 @@ import PatientProfilePage from './pages/patient/PatientProfilePage';
 import PatientAppointmentsPage from './pages/patient/PatientAppointmentsPage';
 import PaymentConfirmPage from './pages/PaymentConfirmPage';
 import PaymentRedirectPage from './pages/PaymentRedirectPage';
+import OnboardingPage from './pages/patient/OnboardingPage';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
 function SignIn() {
@@ -381,6 +382,22 @@ import { ToastProvider, useToast } from './components/Toast';
 // Componente de Sign In con diseño TailAdmin y conexión al backend
 // ... (Skipping auth components update context, doing inline replacement for routes)
 
+function RequireOnboarding({ children }: { children: React.ReactNode }) {
+  const userString = localStorage.getItem('user');
+  if (!userString) return <Navigate to="/signin" replace />;
+  
+  const user = JSON.parse(userString);
+  const location = useLocation();
+
+  if (user.role === 'PACIENTE' && !user.onboardingCompleted) {
+    if (location.pathname !== '/patient/onboarding') {
+      return <Navigate to="/patient/onboarding" replace />;
+    }
+  }
+
+  return <>{children}</>;
+}
+
 function App() {
   const location = useLocation();
 
@@ -395,7 +412,8 @@ function App() {
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
           {/* Patient Routes - Now under DashboardLayout */}
-          <Route path="/patient" element={<DashboardLayout />}>
+          <Route path="/patient/onboarding" element={<OnboardingPage />} />
+          <Route path="/patient" element={<RequireOnboarding><DashboardLayout /></RequireOnboarding>}>
             <Route index element={<Navigate to="/patient/clinics" replace />} />
             <Route path="dashboard" element={<Navigate to="/patient/clinics" replace />} />
             <Route path="clinics" element={<PatientClinicalOffices />} />

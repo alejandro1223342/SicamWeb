@@ -186,29 +186,87 @@ export default function NutritionHistory() {
     };
 
     useEffect(() => {
+        const fetchPreviousRecord = async () => {
+            if (mode === 'new' && patientId && activeSpecialty?.id) {
+                try {
+                    const response = await api.get(`/medical-records/patient/${patientId}?specialtyId=${activeSpecialty.id}`);
+                    const history = response.data;
+                    const prevRes = Array.isArray(history) ? history[0] : null;
+
+                    // Datos de respaldo desde Onboarding
+                    let fallbackData = {
+                        emergency: { name: '', relation: '', phone: '', address: '' },
+                        family: [] as string[],
+                        vaccines: [] as string[],
+                        risks: [] as string[]
+                    };
+
+                    if (!prevRes) {
+                        try {
+                            const cleanId = patientId.trim();
+                            console.log('Fetching onboarding fallback for patient (Nutrition):', cleanId);
+                            const patientRes = await api.get(`/users/patients/${cleanId}`);
+                            const patientInfo = patientRes.data?.data || patientRes.data;
+                            console.log('Patient Info received (Nutrition):', patientInfo);
+                            if (patientInfo?.onboardingData) {
+                                console.log('Applying onboarding fallback data (Nutrition):', patientInfo.onboardingData);
+                                fallbackData = {
+                                    emergency: patientInfo.onboardingData.emergency || fallbackData.emergency,
+                                    family: patientInfo.onboardingData.family || fallbackData.family,
+                                    vaccines: patientInfo.onboardingData.vaccines || fallbackData.vaccines,
+                                    risks: patientInfo.onboardingData.risks || fallbackData.risks,
+                                };
+                            }
+                        } catch (pErr) {
+                            console.error('Error fetching patient onboarding data:', pErr);
+                        }
+                    }
+
+                    const prevData = prevRes?.data || {};
+
+                    setFormData({
+                        main: {
+                            reason: prevData.main?.reason || '',
+                            bloodType: patient?.bloodType || prevData.main?.bloodType || '',
+                            surgeries: prevData.main?.surgeries || '',
+                            allergies: prevData.main?.allergies || '',
+                            diagnosis: '',
+                            treatment: '',
+                            familyHistory: prevData.main?.familyHistory || fallbackData.family.join(', ')
+                        },
+                        work: {
+                            activity: patient?.jobActivity || prevData.work?.activity || '',
+                            description: patient?.jobDescription || prevData.work?.description || '',
+                            schedule: patient?.jobSchedule || prevData.work?.schedule || '',
+                            stressLevel: patient?.stressLevel || prevData.work?.stressLevel || ''
+                        },
+                        habits: prevData.habits || { unwantedFoods: '', favoriteFoods: '', breakfastLocation: '', breakfastTime: '', lunchLocation: '', lunchTime: '', dinnerLocation: '', dinnerTime: '' },
+                        toxic: prevData.toxic || { smokingFrequency: '', smokingAmount: '', alcoholFrequency: '', alcoholAmount: '', drugsFrequency: '', drugsAmount: '', drugsType: '' },
+                        physical: prevData.physical || { activities: '' },
+                        measurements: { height: prevData.measurements?.height || '', weight: '', isPregnant: prevData.measurements?.isPregnant || '' },
+                        bioimpedance: { totalFat: '', upperFat: '', lowerFat: '', visceralFat: '', fatFreeMass: '', muscleMass: '', boneWeight: '', bodyWater: '', metabolicAge: '' },
+                        perimeters: { cephalic: '', neck: '', midArmRelaxed: '', midArmContracted: '', forearm: '', wrist: '', mesosternal: '', umbilical: '', waist: '', hip: '', thigh1cm: '', midThigh: '', calf: '', ankle: '' },
+                        skinfolds: { subscapular: '', triceps: '', biceps: '', iliacCrest: '', supraspinal: '', abdominal: '', frontThigh: '', medialCalf: '', medialAxillary: '', pectoral: '' },
+                        other: prevData.other || { giSymptoms: '', physicalSigns: '', foodAllergies: '', foodIntolerances: '', mealCount: '', mealSchedules: '', habitualDiet: '', foodFeelings: '' },
+                        mealPlan: {
+                            summary: { height: prevData.measurements?.height || '', currentWeight: '', minWeight: '', maxWeight: '', idealWeight: '', bmi: '', obesityType: '', recommendedCalories: '', nextControlDate: '' },
+                            details: []
+                        },
+                        emergency: prevData.emergency || fallbackData.emergency,
+                        sessionId: queryParams.get('session') || null
+                    });
+                } catch (error) {
+                    console.error('Error fetching previous record:', error);
+                }
+            }
+        };
+
         if (mode === 'new') {
-            setFormData({
-                main: { reason: '', bloodType: patient?.bloodType || '', surgeries: '', allergies: '', diagnosis: '', treatment: '', familyHistory: '' },
-                work: { activity: '', description: '', schedule: '', stressLevel: '' },
-                habits: { unwantedFoods: '', favoriteFoods: '', breakfastLocation: '', breakfastTime: '', lunchLocation: '', lunchTime: '', dinnerLocation: '', dinnerTime: '' },
-                toxic: { smokingFrequency: '', smokingAmount: '', alcoholFrequency: '', alcoholAmount: '', drugsFrequency: '', drugsAmount: '', drugsType: '' },
-                physical: { activities: '' },
-                measurements: { height: '', weight: '', isPregnant: '' },
-                bioimpedance: { totalFat: '', upperFat: '', lowerFat: '', visceralFat: '', fatFreeMass: '', muscleMass: '', boneWeight: '', bodyWater: '', metabolicAge: '' },
-                perimeters: { cephalic: '', neck: '', midArmRelaxed: '', midArmContracted: '', forearm: '', wrist: '', mesosternal: '', umbilical: '', waist: '', hip: '', thigh1cm: '', midThigh: '', calf: '', ankle: '' },
-                skinfolds: { subscapular: '', triceps: '', biceps: '', iliacCrest: '', supraspinal: '', abdominal: '', frontThigh: '', medialCalf: '', medialAxillary: '', pectoral: '' },
-                other: { giSymptoms: '', physicalSigns: '', foodAllergies: '', foodIntolerances: '', mealCount: '', mealSchedules: '', habitualDiet: '', foodFeelings: '' },
-                mealPlan: {
-                    summary: { height: '', currentWeight: '', minWeight: '', maxWeight: '', idealWeight: '', bmi: '', obesityType: '', recommendedCalories: '', nextControlDate: '' },
-                    details: []
-                },
-                emergency: { name: '', relation: '', phone: '', address: '' },
-                sessionId: queryParams.get('session') || null
-            });
+            fetchPreviousRecord();
             setCurrentRecordId(null);
             currentRecordIdRef.current = null;
         }
-    }, [mode, patientId, patient?.bloodType]);
+    }, [mode, patientId, activeSpecialty, patient?.bloodType, patient?.jobActivity, patient?.jobDescription, patient?.jobSchedule, patient?.stressLevel]);
 
     useEffect(() => {
         const fetchCatalogs = async () => {

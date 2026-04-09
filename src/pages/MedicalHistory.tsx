@@ -94,12 +94,41 @@ export default function MedicalHistory() {
                     const history = response.data;
                     const prevRes = Array.isArray(history) ? history[0] : null;
 
+                    // Si no hay registro previo, buscamos los datos de onboarding del paciente
+                    let fallbackData = {
+                        emergency: { name: '', relation: '', phone: '', address: '' },
+                        family: [],
+                        vaccines: [],
+                        risks: []
+                    };
+
+                    if (!prevRes) {
+                        try {
+                            const cleanId = patientId.trim();
+                            console.log('Fetching onboarding fallback for patient:', cleanId);
+                            const patientRes = await api.get(`/users/patients/${cleanId}`);
+                            const patientInfo = patientRes.data?.data || patientRes.data;
+                            console.log('Patient Info received:', patientInfo);
+                            if (patientInfo?.onboardingData) {
+                                console.log('Applying onboarding fallback data:', patientInfo.onboardingData);
+                                fallbackData = {
+                                    emergency: patientInfo.onboardingData.emergency || fallbackData.emergency,
+                                    family: patientInfo.onboardingData.family || fallbackData.family,
+                                    vaccines: patientInfo.onboardingData.vaccines || fallbackData.vaccines,
+                                    risks: patientInfo.onboardingData.risks || fallbackData.risks,
+                                };
+                            }
+                        } catch (pErr) {
+                            console.error('Error fetching patient onboarding data:', pErr);
+                        }
+                    }
+
                     setFormData({
                         reason: prevRes?.data?.reason || '',
-                        emergency: prevRes?.data?.emergency || { name: '', relation: '', phone: '', address: '' },
-                        family: prevRes?.data?.family || [],
-                        vaccines: prevRes?.data?.vaccines || [],
-                        risks: prevRes?.data?.risks || [],
+                        emergency: prevRes?.data?.emergency || fallbackData.emergency,
+                        family: prevRes?.data?.family || fallbackData.family,
+                        vaccines: prevRes?.data?.vaccines || fallbackData.vaccines,
+                        risks: prevRes?.data?.risks || fallbackData.risks,
                         labresults: [],
                         diagnosis: [],
                         consents: { signedFiles: [] },

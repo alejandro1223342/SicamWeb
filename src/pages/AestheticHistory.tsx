@@ -152,10 +152,39 @@ export default function AestheticHistory() {
                     });
 
                     const records = response.data || [];
-                    if (records.length > 0) {
-                        const lastRecord = records[0]; // Backend returns sorted by createdAt DESC
-                        const lastData = lastRecord.data || {};
+                    const lastRecord = records.length > 0 ? records[0] : null;
 
+                    // Si no hay registro previo, buscamos los datos de onboarding del paciente
+                    let fallbackData = {
+                        emergency: initialEmptyState.emergency,
+                        family: initialEmptyState.family,
+                        vaccines: initialEmptyState.vaccines,
+                        risks: initialEmptyState.risks
+                    };
+
+                    if (!lastRecord) {
+                        try {
+                            const cleanId = patientId.trim();
+                            console.log('Fetching onboarding fallback for patient (Aesthetic):', cleanId);
+                            const patientRes = await api.get(`/users/patients/${cleanId}`);
+                            const patientInfo = patientRes.data?.data || patientRes.data;
+                            console.log('Patient Info received (Aesthetic):', patientInfo);
+                            if (patientInfo?.onboardingData) {
+                                console.log('Applying onboarding fallback data (Aesthetic):', patientInfo.onboardingData);
+                                fallbackData = {
+                                    emergency: patientInfo.onboardingData.emergency || fallbackData.emergency,
+                                    family: patientInfo.onboardingData.family || fallbackData.family,
+                                    vaccines: patientInfo.onboardingData.vaccines || fallbackData.vaccines,
+                                    risks: patientInfo.onboardingData.risks || fallbackData.risks,
+                                };
+                            }
+                        } catch (pErr) {
+                            console.error('Error fetching patient onboarding data:', pErr);
+                        }
+                    }
+
+                    if (lastRecord) {
+                        const lastData = lastRecord.data || {};
                         setFormData({
                             ...initialEmptyState,
                             reason: lastData.reason || initialEmptyState.reason,
@@ -165,7 +194,13 @@ export default function AestheticHistory() {
                             risks: lastData.risks || initialEmptyState.risks,
                         });
                     } else {
-                        setFormData(initialEmptyState);
+                        setFormData({
+                            ...initialEmptyState,
+                            emergency: fallbackData.emergency,
+                            family: fallbackData.family,
+                            vaccines: fallbackData.vaccines,
+                            risks: fallbackData.risks,
+                        });
                     }
                 } catch (error) {
                     console.error('Error fetching last record for pre-fill:', error);
@@ -306,7 +341,7 @@ export default function AestheticHistory() {
             case 'diagnosis': return <DiagnosisActivityForm {...commonProps} data={formData.diagnosis} onChange={(d: any[]) => handleUpdateSection('diagnosis', d)} />;
             case 'exams': return <ComplementaryExamsForm {...commonProps} data={formData.exams} onChange={(d: any) => handleUpdateSection('exams', d)} patient={patient} fullCatalog={examCatalog} recordId={currentRecordId} />;
             case 'treatment_details': return <TreatmentForm {...commonProps} data={formData.treatment_details} onChange={(d: any) => handleUpdateSection('treatment_details', d)} />;
-            case 'consents': return <ConsentForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.consents} onChange={(d: any) => handleUpdateSection('consents', d)} onUploadingChange={setIsGlobalUploading} />;
+            case 'consents': return <ConsentForm {...commonProps} specialty="Estética" patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.consents} onChange={(d: any) => handleUpdateSection('consents', d)} onUploadingChange={setIsGlobalUploading} />;
             case 'bodymap_male':
                 return <BodyMapForm {...commonProps} gender="male" data={formData.bodymap_male} onChange={(d: any) => handleUpdateSection('bodymap_male' as any, d)} />;
             case 'bodymap_female':
