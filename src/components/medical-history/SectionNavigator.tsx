@@ -12,17 +12,24 @@ interface SectionNavigatorProps {
     renderSection: (sectionId: string) => React.ReactNode;
     initialSectionId?: string;
     onSectionChange?: (sectionId: string) => void;
+    activeColor?: string;
+    activeBgColor?: string;
 }
 
 export default function SectionNavigator({ 
     sections, 
     renderSection, 
     initialSectionId,
-    onSectionChange 
+    onSectionChange,
+    activeColor = '#3b82f6',
+    activeBgColor
 }: SectionNavigatorProps) {
     const [activeId, setActiveId] = useState(initialSectionId || sections[0].id);
-
     const activeIndex = sections.findIndex(s => s.id === activeId);
+
+    // Default light background if not provided
+    const defaultBgColor = activeColor === '#3b82f6' ? '#eff6ff' : `${activeColor}15`; // 15 is ~8% opacity
+    const finalBgColor = activeBgColor || defaultBgColor;
 
     const handleSectionChange = (id: string) => {
         setActiveId(id);
@@ -70,8 +77,8 @@ export default function SectionNavigator({
                                 padding: '12px 16px',
                                 borderRadius: '10px',
                                 border: 'none',
-                                backgroundColor: isActive ? '#eff6ff' : 'transparent',
-                                color: isActive ? '#3b82f6' : '#64748b',
+                                backgroundColor: isActive ? finalBgColor : 'transparent',
+                                color: isActive ? activeColor : '#64748b',
                                 fontWeight: isActive ? '700' : '500',
                                 fontSize: '14px',
                                 textAlign: 'left',
@@ -83,7 +90,7 @@ export default function SectionNavigator({
                                 width: '24px', 
                                 height: '24px', 
                                 borderRadius: '6px', 
-                                backgroundColor: isActive ? '#3b82f6' : '#f1f5f9',
+                                backgroundColor: isActive ? activeColor : '#f1f5f9',
                                 color: isActive ? 'white' : '#94a3b8',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -145,13 +152,13 @@ export default function SectionNavigator({
                             padding: '10px 24px',
                             borderRadius: '10px',
                             border: 'none',
-                            backgroundColor: activeIndex === sections.length - 1 ? '#f1f5f9' : '#3b82f6',
+                            backgroundColor: activeIndex === sections.length - 1 ? '#f1f5f9' : activeColor,
                             color: activeIndex === sections.length - 1 ? '#cbd5e1' : 'white',
                             fontWeight: '600',
                             fontSize: '14px',
                             cursor: activeIndex === sections.length - 1 ? 'default' : 'pointer',
                             transition: 'all 0.2s',
-                            boxShadow: activeIndex === sections.length - 1 ? 'none' : '0 4px 12px rgba(59, 130, 246, 0.25)'
+                            boxShadow: activeIndex === sections.length - 1 ? 'none' : `0 4px 12px ${activeColor}40`
                         }}
                     >
                         Siguiente <ChevronRight size={18} />
