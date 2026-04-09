@@ -17,6 +17,7 @@ import GeneralInterconsultationRequestForm from '../components/medical-history/g
 import GeneralInterconsultationReportForm from '../components/medical-history/general/GeneralInterconsultationReportForm';
 import GeneralEmergency01Form from '../components/medical-history/general/GeneralEmergency01Form';
 import GeneralReferenceForm from '../components/medical-history/general/GeneralReferenceForm';
+import GeneralCounterReferenceForm from '../components/medical-history/general/GeneralCounterReferenceForm';
 import EmergencyContactForm from '../components/medical-history/EmergencyContactForm';
 import ConsentForm from '../components/medical-history/ConsentForm';
 
@@ -220,7 +221,17 @@ export default function GeneralHistory() {
             treatment: '',
             diagnosis: []
         },
-        counter_ref: {},
+        counter_ref: {
+            clinicalSummary: {
+                targetInstitution: '',
+                referringService: '',
+                detailedSummary: ''
+            },
+            examFindings: '',
+            treatmentPerformed: '',
+            recommendedTreatment: '',
+            diagnosis: []
+        },
         img_req: {},
         img_rep: {},
         path_req: {},
@@ -403,6 +414,7 @@ export default function GeneralHistory() {
             case 'inter_rep': return <GeneralInterconsultationReportForm readOnly={isReadOnly} data={formData.inter_rep} onChange={(d) => handleUpdateSection('inter_rep', d)} />;
             case 'emerg_01': return <GeneralEmergency01Form readOnly={isReadOnly} data={formData.emerg_01} onChange={(d) => handleUpdateSection('emerg_01', d)} patient={patient} />;
             case 'ref': return <GeneralReferenceForm readOnly={isReadOnly} data={formData.ref} onChange={(d) => handleUpdateSection('ref', d)} />;
+            case 'counter_ref': return <GeneralCounterReferenceForm readOnly={isReadOnly} data={formData.counter_ref} onChange={(d) => handleUpdateSection('counter_ref', d)} />;
             default: 
                 const section = getSections().find(s => s.id === activeSection);
                 return (
