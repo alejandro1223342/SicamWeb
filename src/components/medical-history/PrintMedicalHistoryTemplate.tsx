@@ -23,6 +23,9 @@ const PrintMedicalHistoryTemplate: React.FC<PrintMedicalHistoryTemplateProps> = 
     const labresults = data?.labresults || [];
     const diagnosis = data?.diagnosis || '';
     const tricologyFindings = data?.tricology?.observations || '';
+    const reason = data?.reason || '';
+    const consents = data?.consents?.signedFiles || [];
+    const treatmentDetails = data?.treatment_details || { treatment: '', observations: '' };
 
     // Helper for table cells
     const Cell = ({ label, value, width, rowSpan, colSpan, height }: any) => (
@@ -110,6 +113,12 @@ const PrintMedicalHistoryTemplate: React.FC<PrintMedicalHistoryTemplateProps> = 
                     </tr>
                 </tbody>
             </table>
+
+            {/* Consultation Reason */}
+            <div style={{ border: '1px solid #000', marginBottom: '10px' }}>
+                <div style={{ backgroundColor: '#000', color: '#fff', padding: '3px 6px', fontWeight: '900', fontSize: '9px' }}>MOTIVO DE LA CONSULTA</div>
+                <div style={{ padding: '5px', minHeight: '30px', fontSize: '10px' }}>{reason || 'No registrado'}</div>
+            </div>
 
             {/* Emergency Contacts */}
             <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px' }}>
@@ -228,7 +237,7 @@ const PrintMedicalHistoryTemplate: React.FC<PrintMedicalHistoryTemplateProps> = 
 
             {/* Tricology Findings */}
             <div style={{ border: '1px solid #000', marginBottom: '10px' }}>
-                <div style={{ backgroundColor: '#000', color: '#fff', padding: '3px 6px', fontWeight: '900', fontSize: '9px' }}>HALLAZGOS EN TRICOLOGÍA</div>
+                <div style={{ backgroundColor: '#000', color: '#fff', padding: '3px 6px', fontWeight: '900', fontSize: '9px' }}>HALLAZGOS EN TRICOSCOPÍA</div>
                 <div style={{ padding: '5px', minHeight: '40px', fontSize: '10px' }}>{tricologyFindings}</div>
             </div>
 
@@ -320,6 +329,31 @@ const PrintMedicalHistoryTemplate: React.FC<PrintMedicalHistoryTemplateProps> = 
                         </tr>
                     </tbody>
                 </table>
+            )}
+
+            {/* Treatment and Observations */}
+            <div style={{ border: '1px solid #000', marginBottom: '10px' }}>
+                <div style={{ backgroundColor: '#000', color: '#fff', padding: '3px 6px', fontWeight: '900', fontSize: '9px' }}>PROCEDIMIENTO / TRATAMIENTO Y OBSERVACIONES</div>
+                <div style={{ padding: '5px', fontSize: '10px' }}>
+                    {treatmentDetails.treatment && <div style={{ marginBottom: '5px' }}><b>Tratamiento:</b> {treatmentDetails.treatment}</div>}
+                    {treatmentDetails.observations && <div><b>Observaciones:</b> {treatmentDetails.observations}</div>}
+                    {!treatmentDetails.treatment && !treatmentDetails.observations && 'No registrado'}
+                </div>
+            </div>
+
+            {/* Signed Consents */}
+            {consents.length > 0 && (
+                <div style={{ border: '1px solid #000', marginBottom: '10px' }}>
+                    <div style={{ backgroundColor: '#000', color: '#fff', padding: '3px 6px', fontWeight: '900', fontSize: '9px' }}>CONSENTIMIENTOS INFORMADOS FIRMADOS</div>
+                    <div style={{ padding: '5px', fontSize: '8px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                        {consents.map((_file: any, idx: number) => (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                <div style={{ width: '6px', height: '6px', backgroundColor: '#000', borderRadius: '50%' }}></div>
+                                <span>Archivo {idx + 1} (PDF)</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             )}
 
             {/* Footer Signatures */}

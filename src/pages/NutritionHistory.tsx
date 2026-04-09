@@ -37,7 +37,7 @@ export default function NutritionHistory() {
     const navigate = useNavigate();
     
     const { activeSpecialty } = useSpecialty(); 
-    const [activeSection, setActiveSection] = useState<SectionKey>('emergency');
+    const [activeSection, setActiveSection] = useState<SectionKey>('main');
     const [patient, setPatient] = useState<any>(null);
     const [toxicFrequencies, setToxicFrequencies] = useState<string[]>([]);
     const [mealTimes, setMealTimes] = useState<string[]>([]);

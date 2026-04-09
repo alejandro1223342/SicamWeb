@@ -191,7 +191,7 @@ export default function TricologyFindingsForm({ patientId, recordId, sessionId, 
     return (
         <div className="section-container" style={{ animation: 'fadeIn 0.3s ease-in-out', backgroundColor: '#fcfcfd', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
             <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '24px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <FileImage size={24} color="#4f46e5" /> Hallazgos en tricología
+                <FileImage size={24} color="#4f46e5" /> Hallazgos en Tricoscopía
             </h3>
 
             <div style={{ marginBottom: '32px' }}>

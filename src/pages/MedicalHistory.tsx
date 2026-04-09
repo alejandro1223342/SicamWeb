@@ -15,8 +15,11 @@ import { useSpecialty } from '../context/SpecialtyContext';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { CheckCircle, CloudUpload } from 'lucide-react';
+import ConsultationReasonForm from '../components/medical-history/ConsultationReasonForm';
+import TreatmentForm from '../components/medical-history/TreatmentForm';
+import TricologyConsentForm from '../components/medical-history/TricologyConsentForm';
 
-type SectionKey = 'emergency' | 'family' | 'vaccines' | 'risks' | 'labresults' | 'diagnosis' | 'exams' | 'tricology';
+type SectionKey = 'emergency' | 'family' | 'vaccines' | 'risks' | 'labresults' | 'diagnosis' | 'exams' | 'tricology' | 'reason' | 'consents' | 'treatment_details';
 
 interface SectionDef {
     id: SectionKey;
@@ -26,13 +29,16 @@ interface SectionDef {
 
 const getSections = (): SectionDef[] => {
     return [
+        { id: 'reason', title: 'Motivo de la consulta', icon: <FileText size={18} /> },
         { id: 'emergency', title: 'Contactos de emergencia', icon: <User size={18} /> },
         { id: 'family', title: 'Antecedentes familiares', icon: <ShieldAlert size={18} /> },
         { id: 'vaccines', title: 'Vacunas recientes', icon: <Syringe size={18} /> },
         { id: 'risks', title: 'Factores y conductas de riesgo', icon: <AlertTriangle size={18} /> },
-        { id: 'tricology', title: 'Hallazgos en tricología', icon: <Search size={18} /> },
+        { id: 'tricology', title: 'Hallazgos en Tricoscopía', icon: <Search size={18} /> },
         { id: 'labresults', title: 'Resultados de laboratorio e imágenes', icon: <FileText size={18} /> },
         { id: 'diagnosis', title: 'Diagnóstico/Actividad', icon: <Stethoscope size={18} /> },
+        { id: 'consents', title: 'Consentimientos Informados', icon: <FileSignature size={18} /> },
+        { id: 'treatment_details', title: 'Procedimiento / Tratamiento y Observaciones', icon: <Stethoscope size={18} /> },
         { id: 'exams', title: 'Exámenes complementarios solicitados', icon: <FileSignature size={18} /> },
     ];
 };
@@ -45,7 +51,7 @@ export default function MedicalHistory() {
     const navigate = useNavigate();
     
     const { activeSpecialty } = useSpecialty();
-    const [activeSection, setActiveSection] = useState<SectionKey>('emergency');
+    const [activeSection, setActiveSection] = useState<SectionKey>('reason');
     const [patient, setPatient] = useState<any>(null);
     const [examCatalog, setExamCatalog] = useState<any>({});
     const [saving, setSaving] = useState(false);
@@ -61,12 +67,15 @@ export default function MedicalHistory() {
     }, [currentRecordId]);
 
     const [formData, setFormData] = useState({
+        reason: '',
         emergency: { name: '', relation: '', phone: '', address: '' },
         family: [] as string[],
         vaccines: [] as string[],
         risks: [] as string[],
         labresults: [] as any[],
         diagnosis: [] as any[],
+        consents: { signedFiles: [] as any[] },
+        treatment_details: { treatment: '', observations: '' },
         exams: { options: [] as string[], other: '', diagnosis: '', treatment: '' },
         tricology: { observations: '', files: [] as any[] },
         sessionId: queryParams.get('session') || null as string | null
@@ -78,22 +87,39 @@ export default function MedicalHistory() {
     };
 
     useEffect(() => {
+        const fetchPreviousRecord = async () => {
+            if (mode === 'new' && patientId && activeSpecialty?.id) {
+                try {
+                    const response = await api.get(`/medical-records/patient/${patientId}?specialtyId=${activeSpecialty.id}`);
+                    const history = response.data;
+                    const prevRes = Array.isArray(history) ? history[0] : null;
+
+                    setFormData({
+                        reason: prevRes?.data?.reason || '',
+                        emergency: prevRes?.data?.emergency || { name: '', relation: '', phone: '', address: '' },
+                        family: prevRes?.data?.family || [],
+                        vaccines: prevRes?.data?.vaccines || [],
+                        risks: prevRes?.data?.risks || [],
+                        labresults: [],
+                        diagnosis: [],
+                        consents: { signedFiles: [] },
+                        treatment_details: { treatment: '', observations: '' },
+                        exams: { options: [], other: '', diagnosis: '', treatment: '' },
+                        tricology: { observations: '', files: [] },
+                        sessionId: queryParams.get('session') || null
+                    });
+                } catch (error) {
+                    console.error('Error fetching previous record:', error);
+                }
+            }
+        };
+
         if (mode === 'new') {
-            setFormData({
-                emergency: { name: '', relation: '', phone: '', address: '' },
-                family: [],
-                vaccines: [],
-                risks: [],
-                labresults: [],
-                diagnosis: [],
-                exams: { options: [], other: '', diagnosis: '', treatment: '' },
-                tricology: { observations: '', files: [] },
-                sessionId: queryParams.get('session') || null
-            });
+            fetchPreviousRecord();
             setCurrentRecordId(null);
             currentRecordIdRef.current = null;
         }
-    }, [mode, patientId]);
+    }, [mode, patientId, activeSpecialty]);
 
     useEffect(() => {
         const fetchCatalog = async () => {
@@ -126,12 +152,15 @@ export default function MedicalHistory() {
                     const dbData = response.data;
                     setFormData((prev: any) => ({
                         ...prev,
+                        reason: dbData.data?.reason || prev.reason,
                         emergency: dbData.data?.emergency || prev.emergency,
                         family: dbData.data?.family || prev.family,
                         vaccines: dbData.data?.vaccines || prev.vaccines,
                         risks: dbData.data?.risks || prev.risks,
                         labresults: Array.isArray(dbData.data?.labresults) ? dbData.data?.labresults : prev.labresults,
                         diagnosis: Array.isArray(dbData.data?.diagnosis) ? dbData.data?.diagnosis : prev.diagnosis,
+                        consents: dbData.data?.consents || prev.consents,
+                        treatment_details: dbData.data?.treatment_details || prev.treatment_details,
                         exams: { ...prev.exams, ...dbData.data?.exams },
                         tricology: { ...prev.tricology, ...dbData.data?.tricology },
                         sessionId: dbData.data?.sessionId || prev.sessionId
@@ -153,12 +182,15 @@ export default function MedicalHistory() {
                     const dbData = response.data.data;
                     setFormData((prev: any) => ({
                         ...prev,
+                        reason: dbData.data?.reason || prev.reason,
                         emergency: dbData.data?.emergency || prev.emergency,
                         family: dbData.data?.family || prev.family,
                         vaccines: dbData.data?.vaccines || prev.vaccines,
                         risks: dbData.data?.risks || prev.risks,
                         labresults: Array.isArray(dbData.data?.labresults) ? dbData.data?.labresults : prev.labresults,
                         diagnosis: Array.isArray(dbData.data?.diagnosis) ? dbData.data?.diagnosis : prev.diagnosis,
+                        consents: dbData.data?.consents || prev.consents,
+                        treatment_details: dbData.data?.treatment_details || prev.treatment_details,
                         exams: { ...prev.exams, ...dbData.data?.exams },
                         tricology: { ...prev.tricology, ...dbData.data?.tricology },
                         sessionId: dbData.data?.sessionId || prev.sessionId
@@ -233,6 +265,7 @@ export default function MedicalHistory() {
     const renderActiveSection = () => {
         const commonProps = { readOnly: isReadOnly };
         switch (activeSection) {
+            case 'reason': return <ConsultationReasonForm {...commonProps} data={formData.reason} onChange={(d: string) => handleUpdateSection('reason', d)} />;
             case 'emergency': return <EmergencyContactForm {...commonProps} data={formData.emergency} onChange={(d: any) => handleUpdateSection('emergency', d)} />;
             case 'family': return <FamilyHistoryForm {...commonProps} data={formData.family} onChange={(d: string[]) => handleUpdateSection('family', d)} />;
             case 'vaccines': return <RecentVaccinesForm {...commonProps} data={formData.vaccines} onChange={(d: string[]) => handleUpdateSection('vaccines', d)} />;
@@ -240,6 +273,8 @@ export default function MedicalHistory() {
             case 'tricology': return <TricologyFindingsForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.tricology} onChange={(d: any) => handleUpdateSection('tricology', d)} onUploadingChange={setIsGlobalUploading} />;
             case 'labresults': return <LabResultsForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.labresults} onChange={(d: any[]) => handleUpdateSection('labresults', d)} onUploadingChange={setIsGlobalUploading} />;
             case 'diagnosis': return <DiagnosisActivityForm {...commonProps} data={formData.diagnosis} onChange={(d: any[]) => handleUpdateSection('diagnosis', d)} />;
+            case 'consents': return <TricologyConsentForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.consents} onChange={(d: any) => handleUpdateSection('consents', d)} onUploadingChange={setIsGlobalUploading} />;
+            case 'treatment_details': return <TreatmentForm {...commonProps} data={formData.treatment_details} onChange={(d: any) => handleUpdateSection('treatment_details', d)} />;
             case 'exams': return <ComplementaryExamsForm {...commonProps} data={formData.exams} onChange={(d: any) => handleUpdateSection('exams', d)} patient={patient} fullCatalog={examCatalog} recordId={currentRecordId} />;
             default: return null;
         }
