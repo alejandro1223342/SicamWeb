@@ -16,6 +16,8 @@ import { SpecialtyProvider, useSpecialty } from './context/SpecialtyContext';
 import PatientClinicalOffices from './pages/PatientClinicalOffices';
 import Appointments from './pages/Appointments';
 import PrintHistoryPage from './pages/PrintHistoryPage';
+import GeneralHistory from './pages/GeneralHistory';
+import GeneralHistoryList from './pages/GeneralHistoryList';
 import AestheticHistory from './pages/AestheticHistory';
 import NutritionHistory from './pages/NutritionHistory';
 import PrintAestheticPage from './pages/PrintAestheticPage';
@@ -385,7 +387,7 @@ import { ToastProvider, useToast } from './components/Toast';
 function RequireOnboarding({ children }: { children: React.ReactNode }) {
   const userString = localStorage.getItem('user');
   if (!userString) return <Navigate to="/signin" replace />;
-  
+
   const user = JSON.parse(userString);
   const location = useLocation();
 
@@ -428,6 +430,8 @@ function App() {
             <Route path="catalogs" element={<AdminCatalogsPage />} />
             <Route path="medical-history/:patientId/:recordId?" element={<MedicalHistory />} />
             <Route path="aesthetic-history/:patientId/:recordId?" element={<AestheticHistory />} />
+            <Route path="general-history/:patientId/:recordId?" element={<GeneralHistory />} />
+            <Route path="general-history-list/:patientId" element={<GeneralHistoryList />} />
             <Route path="nutrition-history/:patientId/:recordId?" element={<NutritionHistory />} />
             <Route path="medical-history-list/:patientId" element={<MedicalHistoryList />} />
             <Route path="patients" element={<Patients />} />

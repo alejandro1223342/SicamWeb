@@ -149,8 +149,8 @@ export default function Sidebar() {
                                     {item.children.map((child) => (
                                         <Link
                                             key={child.title}
-                                            to={child.path === '/dashboard/patients' ? child.path : (item.title === 'Estética' ? child.path?.replace('medical-history', 'aesthetic-history') : child.path) || '#'}
-                                            className={`nav-subitem ${(isActive(child.path) || (item.title === 'Estética' && location.pathname.includes('aesthetic-history') && child.path?.includes('medical-history'))) && activeSpecialty?.name === item.title ? 'active' : ''}`}
+                                            to={child.path === '/dashboard/patients' ? child.path : (item.title === 'Estética' ? child.path?.replace('medical-history', 'aesthetic-history') : item.title === 'Medicina General' ? child.path?.replace('medical-history', 'general-history') : child.path) || '#'}
+                                            className={`nav-subitem ${(isActive(child.path) || (item.title === 'Estética' && location.pathname.includes('aesthetic-history') && child.path?.includes('medical-history')) || (item.title === 'Medicina General' && location.pathname.includes('general-history') && child.path?.includes('medical-history'))) && activeSpecialty?.name === item.title ? 'active' : ''}`}
                                         >
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                 {child.title}

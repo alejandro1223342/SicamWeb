@@ -249,7 +249,8 @@ const Patients: React.FC = () => {
                                                             let path = 'medical-history';
                                                             if (activeSpecialty?.name === 'Estética') path = 'aesthetic-history';
                                                             if (activeSpecialty?.name === 'Nutrición') path = 'nutrition-history';
-                                                            
+                                                            if (activeSpecialty?.name === 'Medicina General') path = 'general-history';
+
                                                             navigate(`/dashboard/${path}/${patient.id}?mode=new&session=${sessionId}`);
                                                         }}
                                                         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px', color: 'var(--primary)', borderColor: '#E5E7EB' }}
@@ -259,7 +260,11 @@ const Patients: React.FC = () => {
                                                     </button>
                                                     <button
                                                         className="action-btn-outline"
-                                                        onClick={() => navigate(`/dashboard/medical-history-list/${patient.id}`)}
+                                                        onClick={() => {
+                                                            let listPath = 'medical-history-list';
+                                                            if (activeSpecialty?.name === 'Medicina General') listPath = 'general-history-list';
+                                                            navigate(`/dashboard/${listPath}/${patient.id}`);
+                                                        }}
                                                         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px', color: 'var(--success)', borderColor: '#d1fae5' }}
                                                         title="Historias Previas"
                                                     >

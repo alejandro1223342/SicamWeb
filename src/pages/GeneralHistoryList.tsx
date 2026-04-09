@@ -5,7 +5,7 @@ import { ArrowLeft, Eye, Loader2, Calendar, User, Stethoscope } from 'lucide-rea
 import toast, { Toaster } from 'react-hot-toast';
 import { useSpecialty } from '../context/SpecialtyContext';
 
-interface MedicalRecord {
+interface GeneralRecord {
     id: string;
     createdAt: string;
     doctor: {
@@ -24,10 +24,10 @@ interface Patient {
     idNumber: string | null;
 }
 
-const MedicalHistoryList: React.FC = () => {
+const GeneralHistoryList: React.FC = () => {
     const { patientId } = useParams<{ patientId: string }>();
     const navigate = useNavigate();
-    const [records, setRecords] = useState<MedicalRecord[]>([]);
+    const [records, setRecords] = useState<GeneralRecord[]>([]);
     const [patient, setPatient] = useState<Patient | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -41,14 +41,14 @@ const MedicalHistoryList: React.FC = () => {
                 const patientRes = await api.get(`/users/patients/${patientId}`);
                 setPatient(patientRes.data.data || patientRes.data);
 
-                // Fetch medical records filtered by specialty
-                const recordsRes = await api.get(`/medical-records/patient/${patientId}`, {
+                // Fetch general records filtered by specialty
+                const recordsRes = await api.get(`/general-records/patient/${patientId}`, {
                     params: { specialtyId: activeSpecialty.id }
                 });
                 setRecords(recordsRes.data);
             } catch (error) {
-                console.error('Error fetching medical history:', error);
-                toast.error('Error al cargar la historia clínica');
+                console.error('Error fetching general medical history:', error);
+                toast.error('Error al cargar el historial de atenciones');
             } finally {
                 setLoading(false);
             }
@@ -58,11 +58,16 @@ const MedicalHistoryList: React.FC = () => {
     }, [patientId, activeSpecialty]);
 
     const handleViewRecord = (recordId: string) => {
-        let path = 'medical-history';
-        if (activeSpecialty?.name === 'Estética') path = 'aesthetic-history';
-        if (activeSpecialty?.name === 'Nutrición') path = 'nutrition-history';
+        navigate(`/dashboard/general-history/${patientId}/${recordId}`);
+    };
 
-        navigate(`/dashboard/${path}/${patientId}/${recordId}`);
+    const getAge = (birthDate: any) => {
+        if (!birthDate) return 'N/A';
+        const birth = new Date(birthDate);
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--;
+        return age;
     };
 
     if (loading) {
@@ -97,7 +102,7 @@ const MedicalHistoryList: React.FC = () => {
                                 <ArrowLeft size={20} />
                             </button>
                             <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#1e293b', margin: 0, letterSpacing: '-0.02em' }}>
-                                Historial de Atenciones
+                                Historial de Atenciones (Med. General)
                             </h2>
                         </div>
 
@@ -183,4 +188,4 @@ const MedicalHistoryList: React.FC = () => {
     );
 };
 
-export default MedicalHistoryList;
+export default GeneralHistoryList;
