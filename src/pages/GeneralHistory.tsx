@@ -16,6 +16,7 @@ import GeneralEpicrisisForm from '../components/medical-history/general/GeneralE
 import GeneralInterconsultationRequestForm from '../components/medical-history/general/GeneralInterconsultationRequestForm';
 import GeneralInterconsultationReportForm from '../components/medical-history/general/GeneralInterconsultationReportForm';
 import GeneralEmergency01Form from '../components/medical-history/general/GeneralEmergency01Form';
+import GeneralReferenceForm from '../components/medical-history/general/GeneralReferenceForm';
 import EmergencyContactForm from '../components/medical-history/EmergencyContactForm';
 import ConsentForm from '../components/medical-history/ConsentForm';
 
@@ -208,7 +209,17 @@ export default function GeneralHistory() {
             painCharacteristics: []
         },
         emerg_02: {},
-        ref: {},
+        ref: {
+            reason: {
+                targetInstitution: '',
+                referringService: '',
+                detailedReason: ''
+            },
+            clinicalSummary: '',
+            examFindings: '',
+            treatment: '',
+            diagnosis: []
+        },
         counter_ref: {},
         img_req: {},
         img_rep: {},
@@ -391,6 +402,7 @@ export default function GeneralHistory() {
             case 'inter_req': return <GeneralInterconsultationRequestForm readOnly={isReadOnly} data={formData.inter_req} onChange={(d) => handleUpdateSection('inter_req', d)} />;
             case 'inter_rep': return <GeneralInterconsultationReportForm readOnly={isReadOnly} data={formData.inter_rep} onChange={(d) => handleUpdateSection('inter_rep', d)} />;
             case 'emerg_01': return <GeneralEmergency01Form readOnly={isReadOnly} data={formData.emerg_01} onChange={(d) => handleUpdateSection('emerg_01', d)} patient={patient} />;
+            case 'ref': return <GeneralReferenceForm readOnly={isReadOnly} data={formData.ref} onChange={(d) => handleUpdateSection('ref', d)} />;
             default: 
                 const section = getSections().find(s => s.id === activeSection);
                 return (
