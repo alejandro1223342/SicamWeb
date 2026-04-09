@@ -18,6 +18,7 @@ import GeneralInterconsultationReportForm from '../components/medical-history/ge
 import GeneralEmergency01Form from '../components/medical-history/general/GeneralEmergency01Form';
 import GeneralReferenceForm from '../components/medical-history/general/GeneralReferenceForm';
 import GeneralCounterReferenceForm from '../components/medical-history/general/GeneralCounterReferenceForm';
+import GeneralImagingRequestForm from '../components/medical-history/general/GeneralImagingRequestForm';
 import EmergencyContactForm from '../components/medical-history/EmergencyContactForm';
 import ConsentForm from '../components/medical-history/ConsentForm';
 
@@ -232,7 +233,21 @@ export default function GeneralHistory() {
             recommendedTreatment: '',
             diagnosis: []
         },
-        img_req: {},
+        img_req: {
+            requestedStudies: {
+                service: '',
+                room: '',
+                bed: '',
+                priority: 'NORMAL',
+                collectionDate: '',
+                studyType: '',
+                description: '',
+                mobilityState: ''
+            },
+            requestReason: '',
+            diagnosis: [],
+            clinicalSummary: ''
+        },
         img_rep: {},
         path_req: {},
         path_rep: {},
@@ -415,6 +430,7 @@ export default function GeneralHistory() {
             case 'emerg_01': return <GeneralEmergency01Form readOnly={isReadOnly} data={formData.emerg_01} onChange={(d) => handleUpdateSection('emerg_01', d)} patient={patient} />;
             case 'ref': return <GeneralReferenceForm readOnly={isReadOnly} data={formData.ref} onChange={(d) => handleUpdateSection('ref', d)} />;
             case 'counter_ref': return <GeneralCounterReferenceForm readOnly={isReadOnly} data={formData.counter_ref} onChange={(d) => handleUpdateSection('counter_ref', d)} />;
+            case 'img_req': return <GeneralImagingRequestForm readOnly={isReadOnly} data={formData.img_req} onChange={(d) => handleUpdateSection('img_req', d)} />;
             default: 
                 const section = getSections().find(s => s.id === activeSection);
                 return (
