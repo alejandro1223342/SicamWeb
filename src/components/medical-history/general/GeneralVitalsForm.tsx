@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 interface GeneralVitalsFormProps {
   data: any;
@@ -12,65 +12,50 @@ const GeneralVitalsForm: React.FC<GeneralVitalsFormProps> = ({ data = {}, onChan
     onChange({ ...data, [field]: value });
   };
 
-  useEffect(() => {
-    const weight = parseFloat(data.weight);
-    const height = parseFloat(data.height);
-    if (weight > 0 && height > 0) {
-      const heightInMeters = height / 100;
-      const bmi = (weight / (heightInMeters * heightInMeters)).toFixed(2);
-      if (data.bmi !== bmi) {
-        handleChange('bmi', bmi);
-      }
-    }
-  }, [data.weight, data.height]);
-
-  const vitalFields = [
-    { id: 'temperature', label: 'Temperatura', unit: '°C' },
-    { id: 'bloodPressure', label: 'Presión Arterial', unit: 'mmHg' },
-    { id: 'heartRate', label: 'Frecuencia Cardíaca', unit: 'bpm' },
-    { id: 'respiratoryRate', label: 'Frecuencia Resp.', unit: 'rpm' },
-    { id: 'oxygenSaturation', label: 'Saturación O2', unit: '%' },
-    { id: 'weight', label: 'Peso', unit: 'kg' },
-    { id: 'height', label: 'Estatura', unit: 'cm' },
-    { id: 'bmi', label: 'IMC (Auto)', unit: 'kg/m²', readOnly: true },
+  const fields = [
+    { id: 'date', label: 'Fecha(*)', type: 'date', placeholder: 'dd/mm/aaaa' },
+    { id: 'bloodPressure', label: 'Presión arterial(*)', type: 'text', placeholder: 'Ingrese la presión.' },
+    { id: 'pulse', label: 'Pulso X min(*)', type: 'text', placeholder: 'Ingrese el pulso.' },
+    { id: 'temperature', label: 'Temperatura °C(*)', type: 'text', placeholder: 'Ingrese la temperatura.' },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#4f46e5', margin: '0', borderLeft: '4px solid #4f46e5', paddingLeft: '12px', textTransform: 'uppercase' }}>
-          Signos Vitales y Antropometría
-        </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
-          {vitalFields.map(field => (
-            <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>{field.label}</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  style={{ width: '100%', padding: '10px 12px', paddingRight: '45px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', backgroundColor: field.readOnly ? '#f8fafc' : 'white', outline: 'none' }}
-                  value={data[field.id] || ''}
-                  onChange={(e) => handleChange(field.id, e.target.value)}
-                  disabled={readOnly || field.readOnly}
-                />
-                <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>
-                  {field.unit}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Observaciones Generales</label>
-        <textarea
-          style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', minHeight: '80px', fontSize: '14px', outline: 'none' }}
-          value={data.observations || ''}
-          onChange={(e) => handleChange('observations', e.target.value)}
-          disabled={readOnly}
-          placeholder="Apariencia general, estado de alerta, etc."
-        />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#9d174d', margin: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ fontSize: '10px' }}>▼</span> 06-Signos vitales
+      </h3>
+      
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(2, 1fr)', 
+        gap: '24px', 
+        padding: '32px', 
+        backgroundColor: '#fff', 
+        border: '1px solid #f1f5f9', 
+        borderRadius: '12px' 
+      }}>
+        {fields.map(field => (
+          <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', color: '#64748b' }}>{field.label}</label>
+            <input
+              type={field.type}
+              style={{ 
+                width: '100%', 
+                padding: '10px 14px', 
+                borderRadius: '6px', 
+                border: '1px solid #e2e8f0', 
+                fontSize: '14px', 
+                outline: 'none',
+                backgroundColor: readOnly ? '#f8fafc' : 'white',
+                color: '#334155'
+              }}
+              value={data[field.id] || ''}
+              onChange={(e) => handleChange(field.id, e.target.value)}
+              disabled={readOnly}
+              placeholder={field.placeholder}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

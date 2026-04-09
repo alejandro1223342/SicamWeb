@@ -1,4 +1,8 @@
 import React from 'react';
+import SectionNavigator from '../SectionNavigator';
+import GeneralVitalsForm from './GeneralVitalsForm';
+import GeneralDiagnosisForm from './GeneralDiagnosisForm';
+import GeneralFinalDataForm from './GeneralFinalDataForm';
 
 interface GeneralAnamnesisFormProps {
   data: any;
@@ -13,66 +17,109 @@ const GeneralAnamnesisForm: React.FC<GeneralAnamnesisFormProps> = ({ data = {}, 
   };
 
   const sections = [
-    {
-      title: '1. MOTIVO DE CONSULTA Y ENFERMEDAD ACTUAL',
-      fields: [
-        { id: 'reason', label: 'Motivo de consulta', type: 'textarea' },
-        { id: 'currentIllness', label: 'Enfermedad Actual', type: 'textarea' },
-      ]
-    },
-    {
-      title: '2. ANTECEDENTES PERSONALES Y FAMILIARES',
-      fields: [
-        { id: 'personalHistory', label: 'Antecedentes Personales (Clínicos, Quirúrgicos)', type: 'textarea' },
-        { id: 'familyHistory', label: 'Antecedentes Familiares', type: 'textarea' },
-        { id: 'allergies', label: 'Alergias', type: 'text' },
-      ]
-    },
-    {
-      title: '3. REVISIÓN POR SISTEMAS',
-      fields: [
-        { id: 'reviewSystems', label: 'Hallazgos por sistemas', type: 'textarea' },
-      ]
-    }
+    { id: 'reason', title: 'Motivo de consulta' },
+    { id: 'personalHistory', title: 'Antecedentes personales' },
+    { id: 'familyHistory', title: 'Antecedentes familiares' },
+    { id: 'currentIllness', title: 'Enfermedad o problema actual' },
+    { id: 'organsReview', title: 'Revisión de órganos y sistemas' },
+    { id: 'vitals', title: 'Signos vitales' },
+    { id: 'physicalExam', title: 'Examen físico' },
+    { id: 'diagnosis', title: 'Diagnóstico' },
+    { id: 'plans', title: 'Planes (Tratamiento)' },
+    { id: 'finalData', title: 'Datos finales' }
   ];
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      {sections.map((section, sIdx) => (
-        <div key={sIdx} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#4f46e5', margin: '0', borderLeft: '4px solid #4f46e5', paddingLeft: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            {section.title}
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {section.fields.map(field => (
-              <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>{field.label}</label>
-                {field.type === 'textarea' ? (
-                  <textarea
-                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', minHeight: '100px', fontSize: '14px', transition: 'border-color 0.2s', outline: 'none' }}
-                    value={data[field.id] || ''}
-                    onChange={(e) => handleChange(field.id, e.target.value)}
-                    disabled={readOnly}
-                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                    onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
-                  />
-                ) : (
-                  <input
-                    type="text"
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', transition: 'border-color 0.2s', outline: 'none' }}
-                    value={data[field.id] || ''}
-                    onChange={(e) => handleChange(field.id, e.target.value)}
-                    disabled={readOnly}
-                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                    onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
-                  />
-                )}
-              </div>
-            ))}
+  const renderSectionContent = (sectionId: string) => {
+    switch (sectionId) {
+      case 'vitals':
+        return (
+          <GeneralVitalsForm 
+            data={data.vitals || {}} 
+            onChange={(v) => handleChange('vitals', v)} 
+            readOnly={readOnly} 
+          />
+        );
+      
+      case 'diagnosis':
+        return (
+          <GeneralDiagnosisForm 
+            data={data.diagnosis || []} 
+            onChange={(d) => handleChange('diagnosis', d)} 
+            readOnly={readOnly} 
+          />
+        );
+      
+      case 'finalData':
+        return (
+          <GeneralFinalDataForm 
+            data={data.finalData || []} 
+            onChange={(d) => handleChange('finalData', d)} 
+            readOnly={readOnly} 
+          />
+        );
+      
+      case 'reason':
+      case 'personalHistory':
+      case 'familyHistory':
+      case 'currentIllness':
+      case 'organsReview':
+      case 'physicalExam':
+      case 'plans':
+        const labels: Record<string, string> = {
+          reason: 'Ingrese el motivo de consulta',
+          personalHistory: 'Antecedentes Personales (Clínicos, Quirúrgicos, etc.)',
+          familyHistory: 'Antecedentes familiares de importancia',
+          currentIllness: 'Cronología y descripción del problema actual',
+          organsReview: 'Hallazgos de revisión por sistemas',
+          physicalExam: 'Detalles del examen físico realizado',
+          diagnosis: 'Diagnóstico o impresión diagnóstica',
+          plans: 'Plan terapéutico, procedimientos e indicadores',
+          finalData: 'Observaciones finales y datos de cierre'
+        };
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b', marginBottom: '8px' }}>
+              {sections.find(s => s.id === sectionId)?.title}
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '14px', fontWeight: '600', color: '#475569' }}>
+                {labels[sectionId]}
+              </label>
+              <textarea
+                style={{ 
+                  width: '100%', 
+                  padding: '16px', 
+                  borderRadius: '12px', 
+                  border: '1.5px solid #e2e8f0', 
+                  minHeight: '300px', 
+                  fontSize: '16px', 
+                  lineHeight: '1.6',
+                  transition: 'all 0.2s', 
+                  outline: 'none',
+                  backgroundColor: readOnly ? '#f8fafc' : 'white'
+                }}
+                value={data[sectionId] || ''}
+                onChange={(e) => handleChange(sectionId, e.target.value)}
+                disabled={readOnly}
+                placeholder={`Describa los detalles de ${sections.find(s => s.id === sectionId)?.title.toLowerCase()}...`}
+                onFocus={(e) => !readOnly && (e.target.style.borderColor = '#3b82f6')}
+                onBlur={(e) => !readOnly && (e.target.style.borderColor = '#e2e8f0')}
+              />
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <SectionNavigator 
+      sections={sections} 
+      renderSection={renderSectionContent} 
+    />
   );
 };
 

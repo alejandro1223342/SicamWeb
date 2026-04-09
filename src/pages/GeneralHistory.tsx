@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { 
-    Save, FileText, Activity, Search, 
+    Save, FileText, Activity, 
     FileSignature, Loader2, ArrowLeft, CheckCircle, CloudUpload, User
 } from 'lucide-react';
 import { useSpecialty } from '../context/SpecialtyContext';
@@ -10,11 +10,10 @@ import toast, { Toaster } from 'react-hot-toast';
 
 // Components
 import GeneralAnamnesisForm from '../components/medical-history/general/GeneralAnamnesisForm';
-import GeneralVitalsForm from '../components/medical-history/general/GeneralVitalsForm';
 import EmergencyContactForm from '../components/medical-history/EmergencyContactForm';
 import ConsentForm from '../components/medical-history/ConsentForm';
 
-type SectionKey = 'anamnesis' | 'vitals' | 'epicrisis' | 'emergency' | 'evolution' | 'consents';
+type SectionKey = 'anamnesis' | 'epicrisis' | 'emergency' | 'evolution' | 'consents';
 
 interface SectionDef {
     id: SectionKey;
@@ -41,8 +40,18 @@ export default function GeneralHistory() {
     const isSavingRef = useRef(false);
 
     const [formData, setFormData] = useState({
-        anamnesis: {},
-        vitals: {},
+        anamnesis: {
+            reason: '',
+            personalHistory: '',
+            familyHistory: '',
+            currentIllness: '',
+            organsReview: '',
+            vitals: {},
+            physicalExam: '',
+            diagnosis: [],
+            plans: '',
+            finalData: []
+        },
         epicrisis: {},
         emergency: { name: '', relation: '', phone: '', address: '' },
         evolution: {},
@@ -52,8 +61,7 @@ export default function GeneralHistory() {
 
     const getSections = (): SectionDef[] => [
         { id: 'emergency', title: 'Contactos de emergencia', icon: <User size={18} /> },
-        { id: 'anamnesis', title: 'Anamnesis', icon: <FileText size={18} /> },
-        { id: 'vitals', title: 'Signos Vitales', icon: <Activity size={18} /> },
+        { id: 'anamnesis', title: 'Anamnesis (Form. 002)', icon: <FileText size={18} /> },
         { id: 'epicrisis', title: 'Epicrisis', icon: <FileSignature size={18} /> },
         { id: 'evolution', title: 'Evolución', icon: <Activity size={18} /> },
         { id: 'consents', title: 'Consentimientos', icon: <FileSignature size={18} /> },
@@ -207,7 +215,6 @@ export default function GeneralHistory() {
         switch (activeSection) {
             case 'anamnesis': return <GeneralAnamnesisForm readOnly={isReadOnly} data={formData.anamnesis} onChange={(d) => handleUpdateSection('anamnesis', d)} />;
             case 'emergency': return <EmergencyContactForm readOnly={isReadOnly} data={formData.emergency} onChange={(d) => handleUpdateSection('emergency', d)} />;
-            case 'vitals': return <GeneralVitalsForm readOnly={isReadOnly} data={formData.vitals} onChange={(d) => handleUpdateSection('vitals', d)} />;
             case 'consents': return <ConsentForm readOnly={isReadOnly} specialty="Medicina General" patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.consents} onChange={(d) => handleUpdateSection('consents', d)} onUploadingChange={() => {}} />;
             default: return <div className="p-8 text-center text-gray-500">Sección en desarrollo...</div>;
         }
