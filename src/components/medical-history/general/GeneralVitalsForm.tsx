@@ -4,9 +4,11 @@ interface GeneralVitalsFormProps {
   data: any;
   onChange: (data: any) => void;
   readOnly?: boolean;
+  title?: string;
+  hideTitle?: boolean;
 }
 
-const GeneralVitalsForm: React.FC<GeneralVitalsFormProps> = ({ data = {}, onChange, readOnly }) => {
+const GeneralVitalsForm: React.FC<GeneralVitalsFormProps> = ({ data = {}, onChange, readOnly, title, hideTitle = false }) => {
   const handleChange = (field: string, value: any) => {
     if (readOnly) return;
     onChange({ ...data, [field]: value });
@@ -36,9 +38,11 @@ const GeneralVitalsForm: React.FC<GeneralVitalsFormProps> = ({ data = {}, onChan
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-         06-Signos vitales y mediciones
-      </h3>
+      {!hideTitle && (
+        <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+           {title || '06-Signos vitales y mediciones'}
+        </h3>
+      )}
       
       <div style={{ 
         display: 'grid', 

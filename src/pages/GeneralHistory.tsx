@@ -16,6 +16,7 @@ import GeneralEpicrisisForm from '../components/medical-history/general/GeneralE
 import GeneralInterconsultationRequestForm from '../components/medical-history/general/GeneralInterconsultationRequestForm';
 import GeneralInterconsultationReportForm from '../components/medical-history/general/GeneralInterconsultationReportForm';
 import GeneralEmergency01Form from '../components/medical-history/general/GeneralEmergency01Form';
+import GeneralEmergency02Form from '../components/medical-history/general/GeneralEmergency02Form';
 import GeneralReferenceForm from '../components/medical-history/general/GeneralReferenceForm';
 import GeneralCounterReferenceForm from '../components/medical-history/general/GeneralCounterReferenceForm';
 import GeneralImagingRequestForm from '../components/medical-history/general/GeneralImagingRequestForm';
@@ -213,7 +214,6 @@ export default function GeneralHistory() {
             currentIllnessReview: '',
             painCharacteristics: []
         },
-        emerg_02: {},
         ref: {
             reason: {
                 targetInstitution: '',
@@ -348,6 +348,55 @@ export default function GeneralHistory() {
             recommendations: '',
             cytologyReport: '',
             files: [] as { url: string, name: string }[]
+        },
+        emerg_02: {
+            vitals: {
+                bloodPressure: '',
+                heartRate: '',
+                respiratoryRate: '',
+                oralTemp: '',
+                axillaryTemp: '',
+                weight: '',
+                height: '',
+                bmi: '',
+                headCircumference: '',
+                glasgow: { ocular: '', verbal: '', motor: '', total: '' },
+                pupillaryReactionRight: '',
+                pupillaryReactionLeft: '',
+                capillaryRefill: ''
+            },
+            physicalExam: {
+                selections: {} as Record<string, string | null>,
+                description: ''
+            },
+            topographicDiagram: {
+                markers: [] as { x: number, y: number, type: number }[],
+                comments: ''
+            },
+            pregnancy: {
+                fumes: '',
+                gestations: '',
+                births: '',
+                abortions: '',
+                cesareans: '',
+                liveChildren: '',
+                deadChildren: '',
+                lastBirthDate: '',
+                lastAbortionDate: '',
+                deliveryDate: '',
+                condition: ''
+            },
+            problemAnalysis: '',
+            diagnosticPlan: '',
+            presumptiveDiagnosis: [] as any[],
+            definitiveDiagnosis: [] as any[],
+            treatmentPlan: '',
+            discharge: {
+                condition: '',
+                date: '',
+                time: '',
+                clinicalSummary: ''
+            }
         },
         emergency: { name: '', relation: '', phone: '', address: '' },
         evolution: {},
@@ -532,6 +581,7 @@ export default function GeneralHistory() {
             case 'img_rep': return <GeneralImagingReportForm readOnly={isReadOnly} data={formData.img_rep} onChange={(d) => handleUpdateSection('img_rep', d)} patientId={patientId || ''} specialty="Medicina General" recordId={currentRecordId} sessionId={formData.sessionId} />;
             case 'path_req': return <GeneralPathologyRequestForm readOnly={isReadOnly} data={formData.path_req} onChange={(d) => handleUpdateSection('path_req', d)} />;
             case 'path_rep': return <GeneralPathologyReportForm readOnly={isReadOnly} data={formData.path_rep} onChange={(d) => handleUpdateSection('path_rep', d)} patientId={patientId || ''} specialty="Medicina General" recordId={currentRecordId} sessionId={formData.sessionId} />;
+            case 'emerg_02': return <GeneralEmergency02Form readOnly={isReadOnly} data={formData.emerg_02} onChange={(d) => handleUpdateSection('emerg_02', d)} patient={patient} />;
             default: 
                 const section = getSections().find(s => s.id === activeSection);
                 return (

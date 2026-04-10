@@ -285,7 +285,14 @@ export default function GeneralDiagnosisForm({ data = [], onChange, readOnly = f
                                                 type="radio" 
                                                 name="diagType" 
                                                 checked={newItem.type === type} 
-                                                onChange={() => setNewItem({...newItem, type: type as 'PRE' | 'DEF'})}
+                                                onClick={() => {
+                                                    if (newItem.type === type) {
+                                                        setNewItem({...newItem, type: undefined});
+                                                    } else {
+                                                        setNewItem({...newItem, type: type as 'PRE' | 'DEF'});
+                                                    }
+                                                }}
+                                                onChange={() => {}}
                                                 style={{ width: '18px', height: '18px', accentColor: '#4f46e5' }}
                                             />
                                             {type}
