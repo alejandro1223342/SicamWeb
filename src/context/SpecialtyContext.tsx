@@ -23,12 +23,20 @@ export const SpecialtyProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const [isLoading, setIsLoading] = useState(true);
 
     const loadData = () => {
-        // 1. Load Active Specialty
+        // 1. Load Active Specialty with MIGRATION for nested objects
         const saved = localStorage.getItem('activeSpecialty');
+        let initialActive: Specialty | null = null;
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                setActiveSpecialtyState(parsed);
+                // MIGRATION: If it's the old nested format { specialty: { ... } }, flatten it
+                initialActive = parsed.specialty ? parsed.specialty : parsed;
+                setActiveSpecialtyState(initialActive);
+                
+                // Update storage if it was nested
+                if (parsed.specialty) {
+                    localStorage.setItem('activeSpecialty', JSON.stringify(initialActive));
+                }
             } catch (e) {
                 console.error('Error parsing activeSpecialty', e);
             }
@@ -40,13 +48,21 @@ export const SpecialtyProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             try {
                 const parsedUser = JSON.parse(userData);
                 if (parsedUser.role === 'MEDICO' && parsedUser.specialties) {
-                    const specialties = parsedUser.specialties;
+                    // MIGRATION: Always ensure availableSpecialties is flat and has an ID
+                    const specialties = parsedUser.specialties.map((s: any) => {
+                        const flat = s.specialty || s;
+                        // Ensure it has an id (fallback to specialtyId if using old nested structure)
+                        if (!flat.id && s.specialtyId) flat.id = s.specialtyId;
+                        return flat;
+                    });
+                    console.log('SpecialtyContext: Loaded specialties:', specialties);
                     setAvailableSpecialties(specialties);
 
                     // Auto-select first if none active
-                    if (!saved && specialties.length > 0) {
-                        setActiveSpecialtyState(specialties[0]);
-                        localStorage.setItem('activeSpecialty', JSON.stringify(specialties[0]));
+                    if (!initialActive && specialties.length > 0) {
+                        const first = specialties[0];
+                        setActiveSpecialtyState(first);
+                        localStorage.setItem('activeSpecialty', JSON.stringify(first));
                     }
                 } else {
                     setAvailableSpecialties([]);
@@ -67,9 +83,11 @@ export const SpecialtyProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }, []);
 
     const setActiveSpecialty = (specialty: Specialty | null) => {
-        setActiveSpecialtyState(specialty);
-        if (specialty) {
-            localStorage.setItem('activeSpecialty', JSON.stringify(specialty));
+        // ENSURE we only save flat objects
+        const flatSpecialty = (specialty as any)?.specialty ? (specialty as any).specialty : specialty;
+        setActiveSpecialtyState(flatSpecialty);
+        if (flatSpecialty) {
+            localStorage.setItem('activeSpecialty', JSON.stringify(flatSpecialty));
         } else {
             localStorage.removeItem('activeSpecialty');
         }
@@ -94,5 +112,12 @@ export const useSpecialty = () => {
     if (context === undefined) {
         throw new Error('useSpecialty must be used within a SpecialtyProvider');
     }
-    return context;
+    
+    // Add a helper for components to get the ID safely
+    const getActiveSpecialtyId = () => {
+        if (!context.activeSpecialty) return null;
+        return (context.activeSpecialty as any).id || (context.activeSpecialty as any).specialty?.id;
+    };
+
+    return { ...context, getActiveSpecialtyId };
 };

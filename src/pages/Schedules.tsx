@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -37,7 +38,8 @@ interface CalendarEvent {
 }
 
 export default function Schedules() {
-    const { activeSpecialty } = useSpecialty();
+    const { specialtyId: urlSpecialtyId } = useParams<{ specialtyId: string }>();
+    const { activeSpecialty, getActiveSpecialtyId } = useSpecialty();
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [offices, setOffices] = useState<any[]>([]);
     const [selectedOfficeId, setSelectedOfficeId] = useState<string>('');
@@ -108,9 +110,12 @@ export default function Schedules() {
     };
 
     const fetchSchedules = async (doctorId: string) => {
+        const targetSpecialtyId = urlSpecialtyId || getActiveSpecialtyId();
+        if (!targetSpecialtyId) return;
+
         try {
             const response = await api.get(`/schedules/doctor/${doctorId}`, {
-                params: { specialtyId: activeSpecialty?.id }
+                params: { specialtyId: targetSpecialtyId }
             });
 
             setEvents(response.data.map((s: any) => {
@@ -221,7 +226,7 @@ export default function Schedules() {
             const payload = {
                 officeId: selectedOfficeId || offices[0].id,
                 doctorId: user.id,
-                specialtyId: activeSpecialty?.id || user.specialties?.[0]?.specialtyId,
+                specialtyId: urlSpecialtyId || getActiveSpecialtyId(),
                 dayOfWeek: getDayOfWeek(formData.startDate),
                 startDate: new Date(formData.startDate).toISOString(),
                 endDate: new Date(formData.endDate).toISOString(),

@@ -20,10 +20,11 @@ interface MenuItem {
     path?: string;
     badge?: string;
     children?: MenuItem[];
+    specialty?: { id: string; name: string; description: string };
 }
 
 export default function Sidebar() {
-    const { activeSpecialty, setActiveSpecialty, availableSpecialties } = useSpecialty();
+    const { setActiveSpecialty, availableSpecialties, getActiveSpecialtyId } = useSpecialty();
     const [user, setUser] = useState<any>(null);
     const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({
         Acceso: true,
@@ -87,6 +88,7 @@ export default function Sidebar() {
             specialtyItems.push({
                 title: spec.name,
                 icon: <Stethoscope size={20} />,
+                specialty: spec, // Crucial for ID access
                 children: [
                     { title: 'Mi Agenda', icon: <Calendar size={20} />, path: '/dashboard/schedules' },
                     { title: 'Citas', icon: <ClipboardList size={20} />, path: '/dashboard/appointments' },
@@ -149,8 +151,28 @@ export default function Sidebar() {
                                     {item.children.map((child) => (
                                         <Link
                                             key={child.title}
-                                            to={child.path === '/dashboard/patients' ? child.path : (item.title === 'Estética' ? child.path?.replace('medical-history', 'aesthetic-history') : item.title === 'Medicina General' ? child.path?.replace('medical-history', 'general-history') : child.path) || '#'}
-                                            className={`nav-subitem ${(isActive(child.path) || (item.title === 'Estética' && location.pathname.includes('aesthetic-history') && child.path?.includes('medical-history')) || (item.title === 'Medicina General' && location.pathname.includes('general-history') && child.path?.includes('medical-history'))) && activeSpecialty?.name === item.title ? 'active' : ''}`}
+                                            to={(() => {
+                                                // If it's a patient or a non-specialty menu, use original path
+                                                if (user?.role === 'PACIENTE' || !item.specialty) {
+                                                    return child.path || '#';
+                                                }
+
+                                                const specId = item.specialty?.id || getActiveSpecialtyId() || 'generic';
+                                                const cleanPath = child.path?.replace('/dashboard/', '') || '';
+                                                
+                                                // Handle history path mapping
+                                                if (cleanPath.includes('medical-history')) {
+                                                    const historyType = item.title === 'Estética' ? 'aesthetic-history' : 
+                                                                       item.title === 'Medicina General' ? 'general-history' : 
+                                                                       'medical-history';
+                                                    return `/dashboard/specialty/${specId}/${historyType}/${cleanPath.split('/').pop()}`;
+                                                }
+
+                                                // Default workspace path
+                                                return `/dashboard/specialty/${specId}/${cleanPath}`;
+                                            })()}
+                                            onClick={() => item.specialty && setActiveSpecialty(item.specialty)}
+                                            className={`nav-subitem ${(isActive(child.path) || (item.title === 'Estética' && location.pathname.includes('aesthetic-history')) || (item.title === 'Medicina General' && location.pathname.includes('general-history'))) && getActiveSpecialtyId() === item.specialty?.id ? 'active' : ''}`}
                                         >
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                 {child.title}

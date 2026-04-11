@@ -29,6 +29,8 @@ import PatientAppointmentsPage from './pages/patient/PatientAppointmentsPage';
 import PaymentConfirmPage from './pages/PaymentConfirmPage';
 import PaymentRedirectPage from './pages/PaymentRedirectPage';
 import OnboardingPage from './pages/patient/OnboardingPage';
+import SpecialtySync from './components/SpecialtySync';
+import { Outlet } from 'react-router-dom';
 
 // Componente de Sign In con diseño TailAdmin y conexión al backend
 function SignIn() {
@@ -428,15 +430,26 @@ function App() {
             <Route path="doctors" element={<DoctorRegistration />} />
             <Route path="medical-offices" element={<MedicalOffices />} />
             <Route path="catalogs" element={<AdminCatalogsPage />} />
-            <Route path="medical-history/:patientId/:recordId?" element={<MedicalHistory />} />
-            <Route path="aesthetic-history/:patientId/:recordId?" element={<AestheticHistory />} />
-            <Route path="general-history/:patientId/:recordId?" element={<GeneralHistory />} />
-            <Route path="general-history-list/:patientId" element={<GeneralHistoryList />} />
-            <Route path="nutrition-history/:patientId/:recordId?" element={<NutritionHistory />} />
-            <Route path="medical-history-list/:patientId" element={<MedicalHistoryList />} />
-            <Route path="patients" element={<Patients />} />
-            <Route path="schedules" element={<Schedules />} />
-            <Route path="appointments" element={<Appointments />} />
+            
+            {/* Specialty-Specific Workspace */}
+            <Route path="specialty/:specialtyId" element={<><SpecialtySync /><Outlet /></>}>
+              <Route path="schedules" element={<Schedules />} />
+              <Route path="appointments" element={<Appointments />} />
+              <Route path="patients" element={<Patients />} />
+              <Route path="medical-history/:patientId/:recordId?" element={<MedicalHistory />} />
+              <Route path="aesthetic-history/:patientId/:recordId?" element={<AestheticHistory />} />
+              <Route path="general-history/:patientId/:recordId?" element={<GeneralHistory />} />
+              <Route path="general-history-list/:patientId" element={<GeneralHistoryList />} />
+              <Route path="nutrition-history/:patientId/:recordId?" element={<NutritionHistory />} />
+              <Route path="medical-history-list/:patientId" element={<MedicalHistoryList />} />
+            </Route>
+
+            {/* Redirects for shared legacy paths (Optional but good UX) */}
+            <Route path="schedules" element={<Navigate to="/dashboard" replace />} />
+            <Route path="appointments" element={<Navigate to="/dashboard" replace />} />
+            <Route path="patients" element={<Navigate to="/dashboard" replace />} />
+            <Route path="medical-history/:patientId/:recordId?" element={<Navigate to="/dashboard" replace />} />
+            <Route path="aesthetic-history/:patientId/:recordId?" element={<Navigate to="/dashboard" replace />} />
           </Route>
 
           {/* Dedicated Print Routes (No Layout) */}

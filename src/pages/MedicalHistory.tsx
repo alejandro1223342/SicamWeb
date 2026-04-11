@@ -50,7 +50,8 @@ export default function MedicalHistory() {
     const mode = queryParams.get('mode');
     const navigate = useNavigate();
     
-    const { activeSpecialty } = useSpecialty();
+    const { specialtyId: urlSpecialtyId } = useParams<{ specialtyId: string }>();
+    const { activeSpecialty, getActiveSpecialtyId } = useSpecialty();
     const [activeSection, setActiveSection] = useState<SectionKey>('reason');
     const [patient, setPatient] = useState<any>(null);
     const [examCatalog, setExamCatalog] = useState<any>({});
@@ -88,9 +89,10 @@ export default function MedicalHistory() {
 
     useEffect(() => {
         const fetchPreviousRecord = async () => {
-            if (mode === 'new' && patientId && activeSpecialty?.id) {
+            const targetId = urlSpecialtyId || getActiveSpecialtyId();
+            if (mode === 'new' && patientId && targetId) {
                 try {
-                    const response = await api.get(`/medical-records/patient/${patientId}?specialtyId=${activeSpecialty.id}`);
+                    const response = await api.get(`/medical-records/patient/${patientId}?specialtyId=${targetId}`);
                     const history = response.data;
                     const prevRes = Array.isArray(history) ? history[0] : null;
 
@@ -148,7 +150,7 @@ export default function MedicalHistory() {
             setCurrentRecordId(null);
             currentRecordIdRef.current = null;
         }
-    }, [mode, patientId, activeSpecialty]);
+    }, [mode, patientId, activeSpecialty, urlSpecialtyId]);
 
     useEffect(() => {
         const fetchCatalog = async () => {
@@ -206,7 +208,9 @@ export default function MedicalHistory() {
             if (!userData) return;
             const doctorId = JSON.parse(userData).id;
             try {
-                const response = await api.get(`/medical-records/today/${cleanPatientId}/${doctorId}/${activeSpecialty.id}`);
+                const targetId = urlSpecialtyId || getActiveSpecialtyId();
+                if (!targetId) return;
+                const response = await api.get(`/medical-records/today/${cleanPatientId}/${doctorId}/${targetId}`);
                 if (response.data && response.data.data) {
                     const dbData = response.data.data;
                     setFormData((prev: any) => ({
@@ -243,7 +247,7 @@ export default function MedicalHistory() {
             if (mode !== 'new') fetchTodayRecord();
         }
         fetchCatalog();
-    }, [patientId, recordId, activeSpecialty, mode]);
+    }, [patientId, recordId, activeSpecialty, urlSpecialtyId, mode]);
 
     const handleSaveAll = useCallback(async (isAuto = false) => {
         if (isSavingRef.current || isGlobalUploading || !activeSpecialty || !patientId || patientId === 'generic' || isReadOnly) return;
@@ -260,7 +264,7 @@ export default function MedicalHistory() {
                 forceNew: mode === 'new' && !currentRecordIdRef.current,
                 patientId,
                 doctorId,
-                specialtyId: activeSpecialty.id,
+                specialtyId: getActiveSpecialtyId(),
                 data: formData,
                 diagnosis: mainDiagnosis
             };

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import api from '../api';
 import { Calendar, Clock, MapPin, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useToast } from '../components/Toast';
@@ -38,6 +39,7 @@ interface Appointment {
 }
 
 export default function Appointments() {
+    const { specialtyId: urlSpecialtyId } = useParams<{ specialtyId: string }>();
     const { showToast } = useToast();
     const { activeSpecialty } = useSpecialty();
     const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -45,7 +47,7 @@ export default function Appointments() {
 
     useEffect(() => {
         fetchAppointments();
-    }, [activeSpecialty]);
+    }, [activeSpecialty, urlSpecialtyId]);
 
     const fetchAppointments = async () => {
         try {
@@ -53,8 +55,11 @@ export default function Appointments() {
             if (!userData) return;
             const user = JSON.parse(userData);
 
+            const targetSpecialtyId = urlSpecialtyId || activeSpecialty?.id;
+            if (!targetSpecialtyId) return;
+
             const response = await api.get(`/appointments/doctor/${user.id}`, {
-                params: { specialtyId: activeSpecialty?.id }
+                params: { specialtyId: targetSpecialtyId }
             });
             setAppointments(response.data);
         } catch (error) {

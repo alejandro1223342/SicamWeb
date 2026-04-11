@@ -3,7 +3,7 @@ import api from '../api';
 import { UserPlus, Search, Edit, Mail, Phone, ClipboardList, PlusCircle, X, Loader2 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useSpecialty } from '../context/SpecialtyContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 interface Patient {
     id: string;
@@ -18,6 +18,7 @@ interface Patient {
 }
 
 const Patients: React.FC = () => {
+    const { specialtyId: urlSpecialtyId } = useParams<{ specialtyId: string }>();
     const { activeSpecialty } = useSpecialty();
     const navigate = useNavigate();
     const [patients, setPatients] = useState<Patient[]>([]);
@@ -39,7 +40,7 @@ const Patients: React.FC = () => {
 
     useEffect(() => {
         fetchPatients();
-    }, [activeSpecialty]);
+    }, [activeSpecialty, urlSpecialtyId]);
 
     const fetchPatients = async () => {
         setFetchingPatients(true);
@@ -53,8 +54,11 @@ const Patients: React.FC = () => {
             const user = JSON.parse(userData);
 
             if (user.role === 'MEDICO') {
+                const targetSpecialtyId = urlSpecialtyId || activeSpecialty?.id;
+                if (!targetSpecialtyId) return;
+
                 const response = await api.get(`/users/patients/doctor/${user.id}`, {
-                    params: { specialtyId: activeSpecialty?.id }
+                    params: { specialtyId: targetSpecialtyId }
                 });
                 setPatients(response.data);
             } else {
@@ -251,7 +255,8 @@ const Patients: React.FC = () => {
                                                             if (activeSpecialty?.name === 'Nutrición') path = 'nutrition-history';
                                                             if (activeSpecialty?.name === 'Medicina General') path = 'general-history';
 
-                                                            navigate(`/dashboard/${path}/${patient.id}?mode=new&session=${sessionId}`);
+                                                            const targetId = urlSpecialtyId || activeSpecialty?.id;
+                                                            navigate(`/dashboard/specialty/${targetId}/${path}/${patient.id}?mode=new&session=${sessionId}`);
                                                         }}
                                                         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px', color: 'var(--primary)', borderColor: '#E5E7EB' }}
                                                         title="Nueva Historia Clínica"
@@ -263,7 +268,8 @@ const Patients: React.FC = () => {
                                                         onClick={() => {
                                                             let listPath = 'medical-history-list';
                                                             if (activeSpecialty?.name === 'Medicina General') listPath = 'general-history-list';
-                                                            navigate(`/dashboard/${listPath}/${patient.id}`);
+                                                            const targetId = urlSpecialtyId || activeSpecialty?.id;
+                                                            navigate(`/dashboard/specialty/${targetId}/${listPath}/${patient.id}`);
                                                         }}
                                                         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px', color: 'var(--success)', borderColor: '#d1fae5' }}
                                                         title="Historias Previas"

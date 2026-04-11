@@ -36,7 +36,8 @@ export default function AestheticHistory() {
     const mode = queryParams.get('mode');
     const navigate = useNavigate();
 
-    const { activeSpecialty } = useSpecialty(); // Still useful for context, but we know we are in Aesthetic
+    const { specialtyId: urlSpecialtyId } = useParams<{ specialtyId: string }>();
+    const { activeSpecialty, getActiveSpecialtyId } = useSpecialty(); // Still useful for context, but we know we are in Aesthetic
     const [activeSection, setActiveSection] = useState<SectionKey>('reason');
     const [patient, setPatient] = useState<any>(null);
     const [examCatalog, setExamCatalog] = useState<any>({});
@@ -147,8 +148,9 @@ export default function AestheticHistory() {
 
             const fetchPreviousRecord = async () => {
                 try {
+                    const targetId = urlSpecialtyId || getActiveSpecialtyId();
                     const response = await api.get(`/medical-records/patient/${patientId}`, {
-                        params: { specialtyId: activeSpecialty.id }
+                        params: { specialtyId: targetId }
                     });
 
                     const records = response.data || [];
@@ -212,7 +214,7 @@ export default function AestheticHistory() {
             setCurrentRecordId(null);
             currentRecordIdRef.current = null;
         }
-    }, [mode, patientId, activeSpecialty?.id]);
+    }, [mode, patientId, getActiveSpecialtyId(), urlSpecialtyId]);
 
     useEffect(() => {
         const fetchCatalog = async () => {
@@ -296,7 +298,7 @@ export default function AestheticHistory() {
                 forceNew: mode === 'new' && !currentRecordIdRef.current,
                 patientId,
                 doctorId,
-                specialtyId: activeSpecialty.id,
+                specialtyId: urlSpecialtyId || getActiveSpecialtyId(),
                 data: formData,
                 diagnosis: mainDiagnosis
             };

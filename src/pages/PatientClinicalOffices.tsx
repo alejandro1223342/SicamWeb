@@ -18,7 +18,8 @@ interface Schedule {
     endTime: string;
     startDate?: string;
     endDate?: string;
-    doctorId: string; // Añadido doctorId
+    doctorId: string;
+    specialtyId: string;
 }
 
 interface Doctor {
@@ -44,7 +45,7 @@ interface DoctorCardData {
     officeName: string;
     address: string;
     phone: string;
-    specialties: Specialty[];
+    specialty: Specialty;
     schedules: Schedule[];
     appointmentRate: number;
 }
@@ -59,6 +60,8 @@ export default function PatientClinicalOffices() {
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [availableSlots, setAvailableSlots] = useState<string[]>([]);
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+    const [bookedAppointments, setBookedAppointments] = useState<any[]>([]);
+    const [loadingSlots, setLoadingSlots] = useState(false);
 
     useEffect(() => {
         const fetchOffices = async () => {
@@ -71,18 +74,28 @@ export default function PatientClinicalOffices() {
                 offices.forEach((office: Office) => {
                     if (office.doctors && office.doctors.length > 0) {
                         office.doctors.forEach((d) => {
-                            // Filter schedules for this specific doctor in this office
-                            const filteredSchedules = office.schedules.filter(s => s.doctorId === d.doctor.id);
+                            // Split card by specialty
+                            d.doctor.specialties.forEach((specObj) => {
+                                const spec = specObj.specialty;
+                                
+                                // Filter schedules for this specific doctor AND specialty in this office
+                                const filteredSchedules = office.schedules.filter(
+                                    s => s.doctorId === d.doctor.id && s.specialtyId === spec.id
+                                );
 
-                            cards.push({
-                                doctorId: d.doctor.id,
-                                doctorName: `${d.doctor.firstName} ${d.doctor.lastName}`,
-                                officeName: office.name,
-                                address: office.address,
-                                phone: office.phone,
-                                specialties: d.doctor.specialties.map(s => s.specialty),
-                                schedules: filteredSchedules,
-                                appointmentRate: d.doctor.appointmentRate || 0
+                                // Only add card if there are schedules for this specialty
+                                if (filteredSchedules.length > 0) {
+                                    cards.push({
+                                        doctorId: d.doctor.id,
+                                        doctorName: `${d.doctor.firstName} ${d.doctor.lastName}`,
+                                        officeName: office.name,
+                                        address: office.address,
+                                        phone: office.phone,
+                                        specialty: spec,
+                                        schedules: filteredSchedules,
+                                        appointmentRate: d.doctor.appointmentRate || 0
+                                    });
+                                }
                             });
                         });
                     }
@@ -110,7 +123,7 @@ export default function PatientClinicalOffices() {
         'SABADO': 6
     };
 
-    const getAvailableDays = (schedules: Schedule[]) => {
+    const getAvailableDays = (schedules: Schedule[], appointments: any[]) => {
         const days: Date[] = [];
         const today = new Date();
         const activeDayNums = schedules.map(s => dayNameMap[s.dayOfWeek]);
@@ -121,7 +134,7 @@ export default function PatientClinicalOffices() {
             nextDay.setHours(0, 0, 0, 0); // Normalize to start of day
 
             if (activeDayNums.includes(nextDay.getDay())) {
-                const slots = generateTimeSlots(nextDay, schedules);
+                const slots = generateTimeSlots(nextDay, schedules, appointments);
                 if (slots.length > 0) {
                     days.push(nextDay);
                 }
@@ -131,7 +144,7 @@ export default function PatientClinicalOffices() {
         return days;
     };
 
-    const generateTimeSlots = (date: Date, schedules: Schedule[]) => {
+    const generateTimeSlots = (date: Date, schedules: Schedule[], appointments: any[]) => {
         const dayNames = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
         const dayName = dayNames[date.getDay()];
         const schedule = schedules.find(s => s.dayOfWeek === dayName);
@@ -154,10 +167,25 @@ export default function PatientClinicalOffices() {
             const slotHour = current.getHours();
             const slotMin = current.getMinutes();
 
-            // Only add if it's a future time (if it's today)
-            if (!isToday || (slotHour > now.getHours() || (slotHour === now.getHours() && slotMin > now.getMinutes()))) {
+            // Check if slot is in the future
+            const isFuture = !isToday || (slotHour > now.getHours() || (slotHour === now.getHours() && slotMin > now.getMinutes()));
+
+            if (isFuture) {
                 const timeString = current.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-                slots.push(timeString);
+                
+                // Check if slot is already occupied
+                const isOccupied = appointments.some(app => {
+                    const appDate = new Date(app.appointmentDate);
+                    return appDate.getFullYear() === date.getFullYear() &&
+                           appDate.getMonth() === date.getMonth() &&
+                           appDate.getDate() === date.getDate() &&
+                           appDate.getHours() === slotHour &&
+                           appDate.getMinutes() === slotMin;
+                });
+
+                if (!isOccupied) {
+                    slots.push(timeString);
+                }
             }
 
             current.setHours(current.getHours() + 1);
@@ -166,19 +194,34 @@ export default function PatientClinicalOffices() {
         return slots;
     };
 
-    const handleOpenAgenda = (doctor: DoctorCardData) => {
+    const handleOpenAgenda = async (doctor: DoctorCardData) => {
         setSelectedDoctor(doctor);
         setShowAgenda(true);
         setSelectedDate(null);
         setAvailableSlots([]);
         setSelectedSlot(null);
+        setBookedAppointments([]);
+        setLoadingSlots(true);
+
+        try {
+            // Fetch existing appointments for this doctor and specialty
+            const response = await api.get(`/appointments/doctor/${doctor.doctorId}`, {
+                params: { specialtyId: doctor.specialty.id }
+            });
+            setBookedAppointments(response.data);
+        } catch (error) {
+            console.error('Error fetching occupied slots:', error);
+            showToast('Error al verificar disponibilidad.', 'error');
+        } finally {
+            setLoadingSlots(false);
+        }
     };
 
     const handleSelectDate = (date: Date) => {
         setSelectedDate(date);
         setSelectedSlot(null);
         if (selectedDoctor) {
-            const slots = generateTimeSlots(date, selectedDoctor.schedules);
+            const slots = generateTimeSlots(date, selectedDoctor.schedules, bookedAppointments);
             setAvailableSlots(slots);
         }
     };
@@ -287,15 +330,13 @@ export default function PatientClinicalOffices() {
                             </div>
 
                             <div className="doctor-specialties-info">
-                                {card.specialties.map((spec) => (
-                                    <div key={spec.id} className="specialty-badge-group">
-                                        <div className="spec-name-row">
-                                            <Stethoscope size={16} className="text-secondary" />
-                                            <span className="spec-name">{spec.name}</span>
-                                        </div>
-                                        <p className="spec-description">{spec.description}</p>
+                                <div className="specialty-badge-group">
+                                    <div className="spec-name-row">
+                                        <Stethoscope size={16} className="text-secondary" />
+                                        <span className="spec-name">{card.specialty.name}</span>
                                     </div>
-                                ))}
+                                    <p className="spec-description">{card.specialty.description}</p>
+                                </div>
                             </div>
 
                             <div className="office-card-body-premium">
@@ -336,7 +377,7 @@ export default function PatientClinicalOffices() {
                     <div className="modal-content-premium" onClick={e => e.stopPropagation()}>
                         <div className="modal-header-premium">
                             <div className="modal-title-group">
-                                <h2>Agenda de Citas</h2>
+                                <h2>Agenda de Citas: {selectedDoctor.specialty.name}</h2>
                                 <p>{selectedDoctor.doctorName} • {selectedDoctor.officeName}</p>
                             </div>
                             <button className="close-btn-premium" onClick={() => setShowAgenda(false)}>
@@ -348,17 +389,21 @@ export default function PatientClinicalOffices() {
                             <section className="date-selection-section">
                                 <h4 className="section-title"><CalendarIcon size={18} /> Selecciona un día</h4>
                                 <div className="dates-horizontal-scroll">
-                                    {getAvailableDays(selectedDoctor.schedules).map((date, i) => (
-                                        <button
-                                            key={i}
-                                            className={`date-chip ${selectedDate?.toDateString() === date.toDateString() ? 'active' : ''}`}
-                                            onClick={() => handleSelectDate(date)}
-                                        >
-                                            <span className="day-name">{date.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase()}</span>
-                                            <span className="day-number">{date.getDate()}</span>
-                                            <span className="month-name">{date.toLocaleDateString('es-ES', { month: 'short' })}</span>
-                                        </button>
-                                    ))}
+                                    {loadingSlots ? (
+                                        <div style={{ padding: '20px', color: '#64748B' }}>Verificando disponibilidad...</div>
+                                    ) : (
+                                        getAvailableDays(selectedDoctor.schedules, bookedAppointments).map((date, i) => (
+                                            <button
+                                                key={i}
+                                                className={`date-chip ${selectedDate?.toDateString() === date.toDateString() ? 'active' : ''}`}
+                                                onClick={() => handleSelectDate(date)}
+                                            >
+                                                <span className="day-name">{date.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase()}</span>
+                                                <span className="day-number">{date.getDate()}</span>
+                                                <span className="month-name">{date.toLocaleDateString('es-ES', { month: 'short' })}</span>
+                                            </button>
+                                        ))
+                                    )}
                                 </div>
                             </section>
 
