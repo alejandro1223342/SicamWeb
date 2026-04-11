@@ -205,19 +205,19 @@ export default function GeneralFinalDataForm({ data = [], onChange, readOnly = f
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontWeight: '600', color: '#475569', fontSize: '13px' }}>Medidas</label>
-                                    <input type="text" value={newItem.medidas} onChange={e => setNewItem({...newItem, medidas: e.target.value})} style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none' }} />
+                                    <input type="text" value={newItem.medidas} onChange={e => setNewItem({...newItem, medidas: e.target.value})} style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none' }} placeholder="Ej: 500 mg o 10 ml" />
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontWeight: '600', color: '#475569', fontSize: '13px' }}>Dosis</label>
-                                    <input type="text" value={newItem.dosis} onChange={e => setNewItem({...newItem, dosis: e.target.value})} style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none' }} />
+                                    <input type="text" value={newItem.dosis} onChange={e => setNewItem({...newItem, dosis: e.target.value})} style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none' }} placeholder="Ej: 1 tableta cada 8 horas" />
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontWeight: '600', color: '#475569', fontSize: '13px' }}>Vía</label>
-                                    <input type="text" value={newItem.via} onChange={e => setNewItem({...newItem, via: e.target.value})} style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none' }} />
+                                    <input type="text" value={newItem.via} onChange={e => setNewItem({...newItem, via: e.target.value})} style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none' }} placeholder="Ej: Oral / Intravenosa" />
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontWeight: '600', color: '#475569', fontSize: '13px' }}>Días</label>
-                                    <input type="text" value={newItem.dias} onChange={e => setNewItem({...newItem, dias: e.target.value})} style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none' }} />
+                                    <input type="text" value={newItem.dias} onChange={e => setNewItem({...newItem, dias: e.target.value})} style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none' }} placeholder="Ej: 5 o 7" />
                                 </div>
                             </div>
 

@@ -58,7 +58,8 @@ const GeneralHistoryList: React.FC = () => {
     }, [patientId, activeSpecialty]);
 
     const handleViewRecord = (recordId: string) => {
-        navigate(`/dashboard/general-history/${patientId}/${recordId}`);
+        if (!activeSpecialty) return;
+        navigate(`/dashboard/specialty/${activeSpecialty.id}/general-history/${patientId}/${recordId}`);
     };
 
 
@@ -79,7 +80,7 @@ const GeneralHistoryList: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                             <button
-                                onClick={() => navigate('/dashboard/patients')}
+                                onClick={() => navigate(activeSpecialty ? `/dashboard/specialty/${activeSpecialty.id}/patients` : '/dashboard')}
                                 title="Regresar a Pacientes"
                                 style={{
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',

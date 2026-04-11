@@ -156,7 +156,7 @@ export default function LabResultsForm({ patientId, recordId, sessionId, data, o
                         ...prev,
                         files: [
                             ...(prev.files || []),
-                            { name: file.name, url: proxyUrl, type: file.type }
+                            { name: response.data.data.name || file.name, url: proxyUrl, type: file.type }
                         ]
                     }));
                 }

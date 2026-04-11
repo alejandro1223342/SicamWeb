@@ -58,11 +58,12 @@ const MedicalHistoryList: React.FC = () => {
     }, [patientId, activeSpecialty]);
 
     const handleViewRecord = (recordId: string) => {
+        if (!activeSpecialty) return;
         let path = 'medical-history';
-        if (activeSpecialty?.name === 'Estética') path = 'aesthetic-history';
-        if (activeSpecialty?.name === 'Nutrición') path = 'nutrition-history';
+        if (activeSpecialty.name === 'Estética') path = 'aesthetic-history';
+        if (activeSpecialty.name === 'Nutrición') path = 'nutrition-history';
 
-        navigate(`/dashboard/${path}/${patientId}/${recordId}`);
+        navigate(`/dashboard/specialty/${activeSpecialty.id}/${path}/${patientId}/${recordId}`);
     };
 
     if (loading) {
@@ -82,7 +83,7 @@ const MedicalHistoryList: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                             <button
-                                onClick={() => navigate('/dashboard/patients')}
+                                onClick={() => navigate(activeSpecialty ? `/dashboard/specialty/${activeSpecialty.id}/patients` : '/dashboard')}
                                 title="Regresar a Pacientes"
                                 style={{
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',

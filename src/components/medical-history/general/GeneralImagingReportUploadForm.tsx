@@ -60,7 +60,7 @@ const GeneralImagingReportUploadForm: React.FC<GeneralImagingReportUploadFormPro
                     
                     uploadedFiles.push({
                         url: proxyUrl,
-                        name: file.name
+                        name: response.data.data.name || file.name
                     });
                 }
             } catch (error) {

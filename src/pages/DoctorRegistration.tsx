@@ -392,17 +392,17 @@ const DoctorRegistration: React.FC = () => {
                                     <div className="form-group">
                                         <label className="form-label">Tarifa de Consulta ($) <span className="text-danger">*</span></label>
                                         <div className="input-with-icon">
-                                            <input 
-                                                type="number" 
-                                                name="appointmentRate" 
-                                                value={formData.appointmentRate} 
-                                                onChange={handleChange} 
-                                                placeholder="0.00" 
-                                                required 
+                                            <input
+                                                type="number"
+                                                name="appointmentRate"
+                                                value={formData.appointmentRate}
+                                                onChange={handleChange}
+                                                placeholder="0.00"
+                                                required
                                                 step="0.01"
                                                 min="0"
-                                                className="form-input" 
-                                                disabled={loading} 
+                                                className="form-input"
+                                                disabled={loading}
                                             />
                                             <span className="input-icon" style={{ left: 'auto', right: '12px', fontSize: '18px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>$</span>
                                         </div>

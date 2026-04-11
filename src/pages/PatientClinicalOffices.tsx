@@ -77,7 +77,7 @@ export default function PatientClinicalOffices() {
                             // Split card by specialty
                             d.doctor.specialties.forEach((specObj) => {
                                 const spec = specObj.specialty;
-                                
+
                                 // Filter schedules for this specific doctor AND specialty in this office
                                 const filteredSchedules = office.schedules.filter(
                                     s => s.doctorId === d.doctor.id && s.specialtyId === spec.id
@@ -172,15 +172,15 @@ export default function PatientClinicalOffices() {
 
             if (isFuture) {
                 const timeString = current.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-                
+
                 // Check if slot is already occupied
                 const isOccupied = appointments.some(app => {
                     const appDate = new Date(app.appointmentDate);
                     return appDate.getFullYear() === date.getFullYear() &&
-                           appDate.getMonth() === date.getMonth() &&
-                           appDate.getDate() === date.getDate() &&
-                           appDate.getHours() === slotHour &&
-                           appDate.getMinutes() === slotMin;
+                        appDate.getMonth() === date.getMonth() &&
+                        appDate.getDate() === date.getDate() &&
+                        appDate.getHours() === slotHour &&
+                        appDate.getMinutes() === slotMin;
                 });
 
                 if (!isOccupied) {
@@ -451,8 +451,8 @@ export default function PatientClinicalOffices() {
                                 onClick={handleConfirmAppointment}
                                 style={{ marginTop: '1.5rem' }}
                             >
-                                {loading ? 'Procesando...' : 
-                                 Number(selectedDoctor.appointmentRate || 0) > 0 ? 'Confirmar y Pagar con PayPhone' : 'Confirmar Cita (Gratuita)'}
+                                {loading ? 'Procesando...' :
+                                    Number(selectedDoctor.appointmentRate || 0) > 0 ? 'Confirmar y Pagar con PayPhone' : 'Confirmar Cita (Gratuita)'}
                             </button>
 
                             {!selectedSlot && (
