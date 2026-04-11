@@ -1,5 +1,5 @@
 import React from 'react';
-import { ClipboardList, Calendar, Users, Activity, FileText } from 'lucide-react';
+import { ClipboardList, Activity } from 'lucide-react';
 
 interface PersonalHistoryData {
     description: string;

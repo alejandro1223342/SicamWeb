@@ -61,14 +61,6 @@ const GeneralHistoryList: React.FC = () => {
         navigate(`/dashboard/general-history/${patientId}/${recordId}`);
     };
 
-    const getAge = (birthDate: any) => {
-        if (!birthDate) return 'N/A';
-        const birth = new Date(birthDate);
-        const today = new Date();
-        let age = today.getFullYear() - birth.getFullYear();
-        if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--;
-        return age;
-    };
 
     if (loading) {
         return (
