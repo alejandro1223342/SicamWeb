@@ -13,18 +13,32 @@ export default function Header() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const userData = localStorage.getItem('user');
-        if (userData) {
-            try {
-                const parsedUser = JSON.parse(userData);
-                setUser(parsedUser);
-                if (parsedUser.role === 'MEDICO' || parsedUser.role === 'ADMIN') {
-                    fetchNotifications();
+        const loadUser = () => {
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                try {
+                    const parsedUser = JSON.parse(userData);
+                    setUser(parsedUser);
+                    if (parsedUser.role === 'MEDICO' || parsedUser.role === 'ADMIN') {
+                        fetchNotifications();
+                    }
+                } catch (e) {
+                    console.error("Error al parsear usuario en Header", e);
                 }
-            } catch (e) {
-                console.error("Error al parsear usuario en Header", e);
             }
-        }
+        };
+
+        loadUser();
+
+        // Escuchar actualizaciones manuales desde el perfil
+        window.addEventListener('userUpdate', loadUser);
+        // Escuchar cambios desde otras pestañas
+        window.addEventListener('storage', loadUser);
+
+        return () => {
+            window.removeEventListener('userUpdate', loadUser);
+            window.removeEventListener('storage', loadUser);
+        };
     }, []);
 
     const fetchNotifications = async () => {
@@ -188,10 +202,16 @@ export default function Header() {
                                         <span style={{ 
                                             backgroundColor: '#ef4444', 
                                             color: 'white', 
-                                            padding: '2px 8px', 
+                                            padding: '4px 10px', 
                                             borderRadius: '9999px',
-                                            fontSize: '0.75rem',
-                                            fontWeight: 600
+                                            fontSize: '0.7rem',
+                                            fontWeight: 700,
+                                            lineHeight: 1,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            whiteSpace: 'nowrap',
+                                            boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)'
                                         }}>
                                             {unreadCount} nuevas
                                         </span>
@@ -261,9 +281,10 @@ export default function Header() {
                             style={{ cursor: 'pointer' }}
                         >
                             <img
-                                src={`https://ui-avatars.com/api/?name=${user?.firstName || 'User'}+${user?.lastName || ''}&background=5D5FEF&color=fff&rounded=true`}
+                                src={user?.photoUrl || `https://ui-avatars.com/api/?name=${user?.firstName || 'User'}+${user?.lastName || ''}&background=5D5FEF&color=fff&rounded=true`}
                                 alt="User"
                                 className="user-avatar"
+                                style={{ objectFit: 'cover' }}
                             />
                             <div className="user-info">
                                 <span className="user-name">{user?.firstName || 'Usuario'}</span>
@@ -289,19 +310,29 @@ export default function Header() {
                                 borderRadius: '0.5rem',
                                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
                                 zIndex: 50,
-                                minWidth: '200px',
+                                minWidth: '260px',
                                 padding: '0.5rem'
                             }}>
                                 <div style={{
                                     padding: '0.5rem',
                                     borderBottom: '1px solid #e2e8f0',
-                                    marginBottom: '0.5rem'
+                                    marginBottom: '0.5rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem'
                                 }}>
-                                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#1e293b' }}>
-                                        {user?.firstName ? `${user.firstName} ${user.lastName || ''}` : 'Usuario'}
-                                    </div>
-                                    <div style={{ fontSize: '0.75rem', color: '#64748b', wordBreak: 'break-all' }}>
-                                        {user?.email || 'admin@sicam.com'}
+                                    <img
+                                        src={user?.photoUrl || `https://ui-avatars.com/api/?name=${user?.firstName || 'User'}+${user?.lastName || ''}&background=5D5FEF&color=fff&rounded=true`}
+                                        alt="User"
+                                        style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+                                    />
+                                    <div>
+                                        <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#1e293b' }}>
+                                            {user?.firstName ? `${user.firstName} ${user.lastName || ''}` : 'Usuario'}
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b', wordBreak: 'break-all' }}>
+                                            {user?.email || 'admin@sicam.com'}
+                                        </div>
                                     </div>
                                 </div>
                                 <button

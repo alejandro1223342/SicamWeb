@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, ShieldAlert, Syringe, AlertTriangle, ArrowRight, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
+import { User, ShieldAlert, Syringe, AlertTriangle, ArrowRight, ArrowLeft, CheckCircle2, Loader2, Contact } from 'lucide-react';
+import PersonalInfoForm from '../../components/medical-history/PersonalInfoForm';
 import EmergencyContactForm from '../../components/medical-history/EmergencyContactForm';
 import FamilyHistoryForm from '../../components/medical-history/FamilyHistoryForm';
 import RecentVaccinesForm from '../../components/medical-history/RecentVaccinesForm';
@@ -15,6 +16,7 @@ export default function OnboardingPage() {
     const [isSuccess, setIsSuccess] = useState(false);
 
     const [formData, setFormData] = useState({
+        personalInfo: { idNumber: '', gender: '', phone: '', birthDate: '' },
         emergency: { name: '', relation: '', phone: '', address: '' },
         family: [] as string[],
         vaccines: [] as string[],
@@ -22,10 +24,11 @@ export default function OnboardingPage() {
     });
 
     const steps = [
-        { id: 1, title: 'Contacto de Emergencia', icon: <User size={20} /> },
-        { id: 2, title: 'Antecedentes Familiares', icon: <ShieldAlert size={20} /> },
-        { id: 3, title: 'Vacunas Recientes', icon: <Syringe size={20} /> },
-        { id: 4, title: 'Factores de Riesgo', icon: <AlertTriangle size={20} /> },
+        { id: 1, title: 'Información Personal', icon: <Contact size={20} /> },
+        { id: 2, title: 'Contacto de Emergencia', icon: <User size={20} /> },
+        { id: 3, title: 'Antecedentes Familiares', icon: <ShieldAlert size={20} /> },
+        { id: 4, title: 'Vacunas Recientes', icon: <Syringe size={20} /> },
+        { id: 5, title: 'Factores de Riesgo', icon: <AlertTriangle size={20} /> },
     ];
 
     const handleUpdate = (section: string, data: any) => {
@@ -34,13 +37,26 @@ export default function OnboardingPage() {
 
     const validateStep = (currentStep: number) => {
         switch (currentStep) {
-            case 1:
-                return formData.emergency.name && formData.emergency.phone;
+            case 1: {
+                const { idNumber, gender, phone, birthDate } = formData.personalInfo;
+                if (!idNumber || !gender || !phone || !birthDate) return false;
+                if (idNumber.length !== 10) {
+                    toast.error('La cédula debe tener exactamente 10 dígitos');
+                    return false;
+                }
+                if (phone.length !== 10) {
+                    toast.error('El teléfono debe tener exactamente 10 dígitos');
+                    return false;
+                }
+                return true;
+            }
             case 2:
-                return formData.family.length > 0;
+                return formData.emergency.name && formData.emergency.phone;
             case 3:
-                return formData.vaccines.length > 0;
+                return formData.family.length > 0;
             case 4:
+                return formData.vaccines.length > 0;
+            case 5:
                 return formData.risks.length > 0;
             default:
                 return false;
@@ -52,7 +68,7 @@ export default function OnboardingPage() {
             toast.error('Por favor completa los campos obligatorios antes de continuar');
             return;
         }
-        if (step < 4) {
+        if (step < 5) {
             setStep(prev => prev + 1);
         } else {
             handleSubmit();
@@ -90,12 +106,14 @@ export default function OnboardingPage() {
     const renderStep = () => {
         switch (step) {
             case 1:
-                return <EmergencyContactForm data={formData.emergency} onChange={(d) => handleUpdate('emergency', d)} />;
+                return <PersonalInfoForm data={formData.personalInfo} onChange={(d) => handleUpdate('personalInfo', d)} />;
             case 2:
-                return <FamilyHistoryForm data={formData.family} onChange={(d) => handleUpdate('family', d)} />;
+                return <EmergencyContactForm data={formData.emergency} onChange={(d) => handleUpdate('emergency', d)} />;
             case 3:
-                return <RecentVaccinesForm data={formData.vaccines} onChange={(d) => handleUpdate('vaccines', d)} />;
+                return <FamilyHistoryForm data={formData.family} onChange={(d) => handleUpdate('family', d)} />;
             case 4:
+                return <RecentVaccinesForm data={formData.vaccines} onChange={(d) => handleUpdate('vaccines', d)} />;
+            case 5:
                 return <RiskFactorsForm data={formData.risks} onChange={(d) => handleUpdate('risks', d)} />;
             default:
                 return null;
@@ -165,7 +183,7 @@ export default function OnboardingPage() {
                 <div style={{ padding: '0 40px', marginBottom: '40px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
                         <div style={{ position: 'absolute', top: '20px', left: '0', right: '0', height: '2px', backgroundColor: '#e2e8f0', zIndex: 0 }}></div>
-                        <div style={{ position: 'absolute', top: '20px', left: '0', width: `${((step - 1) / 3) * 100}%`, height: '2px', backgroundColor: '#3b82f6', zIndex: 0, transition: 'width 0.3s ease' }}></div>
+                        <div style={{ position: 'absolute', top: '20px', left: '0', width: `${((step - 1) / 4) * 100}%`, height: '2px', backgroundColor: '#3b82f6', zIndex: 0, transition: 'width 0.3s ease' }}></div>
                         
                         {steps.map((s) => (
                             <div key={s.id} style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
@@ -212,8 +230,8 @@ export default function OnboardingPage() {
                             backgroundColor: '#3b82f6', color: 'white', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 14px 0 rgba(59, 130, 246, 0.39)'
                         }}
                     >
-                        {loading ? <Loader2 className="animate-spin" size={20} /> : (step === 4 ? 'Finalizar' : 'Siguiente')} 
-                        {step !== 4 && !loading && <ArrowRight size={18} />}
+                        {loading ? <Loader2 className="animate-spin" size={20} /> : (step === 5 ? 'Finalizar' : 'Siguiente')} 
+                        {step !== 5 && !loading && <ArrowRight size={18} />}
                     </button>
                 </div>
 

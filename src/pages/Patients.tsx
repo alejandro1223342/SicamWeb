@@ -28,6 +28,7 @@ const Patients: React.FC = () => {
     const [showModal, setShowModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+    const [genderOptions, setGenderOptions] = useState<{ id: string, name: string }[]>([]);
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -40,7 +41,17 @@ const Patients: React.FC = () => {
 
     useEffect(() => {
         fetchPatients();
+        fetchGenderOptions();
     }, [activeSpecialty, urlSpecialtyId]);
+    
+    const fetchGenderOptions = async () => {
+        try {
+            const response = await api.get('/catalogs/type/GENDER');
+            setGenderOptions(response.data);
+        } catch (error) {
+            console.error("Error fetching gender options:", error);
+        }
+    };
 
     const fetchPatients = async () => {
         setFetchingPatients(true);
@@ -94,6 +105,12 @@ const Patients: React.FC = () => {
     };
 
     const handleEditClick = (patient: Patient) => {
+        const genderLabelMap: any = {
+            'M': 'Masculino',
+            'F': 'Femenino',
+            'O': 'Otro'
+        };
+
         setFormData({
             firstName: patient.firstName,
             lastName: patient.lastName,
@@ -101,7 +118,7 @@ const Patients: React.FC = () => {
             phone: patient.phone || '',
             idNumber: patient.idNumber || '',
             birthDate: patient.birthDate ? new Date(patient.birthDate).toISOString().split('T')[0] : '',
-            gender: patient.gender || ''
+            gender: patient.gender ? (genderLabelMap[patient.gender] || patient.gender) : ''
         });
         setIsEditing(true);
         setSelectedPatientId(patient.id);
@@ -329,9 +346,9 @@ const Patients: React.FC = () => {
                                     <label className="form-label">Género</label>
                                     <select name="gender" value={formData.gender} onChange={handleChange} className="form-input" disabled={loading}>
                                         <option value="">Seleccionar...</option>
-                                        <option value="M">Masculino</option>
-                                        <option value="F">Femenino</option>
-                                        <option value="O">Otro</option>
+                                        {genderOptions.map(opt => (
+                                            <option key={opt.id} value={opt.name}>{opt.name}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="form-group">

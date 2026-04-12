@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
     UserCircle,
@@ -25,6 +25,7 @@ interface MenuItem {
 
 export default function Sidebar() {
     const { setActiveSpecialty, availableSpecialties, getActiveSpecialtyId } = useSpecialty();
+    const navigate = useNavigate();
     const [user, setUser] = useState<any>(null);
     const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({
         Acceso: true,
@@ -81,9 +82,16 @@ export default function Sidebar() {
         });
     }
 
-    // Specialty-specific menu items (Only for Doctors)
     const specialtyItems: MenuItem[] = [];
+    const doctorItems: MenuItem[] = [];
+    
     if (user?.role === 'MEDICO') {
+        doctorItems.push({
+            title: 'Mi Perfil',
+            icon: <UserCircle size={20} />,
+            path: '/dashboard/profile'
+        });
+
         availableSpecialties.forEach(spec => {
             specialtyItems.push({
                 title: spec.name,
@@ -99,6 +107,11 @@ export default function Sidebar() {
     }
 
     const handleItemClick = (item: MenuItem) => {
+        if (item.path) {
+            navigate(item.path);
+            return;
+        }
+        
         const selectedSpec = availableSpecialties.find(s => s.name === item.title);
         if (selectedSpec) {
             setActiveSpecialty(selectedSpec);
@@ -131,11 +144,11 @@ export default function Sidebar() {
                 <div className="nav-section">
                     <h3 className="nav-section-title">MENU PRINCIPAL</h3>
 
-                    {[...patientItems, ...specialtyItems, ...managementItems].map((item) => (
+                    {[...patientItems, ...doctorItems, ...specialtyItems, ...managementItems].map((item) => (
                         <div key={item.title}>
                             <button
                                 onClick={() => handleItemClick(item)}
-                                className={`nav-item ${openMenus[item.title] ? 'active' : ''}`}
+                                className={`nav-item ${(openMenus[item.title] || isActive(item.path)) ? 'active' : ''}`}
                             >
                                 <div className="nav-item-content">
                                     {item.icon}
@@ -175,6 +188,7 @@ export default function Sidebar() {
                                             className={`nav-subitem ${(isActive(child.path) || (item.title === 'Estética' && location.pathname.includes('aesthetic-history')) || (item.title === 'Medicina General' && location.pathname.includes('general-history'))) && getActiveSpecialtyId() === item.specialty?.id ? 'active' : ''}`}
                                         >
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                {child.icon}
                                                 {child.title}
                                             </span>
                                         </Link>

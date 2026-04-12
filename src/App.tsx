@@ -32,6 +32,7 @@ import OnboardingPage from './pages/patient/OnboardingPage';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import SpecialtySync from './components/SpecialtySync';
+import DoctorProfilePage from './pages/doctor/DoctorProfilePage';
 import { Outlet } from 'react-router-dom';
 
 // Los componentes SignIn y SignUp se han movido a src/pages/auth/
@@ -87,6 +88,7 @@ function App() {
             <Route path="doctors" element={<DoctorRegistration />} />
             <Route path="medical-offices" element={<MedicalOffices />} />
             <Route path="catalogs" element={<AdminCatalogsPage />} />
+            <Route path="profile" element={<DoctorProfilePage />} />
             
             {/* Specialty-Specific Workspace */}
             <Route path="specialty/:specialtyId" element={<><SpecialtySync /><Outlet /></>}>
