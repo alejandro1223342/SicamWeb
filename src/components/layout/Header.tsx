@@ -19,9 +19,8 @@ export default function Header() {
                 try {
                     const parsedUser = JSON.parse(userData);
                     setUser(parsedUser);
-                    if (parsedUser.role === 'MEDICO' || parsedUser.role === 'ADMIN') {
-                        fetchNotifications();
-                    }
+                    // Todos los roles (PACIENTE, MEDICO, ADMIN) deben poder ver sus notificaciones
+                    fetchNotifications();
                 } catch (e) {
                     console.error("Error al parsear usuario en Header", e);
                 }

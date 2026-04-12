@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Calendar, Clock, MapPin } from 'lucide-react';
+import { Calendar, Clock, MapPin, X, RefreshCw, AlertCircle } from 'lucide-react';
 import api from '../../api';
+import { useToast } from '../Toast';
 
 interface AppointmentData {
     id: string;
@@ -29,6 +30,15 @@ export default function PatientAppointmentsList() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [filter, setFilter] = useState('ALL'); // ALL, UPCOMING, PAST
+    const { showToast } = useToast();
+
+    // Reschedule states
+    const [isRescheduling, setIsRescheduling] = useState(false);
+    const [selectedApp, setSelectedApp] = useState<AppointmentData | null>(null);
+    const [rescheduleDate, setRescheduleDate] = useState<Date | null>(null);
+    const [doctorSchedules, setDoctorSchedules] = useState<any[]>([]);
+    const [bookedAppointments, setBookedAppointments] = useState<any[]>([]);
+    const [loadingAgenda, setLoadingAgenda] = useState(false);
 
     useEffect(() => {
         fetchAppointments();
@@ -102,6 +112,141 @@ export default function PatientAppointmentsList() {
         // ALL shows everything
         return true;
     });
+
+    const canReschedule = (appointmentDateStr: string) => {
+        const appDate = new Date(appointmentDateStr);
+        const now = new Date();
+        const diffInHours = (appDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+        return diffInHours >= 24;
+    };
+
+    // --- Reschedule Logic ---
+    const handleOpenReschedule = async (app: AppointmentData) => {
+        setSelectedApp(app);
+        setIsRescheduling(true);
+        setLoadingAgenda(true);
+        setRescheduleDate(null);
+        setSelectedRescheduleSlot(null);
+
+        try {
+            const token = localStorage.getItem('token');
+            // 1. Obtener los horarios del médico en TODAS las sedes para esta especialidad
+            const officeRes = await api.get('/medical-offices', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            // Recopilar todos los horarios de este doctor y especialidad en todas las oficinas
+            const allSchedules: any[] = [];
+            officeRes.data.forEach((office: any) => {
+                const officeSchedules = office.schedules.filter((s: any) => 
+                    s.doctorId === app.schedule.doctor.id && s.specialtyId === app.schedule.specialty.id
+                ).map((s: any) => ({
+                    ...s,
+                    officeName: office.name // Guardar el nombre de la oficina para el slot
+                }));
+                allSchedules.push(...officeSchedules);
+            });
+            
+            setDoctorSchedules(allSchedules);
+
+            // 2. Obtener citas ya agendadas
+            const appointmentsRes = await api.get(`/appointments/doctor/${app.schedule.doctor.id}`, {
+                params: { specialtyId: app.schedule.specialty.id },
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setBookedAppointments(appointmentsRes.data);
+        } catch (err) {
+            console.error('Error al abrir agenda:', err);
+            showToast('No se pudo cargar la disponibilidad del médico', 'error');
+        } finally {
+            setLoadingAgenda(false);
+        }
+    };
+
+    const generateTimeSlots = (date: Date) => {
+        if (!selectedApp) return [];
+        const dayNames = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
+        const dayName = dayNames[date.getDay()];
+        
+        // Puede haber múltiples horarios en diferentes oficinas para el mismo día
+        const matchingSchedules = doctorSchedules.filter(s => s.dayOfWeek === dayName);
+
+        if (matchingSchedules.length === 0) return [];
+
+        const allSlots: { time: string, scheduleId: string, officeName: string }[] = [];
+        const now = new Date();
+        const isToday = date.toDateString() === now.toDateString();
+
+        matchingSchedules.forEach(schedule => {
+            const scheduleStart = new Date(schedule.startTime);
+            const scheduleEnd = new Date(schedule.endTime);
+
+            let current = new Date(scheduleStart);
+            const endHour = scheduleEnd.getHours();
+            const endMin = scheduleEnd.getMinutes();
+
+            while (current.getHours() < endHour || (current.getHours() === endHour && current.getMinutes() < endMin)) {
+                const slotHour = current.getHours();
+                const slotMin = current.getMinutes();
+                const isFuture = !isToday || (slotHour > now.getHours() || (slotHour === now.getHours() && slotMin > now.getMinutes()));
+
+                if (isFuture) {
+                    const timeString = current.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                    const isOccupied = bookedAppointments.some(ba => {
+                        const baDate = new Date(ba.appointmentDate);
+                        return baDate.getFullYear() === date.getFullYear() &&
+                               baDate.getMonth() === date.getMonth() &&
+                               baDate.getDate() === date.getDate() &&
+                               baDate.getHours() === slotHour &&
+                               baDate.getMinutes() === slotMin;
+                    });
+
+                    if (!isOccupied) {
+                        allSlots.push({ 
+                            time: timeString, 
+                            scheduleId: schedule.id,
+                            officeName: schedule.officeName 
+                        });
+                    }
+                }
+                current.setHours(current.getHours() + 1);
+            }
+        });
+
+        // Ordenar por hora
+        return allSlots.sort((a, b) => a.time.localeCompare(b.time));
+    };
+
+    const [selectedRescheduleSlot, setSelectedRescheduleSlot] = useState<{time: string, scheduleId: string} | null>(null);
+
+    const handleConfirmReschedule = async () => {
+        if (!selectedApp || !rescheduleDate || !selectedRescheduleSlot) return;
+
+        try {
+            setLoading(true);
+            const [hours, minutes] = selectedRescheduleSlot.time.split(':').map(Number);
+            const newDate = new Date(rescheduleDate);
+            newDate.setHours(hours, minutes, 0, 0);
+
+            const token = localStorage.getItem('token');
+            await api.patch(`/appointments/${selectedApp.id}/reschedule`, {
+                scheduleId: selectedRescheduleSlot.scheduleId,
+                appointmentDate: newDate.toISOString(),
+                notes: 'Reagendado por el paciente'
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            showToast('Cita reagendada exitosamente', 'success');
+            setIsRescheduling(false);
+            fetchAppointments();
+        } catch (err: any) {
+            const msg = err.response?.data?.message || 'Error al reagendar la cita';
+            showToast(msg, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (loading) {
         return <div className="loading-state">Cargando tus citas...</div>;
@@ -179,9 +324,139 @@ export default function PatientAppointmentsList() {
                                         <span>{app.schedule.office.name}</span>
                                     </div>
                                 </div>
+
+                                {/* Botón de Reagendar */}
+                                {(() => {
+                                    const isPastDate = new Date(app.appointmentDate) < new Date();
+                                    const isCompleted = app.status === 'COMPLETADA' || app.attendance === 'ATENDIDO' || app.attendance === 'NO_ASISTIO';
+                                    const isBelongsToHistory = isPastDate || isCompleted;
+
+                                    return !isBelongsToHistory && app.status !== 'CANCELADA' && (
+                                        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            {!canReschedule(app.appointmentDate) ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f59e0b', fontSize: '0.8rem' }}>
+                                                    <AlertCircle size={14} />
+                                                    <span>Faltan menos de 24h. No se puede reagendar.</span>
+                                                </div>
+                                            ) : (
+                                                <div style={{ color: '#64748b', fontSize: '0.8rem' }}>
+                                                    ¿Necesitas cambiar la fecha?
+                                                </div>
+                                            )}
+                                            <button 
+                                                onClick={() => handleOpenReschedule(app)}
+                                                disabled={!canReschedule(app.appointmentDate)}
+                                                style={{ 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    gap: '8px', 
+                                                    padding: '0.625rem 1.25rem', 
+                                                    backgroundColor: canReschedule(app.appointmentDate) ? '#EDE9FE' : '#f8fafc',
+                                                    color: canReschedule(app.appointmentDate) ? '#5D5FEF' : '#94a3b8',
+                                                    border: 'none',
+                                                    borderRadius: '0.5rem',
+                                                    fontWeight: 600,
+                                                    fontSize: '0.875rem',
+                                                    cursor: canReschedule(app.appointmentDate) ? 'pointer' : 'not-allowed',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <RefreshCw size={16} />
+                                                Reagendar Cita
+                                            </button>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         );
                     })}
+                </div>
+            )}
+
+            {/* Modal de Reagendamiento */}
+            {isRescheduling && selectedApp && (
+                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={() => setIsRescheduling(false)}>
+                    <div style={{ backgroundColor: 'white', width: '100%', maxWidth: '600px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ padding: '20px 30px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#1C2434' }}>Reagendar Cita</h3>
+                                <p style={{ margin: '4px 0 0 0', fontSize: '0.875rem', color: '#64748B' }}>Dr. {selectedApp.schedule.doctor.firstName} {selectedApp.schedule.doctor.lastName}</p>
+                            </div>
+                            <button onClick={() => setIsRescheduling(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}><X size={24} /></button>
+                        </div>
+                        
+                        <div style={{ padding: '24px 30px', maxHeight: '70vh', overflowY: 'auto' }}>
+                            {loadingAgenda ? (
+                                <div style={{ textAlign: 'center', padding: '40px' }}>Cargando disponibilidad...</div>
+                            ) : (
+                                <>
+                                    <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}><Calendar size={18} /> Nueva Fecha</h4>
+                                    <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '24px' }}>
+                                        {[...Array(14)].map((_, i) => {
+                                            const d = new Date();
+                                            d.setDate(d.getDate() + i + 1); // Empezar desde mañana
+                                            const dayNames = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
+                                            const hasSchedule = doctorSchedules.some(s => s.dayOfWeek === dayNames[d.getDay()]);
+                                            
+                                            if (!hasSchedule) return null;
+
+                                            const isActive = rescheduleDate?.toDateString() === d.toDateString();
+                                            return (
+                                                <button key={i} onClick={() => { setRescheduleDate(d); setSelectedRescheduleSlot(null); }} style={{ flexShrink: 0, minWidth: '80px', height: '85px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: '16px', border: isActive ? '2px solid #5D5FEF' : '1px solid #E2E8F0', backgroundColor: isActive ? '#f5f3ff' : 'white', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: isActive ? '#5D5FEF' : '#64748B' }}>{d.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase()}</span>
+                                                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: isActive ? '#5D5FEF' : '#1e293b' }}>{d.getDate()}</span>
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isActive ? '#5D5FEF' : '#64748B' }}>{d.toLocaleDateString('es-ES', { month: 'short' })}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}><Clock size={18} /> Nuevo Horario e Instalación</h4>
+                                    {!rescheduleDate ? (
+                                        <div style={{ textAlign: 'center', padding: '24px', backgroundColor: '#F8FAFC', borderRadius: '16px', color: '#94A3B8' }}>Selecciona una fecha primero</div>
+                                    ) : (
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px' }}>
+                                            {generateTimeSlots(rescheduleDate).map((slot) => {
+                                                const isActive = selectedRescheduleSlot?.time === slot.time && selectedRescheduleSlot?.scheduleId === slot.scheduleId;
+                                                return (
+                                                    <button 
+                                                        key={`${slot.scheduleId}-${slot.time}`} 
+                                                        onClick={() => setSelectedRescheduleSlot({ time: slot.time, scheduleId: slot.scheduleId })} 
+                                                        style={{ 
+                                                            padding: '12px 10px', 
+                                                            borderRadius: '14px', 
+                                                            border: isActive ? '2px solid #5D5FEF' : '1px solid #E2E8F0', 
+                                                            backgroundColor: isActive ? '#f5f3ff' : 'white', 
+                                                            cursor: 'pointer',
+                                                            textAlign: 'center',
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            gap: '4px',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                    >
+                                                        <span style={{ fontWeight: 800, color: isActive ? '#5D5FEF' : '#1e293b', fontSize: '1rem' }}>{slot.time}</span>
+                                                        <span style={{ fontSize: '0.65rem', fontWeight: 600, color: isActive ? '#5D5FEF' : '#64748B', textTransform: 'uppercase' }}>{slot.officeName}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                            {generateTimeSlots(rescheduleDate).length === 0 && <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '20px', color: '#94A3B8' }}>No hay turnos disponibles para este día</div>}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+
+                        <div style={{ padding: '20px 30px', borderTop: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
+                            <button 
+                                onClick={handleConfirmReschedule}
+                                disabled={!rescheduleDate || !selectedRescheduleSlot || loading}
+                                style={{ width: '100%', padding: '14px', backgroundColor: '#5D5FEF', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, cursor: (!rescheduleDate || !selectedRescheduleSlot || loading) ? 'not-allowed' : 'pointer', opacity: (!rescheduleDate || !selectedRescheduleSlot || loading) ? 0.6 : 1, transition: 'all 0.2s' }}
+                            >
+                                {loading ? 'Procesando...' : 'Confirmar Cambio de Fecha'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

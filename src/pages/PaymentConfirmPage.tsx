@@ -47,8 +47,9 @@ export default function PaymentConfirmPage() {
                     appointmentPayload.paymentId = id;
 
                     // 3. Create the appointment
-                    // Remove before API call to avoid double triggering if this function is re-entered somehow
                     sessionStorage.removeItem('pending_appointment');
+                    sessionStorage.removeItem('pending_rate');
+                    sessionStorage.removeItem('pending_metadata');
                     await api.post('/appointments', appointmentPayload);
                     
                     setStatus('success');
@@ -57,6 +58,20 @@ export default function PaymentConfirmPage() {
                 } else {
                     setStatus('error');
                     setMessage(`El pago no fue aprobado. Estado: ${confirmResponse.data.transactionStatus}`);
+                    
+                    // Notificar al PACIENTE sobre el fallo
+                    const rate = sessionStorage.getItem('pending_rate');
+                    const metadataRaw = sessionStorage.getItem('pending_metadata');
+                    if (rate && metadataRaw) {
+                        const meta = JSON.parse(metadataRaw);
+                        const formattedPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(rate));
+                        
+                        await api.post('/notifications', {
+                            title: 'Pago Rechazado - Cita No Agendada',
+                            message: `Hubo un problema con tu pago de ${formattedPrice} para la cita con el Dr. ${meta.doctorName} (${meta.specialtyName}) en ${meta.officeName}. Por favor reintenta.`,
+                            type: 'APPOINTMENT'
+                        });
+                    }
                 }
             } catch (error: any) {
                 console.error('Payment confirmation error:', error);

@@ -64,11 +64,16 @@ export default function PatientClinicalOffices() {
     const [loadingSlots, setLoadingSlots] = useState(false);
 
     useEffect(() => {
+        // Limpiar parámetros de PayPhone de la URL si existen (después de una cancelación o retorno)
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('clientTransactionId') || params.has('id')) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        
         const fetchOffices = async () => {
             try {
                 const response = await api.get('/medical-offices');
                 const offices = response.data;
-
                 const cards: DoctorCardData[] = [];
 
                 offices.forEach((office: Office) => {
@@ -277,9 +282,14 @@ export default function PatientClinicalOffices() {
                 notes: 'Agendado desde el portal de pacientes (Redirección PayPhone)'
             };
 
-            // Save details to be used by the redirect page
+            // Save details to be used by the redirect page and for fallback notifications
             sessionStorage.setItem('pending_appointment', JSON.stringify(appointmentPayload));
             sessionStorage.setItem('pending_rate', rate.toString());
+            sessionStorage.setItem('pending_metadata', JSON.stringify({
+                doctorName: selectedDoctor.doctorName,
+                specialtyName: selectedDoctor.specialty.name,
+                officeName: selectedDoctor.officeName
+            }));
 
             // Jump to the redirecting page as requested by user
             navigate('/payment/redirecting');

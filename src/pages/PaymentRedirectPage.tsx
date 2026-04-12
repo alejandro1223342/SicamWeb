@@ -22,7 +22,9 @@ export default function PaymentRedirectPage() {
                     return;
                 }
 
-                const clientTransactionId = `SICAM-${Date.now()}`;
+                // Generar un ID único robusto con milisegundos y componente aleatorio para evitar colisiones en reintentos
+                const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
+                const clientTransactionId = `SICAM-${Date.now()}-${randomStr}`;
                 const returnUrl = `${window.location.origin}/payment/confirm`;
 
                 const prepareData = {
