@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Users, Calendar, DollarSign, TrendingUp, Loader2 } from 'lucide-react';
 import MonthlySales from '../components/dashboard/MonthlySales';
 import Statistics from '../components/dashboard/Statistics';
 import EngagementCard from '../components/dashboard/EngagementCard';
+import StatsCard from '../components/dashboard/StatsCard';
 import api from '../api';
-import { Loader2 } from 'lucide-react';
 
 export default function Dashboard() {
     const [stats, setStats] = useState<any>(null);
@@ -37,19 +38,61 @@ export default function Dashboard() {
         );
     }
 
+    const totalSales = stats?.monthlySales?.reduce((acc: number, curr: any) => acc + curr.sales, 0) || 0;
+    const totalRevenue = stats?.revenue?.total || 0;
+    const todayRevenue = stats?.revenue?.today || 0;
+    const goalPercentage = stats?.revenue?.percentage || 0;
+
     return (
-        <div className="dashboard">
-            {/* Row 1: Bar Chart + Engagement Card */}
-            <div className="charts-grid">
-                <MonthlySales salesData={stats?.monthlySales || []} />
-                <EngagementCard revenueData={stats?.revenue} />
+        <div className="dashboard-container" style={{ padding: '24px' }}>
+            <div className="page-header" style={{ marginBottom: '32px' }}>
+                <div>
+                    <h1 className="page-title">Panel de Control</h1>
+                    <p className="page-subtitle">Bienvenido de nuevo. Aquí tienes un resumen de hoy.</p>
+                </div>
             </div>
 
-            {/* Row 2: Statistics (Area Chart) */}
-            <Statistics 
-                data={stats?.monthlySales || []} 
-                salesCount={stats?.monthlySales?.reduce((acc: number, curr: any) => acc + curr.sales, 0) || 0} 
-            />
+            {/* Tarjetas de Resumen */}
+            <div className="stats-grid" style={{ marginBottom: '32px' }}>
+                <StatsCard 
+                    title="Citas del Mes" 
+                    value={totalSales} 
+                    change={12} 
+                    icon={Calendar} 
+                />
+                <StatsCard 
+                    title="Ingresos Totales" 
+                    value={`$${totalRevenue.toLocaleString()}`} 
+                    change={8} 
+                    icon={DollarSign} 
+                />
+                <StatsCard 
+                    title="Ingresos Hoy" 
+                    value={`$${todayRevenue.toLocaleString()}`} 
+                    change={todayRevenue > 0 ? 5 : 0} 
+                    icon={TrendingUp} 
+                />
+                <StatsCard 
+                    title="Cumplimiento Meta" 
+                    value={`${goalPercentage}%`} 
+                    change={goalPercentage > 50 ? 2 : -1} 
+                    icon={Users} 
+                />
+            </div>
+
+            <div className="charts-grid">
+                <div className="charts-left" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {/* El componente Statistics es el de "Estadísticas Generales" */}
+                    <Statistics 
+                        data={stats?.monthlySales || []} 
+                        salesCount={totalSales} 
+                    />
+                    <MonthlySales salesData={stats?.monthlySales || []} />
+                </div>
+                <div className="charts-right" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <EngagementCard revenueData={stats?.revenue} />
+                </div>
+            </div>
         </div>
     );
 }

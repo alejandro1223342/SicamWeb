@@ -5,7 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
-import { X, AlertTriangle } from 'lucide-react';
+import { X } from 'lucide-react';
 import axios from 'axios';
 import api from '../api';
 import toast, { Toaster } from 'react-hot-toast';
@@ -48,7 +48,8 @@ export default function Schedules() {
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    
     interface ScheduleFormData {
         title: string;
         color: string;
@@ -74,7 +75,12 @@ export default function Schedules() {
         return events.filter(event => event.extendedProps?.officeId === selectedOfficeId);
     }, [events, selectedOfficeId]);
 
-
+    // Track window size for responsiveness
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Load User and Offices
     useEffect(() => {
@@ -119,7 +125,6 @@ export default function Schedules() {
             });
 
             setEvents(response.data.map((s: any) => {
-                // Correctly parse ISO string to Local Time (HH:mm)
                 const extractLocalTime = (dateStr: string) => {
                     if (!dateStr) return '00:00';
                     const date = new Date(dateStr);
@@ -137,18 +142,16 @@ export default function Schedules() {
                 return {
                     id: s.id,
                     title: `${s.office?.name || 'Consultorio'} (${start} - ${end})`,
-                    // Recurring Event Properties
                     daysOfWeek: [getDayId(s.dayOfWeek)],
                     startTime: start,
                     endTime: end,
                     startRecur: s.startDate.split('T')[0],
                     endRecur: endDate.toISOString().split('T')[0],
-                    // Visuals
                     backgroundColor: s.isActive ? '#6366f1' : '#e5e7eb',
                     borderColor: s.isActive ? '#6366f1' : '#d1d5db',
                     textColor: s.isActive ? 'white' : '#9ca3af',
                     extendedProps: {
-                        isActive: s.isActive !== false, // Default to true if undefined
+                        isActive: s.isActive !== false,
                         officeId: s.officeId,
                         specialtyId: s.specialtyId,
                         originalStartDate: s.startDate,
@@ -183,7 +186,6 @@ export default function Schedules() {
         setModalMode('edit');
         setSelectedEventId(clickInfo.event.id);
 
-        // Helper to extract HH:mm from a Date object
         const formatTime = (date: Date | null) => {
             if (!date) return '00:00';
             const hours = date.getHours().toString().padStart(2, '0');
@@ -192,7 +194,7 @@ export default function Schedules() {
         };
 
         setFormData({
-            title: clickInfo.event.title.split('(')[0].trim(), // Clean title
+            title: clickInfo.event.title.split('(')[0].trim(),
             color: 'primary',
             startDate: clickInfo.event.extendedProps.originalStartDate ? clickInfo.event.extendedProps.originalStartDate.split('T')[0] : clickInfo.event.startStr.split('T')[0],
             endDate: clickInfo.event.extendedProps.originalEndDate ? clickInfo.event.extendedProps.originalEndDate.split('T')[0] : clickInfo.event.endStr.split('T')[0],
@@ -205,7 +207,6 @@ export default function Schedules() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
         try {
             const userData = localStorage.getItem('user');
             if (!userData) {
@@ -219,7 +220,6 @@ export default function Schedules() {
                 return;
             }
 
-            // Construct valid Dates for startTime/endTime
             const startDateTime = new Date(`${formData.startDate}T${formData.startTime}:00`);
             const endDateTime = new Date(`${formData.endDate}T${formData.endTime}:00`);
 
@@ -234,8 +234,6 @@ export default function Schedules() {
                 endTime: endDateTime.toISOString(),
                 isActive: formData.isActive
             };
-
-            console.log('Enviando Payload:', payload);
 
             if (!payload.specialtyId) {
                 toast.error('Selecciona una especialidad activa primero.');
@@ -255,7 +253,6 @@ export default function Schedules() {
         } catch (error) {
             console.error('Error saving schedule:', error);
             if (axios.isAxiosError(error) && error.response) {
-                console.error('Server response:', error.response.data);
                 toast.error(`Error: ${error.response.data.message || 'Error al guardar'}`);
             } else {
                 toast.error('Error al guardar el horario');
@@ -263,20 +260,14 @@ export default function Schedules() {
         }
     };
 
-    const handleDelete = () => {
-        if (selectedEventId) {
-            setShowDeleteConfirm(true);
-        }
-    };
-
-    const confirmDelete = async () => {
+    const handleDelete = async () => {
         if (!selectedEventId) return;
-
+        if (!window.confirm('¿Estás seguro de que deseas eliminar este horario?')) return;
+        
         try {
             await api.delete(`/schedules/${selectedEventId}`);
             toast.success('Horario eliminado');
             setShowModal(false);
-            setShowDeleteConfirm(false);
             const userData = localStorage.getItem('user');
             if (userData) fetchSchedules(JSON.parse(userData).id);
         } catch (error) {
@@ -289,17 +280,24 @@ export default function Schedules() {
         <div className="management-container" style={{ maxWidth: '100%', padding: '24px' }}>
             <Toaster position="top-right" />
 
-            {/* Header */}
-            <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
+            {/* Header Sensible al Dispositivo */}
+            <div style={{ 
+                marginBottom: '24px', 
+                display: 'flex', 
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: 'space-between', 
+                alignItems: isMobile ? 'flex-start' : 'end',
+                gap: isMobile ? '16px' : '0'
+            }}>
                 <div>
-                    <h1 style={{ fontSize: '1.8rem', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Mi Agenda</h1>
-                    <div style={{ fontSize: '0.95rem', color: '#6b7280' }}>
+                    <h1 style={{ fontSize: isMobile ? '1.5rem' : '1.8rem', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Mi Agenda</h1>
+                    <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>
                         Gestión de Horarios {'>'} <span style={{ color: '#6366f1', fontWeight: '500' }}>Calendario</span>
                     </div>
                 </div>
 
                 {offices.length > 1 && (
-                    <div style={{ minWidth: '200px' }}>
+                    <div style={{ width: isMobile ? '100%' : '200px' }}>
                         <label style={{ display: 'block', fontSize: '0.8rem', color: '#6b7280', marginBottom: '4px' }}>Consultorio:</label>
                         <select
                             className="form-input"
@@ -316,7 +314,7 @@ export default function Schedules() {
             </div>
 
             <div className="card" style={{
-                padding: '20px',
+                padding: isMobile ? '10px' : '20px',
                 borderRadius: '16px',
                 border: 'none',
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
@@ -326,21 +324,23 @@ export default function Schedules() {
                 <style>{`
                     .fc-toolbar { 
                         display: flex;
+                        flex-direction: ${isMobile ? 'column' : 'row'};
+                        gap: 10px;
                         justify-content: space-between;
                         align-items: center;
                         padding: 0 0 24px 0; 
                         margin-bottom: 0 !important; 
                     }
                     .fc-toolbar-title { 
-                        font-size: 1.25rem !important; 
-                        fontWeight: 700; 
+                        font-size: ${isMobile ? '1rem' : '1.25rem'} !important; 
+                        font-weight: 700; 
                         color: #111827; 
                     }
                     .fc-button { 
                         border-radius: 8px !important; 
                         font-weight: 500; 
-                        font-size: 0.875rem; 
-                        padding: 0.6rem 1rem !important; 
+                        font-size: 0.8rem !important; 
+                        padding: 0.5rem 0.8rem !important; 
                         transition: all 0.2s;
                         box-shadow: none !important;
                         border: 1px solid #e5e7eb !important;
@@ -348,13 +348,14 @@ export default function Schedules() {
                         color: #374151 !important;
                     }
                     .fc-button:hover { background-color: #f9fafb !important; border-color: #d1d5db !important; }
+                    .fc-button-group { display: flex; gap: 2px; }
                     .fc-button-group > .fc-button {
                         background-color: transparent !important;
                         border: none !important;
                         color: #6b7280 !important;
                         border-radius: 8px !important;
                         margin: 0 !important;
-                        font-size: 0.85rem;
+                        font-size: 0.75rem !important;
                     }
                     .fc-button-group > .fc-button.fc-button-active {
                         background-color: #fff !important;
@@ -364,47 +365,51 @@ export default function Schedules() {
                     } 
                     .fc-today-button { display: none; } 
                     .fc-theme-standard td, .fc-theme-standard th { border-color: #f3f4f6; }
-                    .fc-col-header-cell { padding: 16px 0; background: transparent; border-bottom: 2px solid #f3f4f6; }
+                    .fc-col-header-cell { padding: 8px 0 !important; background: transparent; border-bottom: 2px solid #f3f4f6; }
                     .fc-event { 
                         border-radius: 6px; 
                         border: none; 
                         padding: 2px 4px; 
-                        font-size: 0.85rem; 
+                        font-size: 0.75rem !important; 
                         font-weight: 500;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+                        box-shadow: 0 2px 3px rgba(0,0,0,0.05); 
                     }
                     .fc-addEventButton-button { 
                         background-color: #5D5FEF !important; 
                         border-color: #5D5FEF !important;
                         color: white !important; 
+                        width: ${isMobile ? '100%' : 'auto'};
                     }
                 `}</style>
 
-                <div style={{ height: '700px', overflow: 'hidden' }}>
+                <div style={{ height: isMobile ? '500px' : '700px', overflow: 'hidden' }}>
                     <FullCalendar
                         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                         locale={esLocale}
-                        headerToolbar={{
+                        headerToolbar={isMobile ? {
+                            left: 'prev,next',
+                            center: 'title',
+                            right: 'addEventButton'
+                        } : {
                             left: 'prev,next,addEventButton',
                             center: 'title',
                             right: 'dayGridMonth,timeGridWeek,timeGridDay'
                         }}
                         customButtons={{
                             addEventButton: {
-                                text: '+ Nuevo Evento',
+                                text: '+ Nuevo',
                                 click: () => {
                                     setModalMode('add');
                                     setShowModal(true);
                                 },
                             }
                         }}
-                        initialView="timeGridWeek"
+                        initialView={isMobile ? "timeGridDay" : "timeGridWeek"}
                         editable={true}
                         selectable={true}
                         selectMirror={true}
                         dayMaxEvents={true}
                         weekends={true}
-                        initialEvents={events}
                         events={filteredEvents}
                         select={handleDateSelect}
                         eventClick={handleEventClick}
@@ -417,187 +422,108 @@ export default function Schedules() {
                         eventDrop={async (info) => {
                             try {
                                 const newStart = info.event.start;
-                                const newEnd = info.event.end || info.event.start; // Fallback if null
-
+                                const newEnd = info.event.end || info.event.start;
                                 if (!newStart || !newEnd) return;
-
-                                // Helper to map Spanish backend days
                                 const days = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
                                 const dayOfWeek = days[newStart.getDay()];
-
-                                // Send ISO strings as expected by backend DTO
                                 await api.patch(`/schedules/${info.event.id}`, {
                                     startTime: newStart.toISOString(),
                                     endTime: newEnd.toISOString(),
                                     dayOfWeek
                                 });
-
                                 toast.success('Horario actualizado');
                             } catch (error: any) {
-                                console.error('Error updating schedule via drag:', error);
-                                const msg = error.response?.data?.message || 'Error al mover el evento';
-                                toast.error(`Error: ${Array.isArray(msg) ? msg[0] : msg}`);
                                 info.revert();
+                                toast.error('Error al mover el evento');
                             }
                         }}
                         eventResize={async (info) => {
                             try {
                                 const newStart = info.event.start;
                                 const newEnd = info.event.end;
-
                                 if (!newStart || !newEnd) return;
-
                                 await api.patch(`/schedules/${info.event.id}`, {
                                     startTime: newStart.toISOString(),
                                     endTime: newEnd.toISOString()
                                 });
-
                                 toast.success('Duración actualizada');
                             } catch (error: any) {
-                                console.error('Error updating schedule via resize:', error);
-                                const msg = error.response?.data?.message || 'Error al cambiar duración';
-                                toast.error(`Error: ${Array.isArray(msg) ? msg[0] : msg}`);
                                 info.revert();
+                                toast.error('Error al cambiar duración');
                             }
                         }}
                     />
                 </div>
             </div>
 
-            {/* Modal Profesional */}
+            {/* Modal */}
             {showModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-                    <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '450px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
-                            <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827' }}>
-                                {modalMode === 'add' ? 'Agendar Nuevo Evento' : 'Editar Evento'}
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
+                    <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '450px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #f3f4f6' }}>
+                            <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827' }}>
+                                {modalMode === 'add' ? 'Nuevo Evento' : 'Editar Evento'}
                             </h3>
-                            <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '4px', borderRadius: '4px' }}>
+                            <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '4px' }}>
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>Título</label>
+                        <form onSubmit={handleSubmit} style={{ padding: '20px' }}>
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>Título</label>
                                 <input
                                     type="text"
                                     required
                                     value={formData.title}
                                     onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                    placeholder="Ej. Consulta General"
-                                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.2s' }}
+                                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.9rem' }}
                                 />
                             </div>
 
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '10px', color: '#374151' }}>Etiqueta de Color</label>
-                                <div style={{ display: 'flex', gap: '12px' }}>
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>Color</label>
+                                <div style={{ display: 'flex', gap: '8px' }}>
                                     {[
-                                        { id: 'primary', color: '#6366f1', label: 'Azul' },
-                                        { id: 'success', color: '#10b981', label: 'Verde' },
-                                        { id: 'warning', color: '#f59e0b', label: 'Naranja' },
-                                        { id: 'danger', color: '#ef4444', label: 'Rojo' }
+                                        { id: 'primary', color: '#6366f1' },
+                                        { id: 'success', color: '#10b981' },
+                                        { id: 'warning', color: '#f59e0b' },
+                                        { id: 'danger', color: '#ef4444' }
                                     ].map(theme => (
-                                        <div
-                                            key={theme.id}
-                                            onClick={() => setFormData({ ...formData, color: theme.id })}
-                                            style={{
-                                                width: '24px',
-                                                height: '24px',
-                                                borderRadius: '50%',
-                                                background: theme.color,
-                                                cursor: 'pointer',
-                                                border: formData.color === theme.id ? `3px solid #fff` : '2px solid transparent',
-                                                boxShadow: formData.color === theme.id ? `0 0 0 2px ${theme.color}` : 'none'
-                                            }}
-                                            title={theme.label}
-                                        />
+                                        <div key={theme.id} onClick={() => setFormData({ ...formData, color: theme.id })} style={{ width: '20px', height: '20px', borderRadius: '50%', background: theme.color, cursor: 'pointer', border: formData.color === theme.id ? `2px solid #000` : '1px solid #eee' }} />
                                     ))}
                                 </div>
                             </div>
 
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '8px', color: '#374151' }}>Fecha de Inicio</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '10px' }}>
-                                    <input type="date" required value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
-                                    <input type="time" required value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>Inicio</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                    <input type="date" required value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} style={{ padding: '8px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.85rem' }} />
+                                    <input type="time" required value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} style={{ padding: '8px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.85rem' }} />
                                 </div>
                             </div>
 
-                            <div style={{ marginBottom: '24px' }}>
-                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '8px', color: '#374151' }}>Fecha de Fin</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '10px' }}>
-                                    <input type="date" required value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
-                                    <input type="time" required value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>Fin</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                    <input type="date" required value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} style={{ padding: '8px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.85rem' }} />
+                                    <input type="time" required value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} style={{ padding: '8px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.85rem' }} />
                                 </div>
                             </div>
 
-                            <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <input
-                                    type="checkbox"
-                                    id="isActive"
-                                    checked={formData.isActive}
-                                    onChange={e => setFormData({ ...formData, isActive: e.target.checked })}
-                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                                />
-                                <label htmlFor="isActive" style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151', cursor: 'pointer' }}>
-                                    Horario Activo
-                                </label>
-                            </div>
-
-                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '16px', borderTop: '1px solid #f3f4f6' }}>
-                                {modalMode === 'edit' ? (
-                                    <button type="button" onClick={handleDelete} style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}>
-                                        Eliminar
-                                    </button>
-                                ) : <div></div>}
-
-                                <div style={{ display: 'flex', gap: '12px' }}>
-                                    <button type="button" onClick={() => setShowModal(false)} style={{ background: 'white', color: '#6b7280', border: '1px solid #d1d5db', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}>
-                                        Cancelar
-                                    </button>
-                                    <button type="submit" style={{ background: '#6366f1', color: 'white', border: 'none', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem', boxShadow: '0 4px 6px -1px rgba(99, 102, 241, 0.4)' }}>
-                                        {modalMode === 'add' ? 'Guardar Evento' : 'Actualizar'}
-                                    </button>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
+                                {modalMode === 'edit' && (
+                                    <button type="button" onClick={handleDelete} style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '0.85rem' }}>Eliminar</button>
+                                )}
+                                <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
+                                    <button type="button" onClick={() => setShowModal(false)} style={{ background: 'white', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '8px', fontSize: '0.85rem' }}>Cancelar</button>
+                                    <button type="submit" style={{ background: '#6366f1', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem' }}>Aceptar</button>
                                 </div>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
-
-            {
-                showDeleteConfirm && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>
-                        <div style={{ background: 'white', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', transform: 'scale(1)', transition: 'transform 0.2s' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-                                    <AlertTriangle size={24} color="#ef4444" />
-                                </div>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>¿Eliminar este horario?</h3>
-                                <p style={{ color: '#6b7280', fontSize: '0.95rem', marginBottom: '24px' }}>
-                                    Esta acción no se puede deshacer. El horario se eliminará permanentemente de tu calendario.
-                                </p>
-                                <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
-                                    <button
-                                        onClick={() => setShowDeleteConfirm(false)}
-                                        style={{ flex: 1, background: 'white', border: '1px solid #d1d5db', color: '#374151', padding: '10px', borderRadius: '8px', fontWeight: '500', cursor: 'pointer', transition: 'background 0.2s' }}
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        onClick={confirmDelete}
-                                        style={{ flex: 1, background: '#ef4444', border: 'none', color: 'white', padding: '10px', borderRadius: '8px', fontWeight: '500', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.4)', transition: 'background 0.2s' }}
-                                    >
-                                        Eliminar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-        </div >
+        </div>
     );
 }

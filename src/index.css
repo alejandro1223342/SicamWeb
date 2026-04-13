@@ -472,8 +472,60 @@ body {
   background: var(--bg-page);
 }
 
+.stats-filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-white);
+  color: var(--text-gray);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.date-range {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-gray);
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .stats-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .date-range {
+    margin-left: 0;
+    justify-content: center;
+  }
+}
+
 .chart-container {
   margin-top: 24px;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 24px;
+  margin-top: 24px;
+  flex-wrap: wrap;
 }
 
 /* Monthly Target Specific */
@@ -1724,4 +1776,151 @@ body {
 .btn-danger-outline:hover {
   background: #FECACA;
   border-color: #FCA5A5;
+}
+
+/* ===== Responsividad: Sidebar y Header ===== */
+.mobile-menu-btn {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 0px; 
+  }
+
+  .sidebar {
+    width: 100%;
+    max-width: none;
+    height: 100vh;
+    top: -100vh;
+    left: 0;
+    box-shadow: none;
+    visibility: hidden;
+    opacity: 0;
+    z-index: 99999;
+    background-color: #ffffff;
+    transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    overflow-y: auto;
+  }
+
+  .sidebar.open {
+    top: 0;
+    visibility: visible;
+    opacity: 1;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+  }
+
+  .header {
+    left: 0 !important;
+  }
+
+  .header-content {
+    justify-content: space-between !important;
+    padding: 0 16px;
+  }
+
+  .mobile-menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-dark);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+  }
+  
+  .mobile-menu-btn:hover {
+    background: #F1F5F9;
+  }
+
+  .sidebar-close-btn {
+    display: flex !important;
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #F8FAFC;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px;
+    color: var(--text-gray);
+    cursor: pointer;
+    z-index: 110;
+    transition: all 0.2s;
+  }
+  
+  .sidebar-close-btn:hover {
+    color: var(--danger);
+    background: #FEE2E2;
+  }
+
+  .sidebar-backdrop {
+    display: block !important;
+    backdrop-filter: blur(4px);
+    transition: opacity 0.3s ease;
+  }
+  
+  .content-area {
+    padding: 16px;
+  }
+
+  /* Notificaciones en móvil */
+  .notifications-menu > div {
+    position: fixed !important;
+    top: 72px !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+  
+  .user-name {
+    display: none; /* Ocultar nombre en móviles para ahorrar espacio */
+  }
+}
+
+/* ===== Gestión de Pacientes Responsivo ===== */
+.patient-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.patient-mobile-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.patient-mobile-card:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 768px) {
+  .table-responsive {
+    display: none;
+  }
+  
+  .management-controls {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .search-wrapper {
+    max-width: none !important;
+  }
+
+  .stats-group {
+    justify-content: space-between !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .patient-card-list {
+    display: none;
+  }
 }

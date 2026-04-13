@@ -31,6 +31,7 @@ import PaymentRedirectPage from './pages/PaymentRedirectPage';
 import OnboardingPage from './pages/patient/OnboardingPage';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
+import LogoutPage from './pages/auth/LogoutPage';
 import SpecialtySync from './components/SpecialtySync';
 import DoctorProfilePage from './pages/doctor/DoctorProfilePage';
 import { Outlet } from 'react-router-dom';
@@ -73,6 +74,7 @@ function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/logout" element={<LogoutPage />} />
           {/* Patient Routes - Now under DashboardLayout */}
           <Route path="/patient/onboarding" element={<OnboardingPage />} />
           <Route path="/patient" element={<RequireOnboarding><DashboardLayout /></RequireOnboarding>}>

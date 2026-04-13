@@ -501,7 +501,7 @@ export default function PatientClinicalOffices() {
                 /* ... existing styles ... */
                 .offices-grid-premium {
                     display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+                    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
                     gap: 30px;
                 }
 
@@ -532,6 +532,7 @@ export default function PatientClinicalOffices() {
                     align-items: center;
                     justify-content: center;
                     color: #3C50E0;
+                    flex-shrink: 0;
                 }
 
                 .office-title-block h3 { margin: 0; font-size: 1.4rem; font-weight: 700; color: #1C2434; }
@@ -602,13 +603,28 @@ export default function PatientClinicalOffices() {
 
                 .dates-horizontal-scroll {
                     display: flex;
-                    flex-wrap: wrap;
+                    flex-wrap: nowrap;
+                    overflow-x: auto;
                     gap: 12px;
-                    padding: 5px;
+                    padding: 5px 5px 15px 5px;
+                    -webkit-overflow-scrolling: touch;
+                }
+
+                /* Personalización de scrollbar para el scroll horizontal */
+                .dates-horizontal-scroll::-webkit-scrollbar {
+                    height: 6px;
+                }
+                .dates-horizontal-scroll::-webkit-scrollbar-track {
+                    background: #F1F5F9;
+                    border-radius: 10px;
+                }
+                .dates-horizontal-scroll::-webkit-scrollbar-thumb {
+                    background: #CBD5E1;
+                    border-radius: 10px;
                 }
 
                 .date-chip {
-                    flex: 1 1 100px;
+                    flex: 0 0 100px;
                     height: 100px;
                     background: #F8FAFC;
                     border: 1px solid #E2E8F0;
@@ -705,7 +721,76 @@ export default function PatientClinicalOffices() {
 
                 .loader-premium { font-weight: 700; color: #3C50E0; display: flex; align-items: center; gap: 15px; }
                 .loader-premium::after { content: ""; width: 24px; height: 24px; border: 3px solid #3C50E0; border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite; }
+                
+                /* MEDIA QUERIES PARA RESPONSIVIDAD */
+                @media (max-width: 768px) {
+                    .page-header-premium {
+                        padding: 30px 20px;
+                        margin-bottom: 25px;
+                    }
+                    .header-text h1 {
+                        font-size: 1.8rem;
+                    }
+                    .header-text p {
+                        font-size: 0.9rem;
+                    }
+                    .offices-grid-premium {
+                        grid-template-columns: 1fr;
+                        gap: 20px;
+                        padding: 0 10px;
+                    }
+                    .office-card-premium {
+                        padding: 20px;
+                    }
+                    .modal-content-premium {
+                        max-height: 100vh;
+                        border-radius: 20px 20px 0 0;
+                        margin-top: auto;
+                    }
+                    .modal-header-premium {
+                        padding: 15px 20px;
+                    }
+                    .modal-body-premium {
+                        padding: 20px;
+                        gap: 20px;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .header-text h1 {
+                        font-size: 1.5rem;
+                    }
+                    .doctor-avatar-bg {
+                        width: 50px;
+                        height: 50px;
+                        border-radius: 14px;
+                    }
+                    .doctor-icon {
+                        width: 20px !important;
+                        height: 20px !important;
+                    }
+                    .office-title-block h3 {
+                        font-size: 1.2rem;
+                    }
+                    .date-chip {
+                        flex: 0 0 85px;
+                        height: 85px;
+                    }
+                    .day-name { font-size: 0.7rem; }
+                    .day-number { font-size: 1.4rem; }
+                    .month-name { font-size: 0.75rem; }
+                    
+                    .modal-title-group h2 {
+                        font-size: 1.2rem;
+                    }
+                    .btn-confirm-selection {
+                        font-size: 1rem;
+                        padding: 14px;
+                    }
+                }
+
                 @keyframes spin { to { transform: rotate(360deg); } }
+            
             `}</style>
         </div>
     );

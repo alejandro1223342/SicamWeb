@@ -10,7 +10,8 @@ import {
     Calendar,
     Users,
     ClipboardList,
-    Archive
+    Archive,
+    Menu
 } from 'lucide-react';
 import { useSpecialty } from '../../context/SpecialtyContext';
 
@@ -23,7 +24,12 @@ interface MenuItem {
     specialty?: { id: string; name: string; description: string };
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const { setActiveSpecialty, availableSpecialties, getActiveSpecialtyId } = useSpecialty();
     const navigate = useNavigate();
     const [user, setUser] = useState<any>(null);
@@ -55,7 +61,7 @@ export default function Sidebar() {
         return path && location.pathname === path;
     };
 
-    // Define base menu items (Admin/Management)
+    // Define base menu items
     const managementItems: MenuItem[] = [];
     if (user?.role === 'ADMIN') {
         managementItems.push({
@@ -96,7 +102,7 @@ export default function Sidebar() {
             specialtyItems.push({
                 title: spec.name,
                 icon: <Stethoscope size={20} />,
-                specialty: spec, // Crucial for ID access
+                specialty: spec,
                 children: [
                     { title: 'Mi Agenda', icon: <Calendar size={20} />, path: '/dashboard/schedules' },
                     { title: 'Citas', icon: <ClipboardList size={20} />, path: '/dashboard/appointments' },
@@ -109,6 +115,7 @@ export default function Sidebar() {
     const handleItemClick = (item: MenuItem) => {
         if (item.path) {
             navigate(item.path);
+            if (window.innerWidth < 1024) onClose();
             return;
         }
         
@@ -119,28 +126,74 @@ export default function Sidebar() {
         toggleMenu(item.title);
     };
 
+    const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 1024 : false);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 1024);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const sidebarStyle: React.CSSProperties = {
+        backgroundColor: '#ffffff',
+        zIndex: 100000,
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        width: isMobile ? '100vw' : '260px',
+        height: '100vh',
+        boxShadow: isOpen && isMobile ? '0 10px 40px rgba(0,0,0,0.3)' : 'none',
+        transform: isMobile ? (isOpen ? 'translateY(0)' : 'translateY(-101%)') : 'none',
+        transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+        display: 'flex',
+        flexDirection: 'column',
+    };
+
     return (
-        <aside className="sidebar">
-            {/* Logo */}
-            <div className="sidebar-header">
-                <Link to={user?.role === 'PACIENTE' ? '/patient/dashboard' : '/dashboard'} className="sidebar-logo">
+        <aside className={`sidebar ${isOpen ? 'open' : ''}`} style={sidebarStyle}>
+            <div className="sidebar-header" style={{ 
+                padding: '12px 20px', 
+                borderBottom: '1px solid #f1f5f9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                minHeight: '72px'
+            }}>
+                <Link to={user?.role === 'PACIENTE' ? '/patient/dashboard' : '/dashboard'} className="sidebar-logo" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div className="logo-icon">
                         <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                            <rect width="32" height="32" rx="6" fill="#5D5FEF" />
-                            <path
-                                d="M16 8L8 12V20L16 24L24 20V12L16 8Z"
-                                fill="white"
-                            />
+                            <rect width="32" height="32" rx="8" fill="#5D5FEF" />
+                            <path d="M16 8L8 12V20L16 24L24 20V12L16 8Z" fill="white" />
                         </svg>
                     </div>
-                    <span className="logo-text">
-                        {user?.role === 'ADMIN' ? 'Sicam Admin' : user?.role === 'PACIENTE' ? 'Sicam Paciente' : 'Sicam Medico'}
+                    <span className="logo-text" style={{ fontWeight: 700, fontSize: '1.25rem', color: '#1E293B' }}>
+                        {user && user?.role === 'ADMIN' ? 'Sicam Admin' : user?.role === 'PACIENTE' ? 'Sicam Paciente' : 'Sicam Medico'}
                     </span>
                 </Link>
+
+                {isMobile && (
+                    <button 
+                        onClick={onClose}
+                        style={{
+                            background: '#f1f5f9',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '8px',
+                            cursor: 'pointer',
+                            color: '#475569',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                    >
+                        <Menu size={24} />
+                    </button>
+                )}
             </div>
 
-            {/* Menu Section */}
-            <nav className="sidebar-nav">
+            <nav className="sidebar-nav" style={{ flex: 1, overflowY: 'auto' }}>
                 <div className="nav-section">
                     <h3 className="nav-section-title">MENU PRINCIPAL</h3>
 
@@ -165,26 +218,23 @@ export default function Sidebar() {
                                         <Link
                                             key={child.title}
                                             to={(() => {
-                                                // If it's a patient or a non-specialty menu, use original path
                                                 if (user?.role === 'PACIENTE' || !item.specialty) {
                                                     return child.path || '#';
                                                 }
-
                                                 const specId = item.specialty?.id || getActiveSpecialtyId() || 'generic';
                                                 const cleanPath = child.path?.replace('/dashboard/', '') || '';
-                                                
-                                                // Handle history path mapping
                                                 if (cleanPath.includes('medical-history')) {
                                                     const historyType = item.title === 'Estética' ? 'aesthetic-history' : 
                                                                        item.title === 'Medicina General' ? 'general-history' : 
                                                                        'medical-history';
                                                     return `/dashboard/specialty/${specId}/${historyType}/${cleanPath.split('/').pop()}`;
                                                 }
-
-                                                // Default workspace path
                                                 return `/dashboard/specialty/${specId}/${cleanPath}`;
                                             })()}
-                                            onClick={() => item.specialty && setActiveSpecialty(item.specialty)}
+                                            onClick={() => {
+                                                if (item.specialty) setActiveSpecialty(item.specialty);
+                                                if (window.innerWidth < 1024) onClose();
+                                            }}
                                             className={`nav-subitem ${(isActive(child.path) || (item.title === 'Estética' && location.pathname.includes('aesthetic-history')) || (item.title === 'Medicina General' && location.pathname.includes('general-history'))) && getActiveSpecialtyId() === item.specialty?.id ? 'active' : ''}`}
                                         >
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, ChevronDown, LogOut, Check } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Check, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export default function Header() {
+export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
     const [user, setUser] = useState<any>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -118,15 +118,16 @@ export default function Header() {
     }, []);
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('activeSpecialty');
-        navigate('/signin');
+        navigate('/logout');
     };
 
     return (
         <header className="header">
             <div className="header-content">
+                {/* Hamburger Menu - Visible only on mobile via CSS */}
+                <button className="mobile-menu-btn" onClick={onMenuClick}>
+                    <Menu size={24} />
+                </button>
 
 
                 {/* Right Section */}

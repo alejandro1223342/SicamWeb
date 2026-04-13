@@ -22,67 +22,48 @@ const Patients: React.FC = () => {
     const { activeSpecialty } = useSpecialty();
     const navigate = useNavigate();
     const [patients, setPatients] = useState<Patient[]>([]);
-    const [loading, setLoading] = useState(false);
     const [fetchingPatients, setFetchingPatients] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
     const [genderOptions, setGenderOptions] = useState<{ id: string, name: string }[]>([]);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
     const [formData, setFormData] = useState({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        idNumber: '',
-        birthDate: '',
-        gender: ''
+        firstName: '', lastName: '', email: '', phone: '', idNumber: '', birthDate: '', gender: ''
     });
 
     useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 1024);
+        window.addEventListener('resize', handleResize);
         fetchPatients();
         fetchGenderOptions();
+        return () => window.removeEventListener('resize', handleResize);
     }, [activeSpecialty, urlSpecialtyId]);
     
     const fetchGenderOptions = async () => {
         try {
             const response = await api.get('/catalogs/type/GENDER');
             setGenderOptions(response.data);
-        } catch (error) {
-            console.error("Error fetching gender options:", error);
-        }
+        } catch (error) { console.error(error); }
     };
 
     const fetchPatients = async () => {
         setFetchingPatients(true);
         try {
             const userData = localStorage.getItem('user');
-            if (!userData) {
-                setPatients([]);
-                return;
-            }
-
+            if (!userData) return;
             const user = JSON.parse(userData);
-
-            if (user.role === 'MEDICO') {
-                const targetSpecialtyId = urlSpecialtyId || activeSpecialty?.id;
-                if (!targetSpecialtyId) return;
-
-                const response = await api.get(`/users/patients/doctor/${user.id}`, {
-                    params: { specialtyId: targetSpecialtyId }
-                });
-                setPatients(response.data);
+            const targetSpecialtyId = urlSpecialtyId || activeSpecialty?.id;
+            
+            let response;
+            if (user.role === 'MEDICO' && targetSpecialtyId) {
+                response = await api.get(`/users/patients/doctor/${user.id}`, { params: { specialtyId: targetSpecialtyId } });
             } else {
-                // For admin or receptionist
-                const response = await api.get('/users/patients');
-                setPatients(response.data);
+                response = await api.get('/users/patients');
             }
-        } catch (err) {
-            console.error('Error fetching patients:', err);
-            setPatients([]);
-        } finally {
-            setFetchingPatients(false);
-        }
+            setPatients(response.data);
+        } catch (err) { console.error(err); } finally { setFetchingPatients(false); }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -90,27 +71,8 @@ const Patients: React.FC = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const resetForm = () => {
-        setFormData({
-            firstName: '',
-            lastName: '',
-            email: '',
-            phone: '',
-            idNumber: '',
-            birthDate: '',
-            gender: ''
-        });
-        setIsEditing(false);
-        setSelectedPatientId(null);
-    };
-
     const handleEditClick = (patient: Patient) => {
-        const genderLabelMap: any = {
-            'M': 'Masculino',
-            'F': 'Femenino',
-            'O': 'Otro'
-        };
-
+        const genderLabelMap: any = { 'M': 'Masculino', 'F': 'Femenino', 'O': 'Otro' };
         setFormData({
             firstName: patient.firstName,
             lastName: patient.lastName,
@@ -127,251 +89,148 @@ const Patients: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
-
         try {
             if (isEditing && selectedPatientId) {
                 await api.patch(`/users/patients/${selectedPatientId}`, formData);
-                toast.success('Paciente actualizado correctamente');
+                toast.success('Paciente actualizado');
             } else {
                 await api.post('/users/patients', formData);
-                toast.success('Paciente registrado correctamente');
+                toast.success('Paciente registrado');
             }
-
             fetchPatients();
-            setTimeout(() => {
-                setShowModal(false);
-                resetForm();
-            }, 1000);
+            setShowModal(false);
         } catch (err: any) {
-            console.error('Error saving patient:', err);
-            const msg = err.response?.data?.message || 'Error al guardar los datos del paciente';
-            toast.error(msg);
-        } finally {
-            setLoading(false);
-        }
+            toast.error(err.response?.data?.message || 'Error');
+        } finally { }
     };
 
-    const filteredPatients = patients.filter(patient =>
-        `${patient.firstName} ${patient.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (patient.idNumber && patient.idNumber.includes(searchTerm))
-    );
+    const handleNewHistory = (patient: Patient) => {
+        const sessionId = crypto.randomUUID();
+        let path = 'medical-history';
+        if (activeSpecialty?.name === 'Estética') path = 'aesthetic-history';
+        if (activeSpecialty?.name === 'Nutrición') path = 'nutrition-history';
+        if (activeSpecialty?.name === 'Medicina General') path = 'general-history';
+        navigate(`/dashboard/specialty/${urlSpecialtyId || activeSpecialty?.id}/${path}/${patient.id}?mode=new&session=${sessionId}`);
+    };
 
+    const handleViewHistories = (patient: Patient) => {
+        let listPath = 'medical-history-list';
+        if (activeSpecialty?.name === 'Medicina General') listPath = 'general-history-list';
+        navigate(`/dashboard/specialty/${urlSpecialtyId || activeSpecialty?.id}/${listPath}/${patient.id}`);
+    };
+
+    const filteredPatients = patients.filter(p =>
+        `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.idNumber && p.idNumber.includes(searchTerm))
+    );
 
     return (
         <div className="management-page">
-            <Toaster position="top-right" reverseOrder={false} />
+            <Toaster position="top-right" />
             <div className="management-container">
-                {/* Header */}
-                <div className="management-header">
+                <div className="management-header" style={{ flexDirection: isMobile ? 'column' : 'row', gap: '16px' }}>
                     <div>
                         <h1 className="page-title">Gestión de Pacientes</h1>
-                        <p className="page-subtitle">Visualiza y administra tus pacientes de {activeSpecialty?.name || 'la clínica'}.</p>
+                        <p className="page-subtitle">Administra tus pacientes de {activeSpecialty?.name}.</p>
                     </div>
-                    <button
-                        className="submit-btn"
-                        onClick={() => {
-                            resetForm();
-                            setShowModal(true);
-                        }}
-                        style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px' }}
-                    >
-                        <UserPlus size={18} />
-                        Registrar Paciente
+                    <button className="submit-btn" onClick={() => { setIsEditing(false); setFormData({firstName:'',lastName:'',email:'',phone:'',idNumber:'',birthDate:'',gender:''}); setShowModal(true); }} style={{ width: isMobile ? '100%' : 'auto' }}>
+                        <UserPlus size={18} /> Registrar Paciente
                     </button>
                 </div>
 
-                {/* Controls */}
-                <div className="management-controls" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                    <div className="search-wrapper" style={{ flex: 1, maxWidth: '400px' }}>
+                <div className="management-controls" style={{ flexDirection: isMobile ? 'column' : 'row', gap: '16px' }}>
+                    <div className="search-wrapper" style={{ flex: 1 }}>
                         <Search className="search-icon" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Buscar por nombre, correo o identificación..."
-                            className="form-input search-input"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                        <input type="text" placeholder="Buscar..." className="form-input search-input" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                     </div>
                     <div className="stats-group">
-                        <span className="count-label" style={{ fontWeight: '500', color: 'var(--text-gray)' }}>Total:</span>
-                        <span className="count-badge" style={{ background: 'var(--primary)', color: 'white', padding: '2px 10px', borderRadius: '12px', marginLeft: '8px', fontSize: '13px' }}>
-                            {patients.length}
-                        </span>
+                        <span className="count-label">Total: </span>
+                        <span className="count-badge" style={{ background: 'var(--primary)', color: 'white', padding: '4px 12px', borderRadius: '12px' }}>{patients.length}</span>
                     </div>
                 </div>
 
-                {/* Patient List */}
-                <div className="list-card card" style={{ marginTop: '1.5rem', background: 'white', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
-                    <div className="table-responsive">
-                        <table className="custom-table">
-                            <thead>
-                                <tr>
-                                    <th>Paciente</th>
-                                    <th>Identificación</th>
-                                    <th>Contacto</th>
-                                    <th>Fecha Registro</th>
-                                    <th className="text-right">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {fetchingPatients ? (
-                                    <tr>
-                                        <td colSpan={5} className="text-center py-12">
-                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px' }}>
-                                                <Loader2 className="animate-spin text-primary" size={40} style={{ color: 'var(--primary)', marginBottom: '16px' }} />
-                                                <p className="text-muted">Cargando pacientes...</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : filteredPatients.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} className="text-center py-12" style={{ padding: '60px' }}>
-                                            <p className="text-muted">No se encontraron pacientes registrados.</p>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredPatients.map(patient => (
-                                        <tr key={patient.id}>
+                {fetchingPatients ? (
+                    <div className="text-center py-20"><Loader2 className="animate-spin" /></div>
+                ) : isMobile ? (
+                    <div className="patient-cards-container" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginTop: '20px' }}>
+                        {filteredPatients.map(p => (
+                            <div key={p.id} className="card patient-mobile-card" style={{ padding: '20px' }}>
+                                <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+                                    <div style={{ width: '50px', height: '50px', background: '#f3f4f6', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'var(--primary)' }}>
+                                        {p.firstName[0]}{p.lastName[0]}
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{p.firstName} {p.lastName}</h3>
+                                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>ID: {p.idNumber}</p>
+                                    </div>
+                                    <button onClick={() => handleEditClick(p)} style={{ background: 'none', border: 'none', color: '#666' }}><Edit size={20} /></button>
+                                </div>
+                                <div style={{ marginBottom: '15px', fontSize: '0.9rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}><Mail size={14} /> {p.email}</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Phone size={14} /> {p.phone || 'N/A'}</div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                    <button onClick={() => handleNewHistory(p)} className="btn-primary" style={{ padding: '10px', fontSize: '0.85rem' }}><PlusCircle size={16} /> Atender</button>
+                                    <button onClick={() => handleViewHistories(p)} className="btn-outline" style={{ padding: '10px', fontSize: '0.85rem' }}><ClipboardList size={16} /> Historias</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="list-card card" style={{ marginTop: '24px', overflow: 'hidden' }}>
+                        <div className="table-responsive">
+                            <table className="custom-table">
+                                <thead>
+                                    <tr><th>Paciente</th><th>Identificación</th><th>Contacto</th><th>Fecha</th><th className="text-right">Acciones</th></tr>
+                                </thead>
+                                <tbody>
+                                    {filteredPatients.map(p => (
+                                        <tr key={p.id}>
                                             <td>
-                                                <div className="doctor-info-cell" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                    <div className="avatar-placeholder" style={{ width: '40px', height: '40px', background: '#F3F4F6', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', color: 'var(--primary)' }}>
-                                                        {patient.firstName[0]}{patient.lastName[0]}
-                                                    </div>
-                                                    <div>
-                                                        <div className="doctor-name" style={{ fontWeight: '600', color: 'var(--text-dark)' }}>{patient.firstName} {patient.lastName}</div>
-                                                        <div className="doctor-id text-muted" style={{ fontSize: '12px', color: 'var(--text-gray)' }}>ID: {patient.id.substring(0, 8)}</div>
-                                                    </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <div style={{ width: '36px', height: '36px', background: '#F3F4F6', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', color: 'var(--primary)' }}>{p.firstName[0]}{p.lastName[0]}</div>
+                                                    <div><div style={{ fontWeight: '600' }}>{p.firstName} {p.lastName}</div><div style={{ fontSize: '11px', color: '#999' }}>ID: {p.id.substring(0,8)}</div></div>
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div className="license-cell" style={{ fontSize: '14px' }}>
-                                                    {patient.idNumber || 'Sin ID'}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className="contact-cell" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                    <div className="contact-item" style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}><Mail size={14} /> {patient.email}</div>
-                                                    {patient.phone && <div className="contact-item" style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}><Phone size={14} /> {patient.phone}</div>}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div style={{ fontSize: '14px', color: 'var(--text-gray)' }}>
-                                                    {new Date(patient.createdAt).toLocaleDateString()}
-                                                </div>
-                                            </td>
+                                            <td>{p.idNumber}</td>
+                                            <td><div style={{ fontSize: '12px' }}><Mail size={12} /> {p.email}</div><div style={{ fontSize: '12px' }}><Phone size={12} /> {p.phone}</div></td>
+                                            <td>{new Date(p.createdAt).toLocaleDateString()}</td>
                                             <td className="text-right">
                                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                                    <button
-                                                        className="action-btn-outline"
-                                                        onClick={() => {
-                                                            const sessionId = crypto.randomUUID();
-                                                            let path = 'medical-history';
-                                                            if (activeSpecialty?.name === 'Estética') path = 'aesthetic-history';
-                                                            if (activeSpecialty?.name === 'Nutrición') path = 'nutrition-history';
-                                                            if (activeSpecialty?.name === 'Medicina General') path = 'general-history';
-
-                                                            const targetId = urlSpecialtyId || activeSpecialty?.id;
-                                                            navigate(`/dashboard/specialty/${targetId}/${path}/${patient.id}?mode=new&session=${sessionId}`);
-                                                        }}
-                                                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px', color: 'var(--primary)', borderColor: '#E5E7EB' }}
-                                                        title="Nueva Historia Clínica"
-                                                    >
-                                                        <PlusCircle size={18} />
-                                                    </button>
-                                                    <button
-                                                        className="action-btn-outline"
-                                                        onClick={() => {
-                                                            let listPath = 'medical-history-list';
-                                                            if (activeSpecialty?.name === 'Medicina General') listPath = 'general-history-list';
-                                                            const targetId = urlSpecialtyId || activeSpecialty?.id;
-                                                            navigate(`/dashboard/specialty/${targetId}/${listPath}/${patient.id}`);
-                                                        }}
-                                                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px', color: 'var(--success)', borderColor: '#d1fae5' }}
-                                                        title="Historias Previas"
-                                                    >
-                                                        <ClipboardList size={18} />
-                                                    </button>
-                                                    <button
-                                                        className="action-btn-outline"
-                                                        onClick={() => handleEditClick(patient)}
-                                                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', width: '36px', height: '36px', color: 'var(--text-gray)', borderColor: '#E5E7EB' }}
-                                                        title="Editar Paciente"
-                                                    >
-                                                        <Edit size={18} />
-                                                    </button>
+                                                    <button onClick={() => handleNewHistory(p)} className="action-btn-outline" style={{ color: 'var(--primary)' }} title="Atender"><PlusCircle size={18} /></button>
+                                                    <button onClick={() => handleViewHistories(p)} className="action-btn-outline" style={{ color: 'var(--success)' }} title="Historias"><ClipboardList size={18} /></button>
+                                                    <button onClick={() => handleEditClick(p)} className="action-btn-outline" style={{ color: 'var(--text-gray)' }} title="Editar"><Edit size={18} /></button>
                                                 </div>
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            {/* Registration Modal */}
-            {showModal && (
-                <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                    <div className="modal-content card" style={{ background: 'white', width: '100%', maxWidth: '600px', borderRadius: '12px', padding: '0', overflow: 'hidden' }}>
-                        <div className="modal-header" style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '40px', height: '40px', background: 'rgba(93, 95, 239, 0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-                                    {isEditing ? <Edit size={20} /> : <UserPlus size={20} />}
-                                </div>
-                                <h2 style={{ fontSize: '18px', fontWeight: '700' }}>{isEditing ? 'Editar Paciente' : 'Registrar Nuevo Paciente'}</h2>
-                            </div>
-                            <button onClick={() => setShowModal(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-gray)' }}>
-                                <X size={24} />
-                            </button>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-
-                        <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                <div className="form-group">
-                                    <label className="form-label">Nombre <span className="text-danger">*</span></label>
-                                    <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} required className="form-input" disabled={loading} />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Apellido <span className="text-danger">*</span></label>
-                                    <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} required className="form-input" disabled={loading} />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Cédula / ID <span className="text-danger">*</span></label>
-                                    <input type="text" name="idNumber" value={formData.idNumber} onChange={handleChange} required className="form-input" disabled={loading} />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Género</label>
-                                    <select name="gender" value={formData.gender} onChange={handleChange} className="form-input" disabled={loading}>
-                                        <option value="">Seleccionar...</option>
-                                        {genderOptions.map(opt => (
-                                            <option key={opt.id} value={opt.name}>{opt.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Correo Electrónico <span className="text-danger">*</span></label>
-                                    <input type="email" name="email" value={formData.email} onChange={handleChange} required className="form-input" disabled={loading} />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Teléfono</label>
-                                    <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="form-input" disabled={loading} />
-                                </div>
-                                <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                                    <label className="form-label">Fecha de Nacimiento</label>
-                                    <input type="date" name="birthDate" value={formData.birthDate} onChange={handleChange} className="form-input" disabled={loading} />
-                                </div>
+                    </div>
+                )}
+            </div>
+            {showModal && (
+                <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '15px' }}>
+                    <div className="modal-content card" style={{ background: 'white', width: '100%', maxWidth: '550px', borderRadius: '15px', overflow: 'hidden' }}>
+                        <div style={{ padding: '20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h2 style={{ fontSize: '1.1rem', margin: 0 }}>{isEditing ? 'Editar' : 'Registrar'} Paciente</h2>
+                            <X onClick={() => setShowModal(false)} style={{ cursor: 'pointer', color: '#666' }} />
+                        </div>
+                        <form onSubmit={handleSubmit} style={{ padding: '20px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '15px' }}>
+                                <div><label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px' }}>Nombre*</label><input name="firstName" value={formData.firstName} onChange={handleChange} required className="form-input" /></div>
+                                <div><label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px' }}>Apellido*</label><input name="lastName" value={formData.lastName} onChange={handleChange} required className="form-input" /></div>
+                                <div><label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px' }}>ID/Cédula*</label><input name="idNumber" value={formData.idNumber} onChange={handleChange} required className="form-input" /></div>
+                                <div><label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px' }}>Género</label><select name="gender" value={formData.gender} onChange={handleChange} className="form-input"><option value="">Selección...</option>{genderOptions.map(o=><option key={o.id} value={o.name}>{o.name}</option>)}</select></div>
+                                <div><label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px' }}>Email*</label><input name="email" value={formData.email} onChange={handleChange} required className="form-input" /></div>
+                                <div><label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px' }}>Teléfono</label><input name="phone" value={formData.phone} onChange={handleChange} className="form-input" /></div>
+                                <div style={{ gridColumn: isMobile ? 'auto' : 'span 2' }}><label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px' }}>Nacimiento</label><input type="date" name="birthDate" value={formData.birthDate} onChange={handleChange} className="form-input" /></div>
                             </div>
-
-                            <div className="modal-footer" style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)} disabled={loading} style={{ padding: '10px 24px', borderRadius: '8px', border: '1px solid var(--border)', background: 'white' }}>
-                                    Cancelar
-                                </button>
-                                <button type="submit" className="submit-btn" disabled={loading} style={{ width: 'auto', padding: '10px 32px' }}>
-                                    {loading ? 'Guardando...' : (isEditing ? 'Actualizar Paciente' : 'Registrar Paciente')}
-                                </button>
+                            <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                <button type="button" onClick={() => setShowModal(false)} className="btn-outline" style={{ padding: '10px 20px' }}>Cancelar</button>
+                                <button type="submit" className="btn-primary" style={{ padding: '10px 20px' }}>{isEditing ? 'Actualizar' : 'Registrar'}</button>
                             </div>
                         </form>
                     </div>
