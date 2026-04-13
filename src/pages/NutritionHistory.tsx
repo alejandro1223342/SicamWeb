@@ -309,8 +309,8 @@ export default function NutritionHistory() {
 
         const fetchRecordById = async () => {
             if (!recordId) return;
-            const shouldBeReadOnly = mode !== 'new';
-            setIsReadOnly(shouldBeReadOnly);
+            const isHistoricalView = mode !== 'new' && mode !== 'edit';
+            setIsReadOnly(isHistoricalView);
             try {
                 const response = await api.get(`/medical-records/${recordId}`);
                 if (response.data) {
@@ -400,6 +400,10 @@ export default function NutritionHistory() {
             if (recordData?.id) {
                 if (!currentRecordIdRef.current) {
                     setCurrentRecordId(recordData.id);
+                    // Si estábamos en modo "nuevo", actualizamos la URL para que sea persistente PERO editable con mode=edit
+                    if (mode === 'new') {
+                        navigate(`/dashboard/specialty/${activeSpecialty.id}/nutrition-history/${patientId}/${recordData.id}?mode=edit`, { replace: true });
+                    }
                 }
                 currentRecordIdRef.current = recordData.id;
             }

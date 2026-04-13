@@ -471,8 +471,8 @@ export default function GeneralHistory() {
                         ...dbData,
                         sessionId: dbData.sessionId || prev.sessionId
                     }));
-                    // If we have a recordId in the URL, we are likely viewing an old record
-                    if (recordId) setIsReadOnly(true);
+                    // If we have a recordId in the URL, we are likely viewing an old record, unless in edit mode
+                    if (recordId) setIsReadOnly(mode !== 'edit');
                 } else if (mode === 'new') {
                     // Pre-fill Emergency Contact if it's a new record
                     // 1. Try to fetch the most recent previous record for this patient/specialty
@@ -535,7 +535,13 @@ export default function GeneralHistory() {
 
             const response = await api.post('/general-records/upsert', payload);
             if (response.data?.id) {
-                setCurrentRecordId(response.data.id);
+                if (!currentRecordIdRef.current) {
+                    setCurrentRecordId(response.data.id);
+                    // Si estábamos en modo "nuevo", actualizamos la URL para que sea persistente PERO editable con mode=edit
+                    if (mode === 'new') {
+                        navigate(`/dashboard/specialty/${activeSpecialty.id}/general-history/${patientId}/${response.data.id}?mode=edit`, { replace: true });
+                    }
+                }
                 currentRecordIdRef.current = response.data.id;
             }
             if (!isAuto) toast.success('Registro guardado');
