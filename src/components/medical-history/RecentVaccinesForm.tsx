@@ -1,15 +1,24 @@
 import { useState, useEffect } from 'react';
 import api from '../../api';
 
+export interface VaccinesData {
+    selected: string[];
+    details: string;
+}
+
 interface Props {
-    data: string[];
-    onChange: (data: string[]) => void;
+    data: VaccinesData | string[];
+    onChange: (data: VaccinesData) => void;
     readOnly?: boolean;
 }
 
-export default function RecentVaccinesForm({ data = [], onChange, readOnly = false }: Props) {
+export default function RecentVaccinesForm({ data, onChange, readOnly = false }: Props) {
     const [options, setOptions] = useState<{ id: string, name: string }[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const normalizedData: VaccinesData = Array.isArray(data) 
+        ? { selected: data, details: '' }
+        : { selected: data?.selected || [], details: data?.details || '' };
 
     useEffect(() => {
         const fetchOptions = async () => {
@@ -29,21 +38,24 @@ export default function RecentVaccinesForm({ data = [], onChange, readOnly = fal
         if (readOnly) return;
         
         if (option === 'NINGUNO') {
-            onChange(data.includes('NINGUNO') ? [] : ['NINGUNO']);
+            onChange({ 
+                ...normalizedData, 
+                selected: normalizedData.selected.includes('NINGUNO') ? [] : ['NINGUNO'] 
+            });
             return;
         }
 
-        let newData = [...data];
-        if (newData.includes('NINGUNO')) {
-            newData = newData.filter(item => item !== 'NINGUNO');
+        let newSelected = [...normalizedData.selected];
+        if (newSelected.includes('NINGUNO')) {
+            newSelected = newSelected.filter(item => item !== 'NINGUNO');
         }
 
-        if (newData.includes(option)) {
-            newData = newData.filter(item => item !== option);
+        if (newSelected.includes(option)) {
+            newSelected = newSelected.filter(item => item !== option);
         } else {
-            newData.push(option);
+            newSelected.push(option);
         }
-        onChange(newData);
+        onChange({ ...normalizedData, selected: newSelected });
     };
 
     return (
@@ -56,13 +68,13 @@ export default function RecentVaccinesForm({ data = [], onChange, readOnly = fal
                 {readOnly ? 'Registradas:' : 'Seleccione(*)'}
             </label>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
                 {loading ? (
                     <div style={{ padding: '8px 16px', color: '#64748b', fontSize: '14px', fontStyle: 'italic' }}>Cargando catálogo...</div>
                 ) : (
                     options.map((optItem) => {
                         const opt = optItem.name;
-                        const isSelected = data.includes(opt);
+                        const isSelected = normalizedData.selected.includes(opt);
                         
                         if (readOnly && !isSelected) return null;
 
@@ -96,10 +108,33 @@ export default function RecentVaccinesForm({ data = [], onChange, readOnly = fal
                         );
                     })
                 )}
-                {readOnly && !loading && data.length === 0 && (
-                    <div style={{ padding: '8px 16px', color: '#64748b', fontSize: '14px', fontStyle: 'italic' }}>Ninguno registrado.</div>
+
+                {readOnly && !loading && normalizedData.selected.length === 0 && (
+                    <div style={{ padding: '8px 16px', color: '#64748b', fontSize: '14px', fontStyle: 'italic' }}>Ninguna registrada.</div>
                 )}
-            </div >
-        </div >
+            </div>
+
+            <div style={{ marginTop: '16px', animation: 'fadeIn 0.3s ease-in-out' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>
+                    Detalle de Vacunas / Observaciones:
+                </label>
+                <textarea
+                    value={normalizedData.details}
+                    onChange={(e) => onChange({ ...normalizedData, details: e.target.value })}
+                    readOnly={readOnly}
+                    placeholder="Especifique fechas, dosis o vacunas adicionales..."
+                    style={{
+                        width: '100%',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '14px',
+                        minHeight: '80px',
+                        outline: 'none',
+                        backgroundColor: readOnly ? '#f8fafc' : 'white'
+                    }}
+                />
+            </div>
+        </div>
     );
 }

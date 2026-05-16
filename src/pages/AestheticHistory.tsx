@@ -99,13 +99,12 @@ export default function AestheticHistory() {
     useEffect(() => {
         currentRecordIdRef.current = currentRecordId;
     }, [currentRecordId]);
-
-    const [formData, setFormData] = useState({
-        reason: '',
+    const initialEmptyState = {
+        reason: { reason: '', currentIllness: '' },
         emergency: { name: '', relation: '', phone: '', address: '' },
-        family: [] as string[],
-        vaccines: [] as string[],
-        risks: [] as string[],
+        family: { selected: [] as string[], allergyDetails: '' },
+        vaccines: { selected: [] as string[], details: '' },
+        risks: { selected: [] as string[], allergyDetails: '' },
         labresults: [] as any[],
         diagnosis: [] as any[],
         exams: { options: [] as string[], other: '', diagnosis: '', treatment: '' },
@@ -118,8 +117,10 @@ export default function AestheticHistory() {
         bodymap_face_male: {} as Record<string, number>,
         bodymap_face_female: {} as Record<string, number>,
         prescription: { cie10: '', hasAllergies: false, allergiesDetails: '', medications: '', indications: '' },
-        sessionId: queryParams.get('session') || null as string | null
-    });
+        sessionId: queryParams.get('session') || (null as string | null)
+    };
+
+    const [formData, setFormData] = useState(initialEmptyState);
 
     const handleUpdateSection = (section: SectionKey, data: any) => {
         if (isReadOnly) return;
@@ -129,27 +130,6 @@ export default function AestheticHistory() {
 
     useEffect(() => {
         if (mode === 'new' && patientId && activeSpecialty?.id) {
-            const initialEmptyState = {
-                reason: '',
-                emergency: { name: '', relation: '', phone: '', address: '' },
-                family: [] as string[],
-                vaccines: [] as string[],
-                risks: [] as string[],
-                labresults: [] as any[],
-                diagnosis: [] as any[],
-                exams: { options: [] as string[], other: '', diagnosis: '', treatment: '' },
-                treatment_details: { treatment: '', observations: '' },
-                consents: { signedFiles: [] as any[] },
-                tricology: { observations: '', files: [] as any[] },
-                bodymap_male: {} as Record<string, number>,
-                bodymap_female: {} as Record<string, number>,
-                bodymap_face: {} as Record<string, number>,
-                bodymap_face_male: {} as Record<string, number>,
-                bodymap_face_female: {} as Record<string, number>,
-                prescription: { cie10: '', hasAllergies: false, allergiesDetails: '', medications: '', indications: '' },
-                sessionId: queryParams.get('session') || (null as string | null)
-            };
-
             const fetchPreviousRecord = async () => {
                 try {
                     const targetId = urlSpecialtyId || getActiveSpecialtyId();
@@ -157,31 +137,29 @@ export default function AestheticHistory() {
                         params: { specialtyId: targetId }
                     });
 
-                    const records = response.data || [];
-                    const lastRecord = records.length > 0 ? records[0] : null;
+                    const history = response.data?.data || response.data || [];
+                    const lastRecord = Array.isArray(history) ? history[0] : null;
 
-                    // Si no hay registro previo, buscamos los datos de onboarding del paciente
-                    let fallbackData = {
-                        emergency: initialEmptyState.emergency,
-                        family: initialEmptyState.family,
-                        vaccines: initialEmptyState.vaccines,
-                        risks: initialEmptyState.risks
-                    };
+                    let fallbackData = { ...initialEmptyState };
 
                     if (!lastRecord) {
                         try {
                             const cleanId = patientId.trim();
-                            console.log('Fetching onboarding fallback for patient (Aesthetic):', cleanId);
                             const patientRes = await api.get(`/users/patients/${cleanId}`);
                             const patientInfo = patientRes.data?.data || patientRes.data;
-                            console.log('Patient Info received (Aesthetic):', patientInfo);
                             if (patientInfo?.onboardingData) {
-                                console.log('Applying onboarding fallback data (Aesthetic):', patientInfo.onboardingData);
                                 fallbackData = {
-                                    emergency: patientInfo.onboardingData.emergency || fallbackData.emergency,
-                                    family: patientInfo.onboardingData.family || fallbackData.family,
-                                    vaccines: patientInfo.onboardingData.vaccines || fallbackData.vaccines,
-                                    risks: patientInfo.onboardingData.risks || fallbackData.risks,
+                                    ...fallbackData,
+                                    emergency: patientInfo.onboardingData.emergency || initialEmptyState.emergency,
+                                    family: patientInfo.onboardingData.family && typeof patientInfo.onboardingData.family === 'object' && 'selected' in patientInfo.onboardingData.family
+                                        ? patientInfo.onboardingData.family 
+                                        : { selected: Array.isArray(patientInfo.onboardingData.family) ? patientInfo.onboardingData.family : [], allergyDetails: '' },
+                                    vaccines: patientInfo.onboardingData.vaccines && typeof patientInfo.onboardingData.vaccines === 'object' && 'selected' in patientInfo.onboardingData.vaccines
+                                        ? patientInfo.onboardingData.vaccines 
+                                        : { selected: Array.isArray(patientInfo.onboardingData.vaccines) ? patientInfo.onboardingData.vaccines : [], details: '' },
+                                    risks: patientInfo.onboardingData.risks && typeof patientInfo.onboardingData.risks === 'object' && 'selected' in patientInfo.onboardingData.risks
+                                        ? patientInfo.onboardingData.risks 
+                                        : { selected: Array.isArray(patientInfo.onboardingData.risks) ? patientInfo.onboardingData.risks : [], allergyDetails: patientInfo.allergies || '' },
                                 };
                             }
                         } catch (pErr) {
@@ -191,27 +169,25 @@ export default function AestheticHistory() {
 
                     if (lastRecord) {
                         const lastData = lastRecord.data || {};
-                        setFormData({
-                            ...initialEmptyState,
+                        setFormData(prev => ({
+                            ...prev,
                             reason: lastData.reason || initialEmptyState.reason,
                             emergency: lastData.emergency || initialEmptyState.emergency,
                             family: lastData.family || initialEmptyState.family,
                             vaccines: lastData.vaccines || initialEmptyState.vaccines,
                             risks: lastData.risks || initialEmptyState.risks,
-                        });
+                        }));
                     } else {
-                        setFormData({
-                            ...initialEmptyState,
+                        setFormData(prev => ({
+                            ...prev,
                             emergency: fallbackData.emergency,
                             family: fallbackData.family,
                             vaccines: fallbackData.vaccines,
                             risks: fallbackData.risks,
-                            prescription: { cie10: '', hasAllergies: false, allergiesDetails: '', medications: '', indications: '' }
-                        });
+                        }));
                     }
                 } catch (error) {
                     console.error('Error fetching last record for pre-fill:', error);
-                    setFormData(initialEmptyState);
                 }
             };
 
@@ -356,11 +332,11 @@ export default function AestheticHistory() {
     const renderActiveSection = () => {
         const commonProps = { readOnly: isReadOnly };
         switch (activeSection) {
-            case 'reason': return <ConsultationReasonForm {...commonProps} data={formData.reason} onChange={(d: string) => handleUpdateSection('reason', d)} />;
+            case 'reason': return <ConsultationReasonForm {...commonProps} data={formData.reason} onChange={(d: any) => handleUpdateSection('reason', d)} />;
             case 'emergency': return <EmergencyContactForm {...commonProps} data={formData.emergency} onChange={(d: any) => handleUpdateSection('emergency', d)} />;
-            case 'family': return <FamilyHistoryForm {...commonProps} data={formData.family} onChange={(d: string[]) => handleUpdateSection('family', d)} />;
-            case 'vaccines': return <RecentVaccinesForm {...commonProps} data={formData.vaccines} onChange={(d: string[]) => handleUpdateSection('vaccines', d)} />;
-            case 'risks': return <RiskFactorsForm {...commonProps} data={formData.risks} onChange={(d: string[]) => handleUpdateSection('risks', d)} />;
+            case 'family': return <FamilyHistoryForm {...commonProps} data={formData.family} onChange={(d: any) => handleUpdateSection('family', d)} />;
+            case 'vaccines': return <RecentVaccinesForm {...commonProps} data={formData.vaccines} onChange={(d: any) => handleUpdateSection('vaccines', d)} />;
+            case 'risks': return <RiskFactorsForm {...commonProps} data={formData.risks} onChange={(d: any) => handleUpdateSection('risks', d)} />;
             case 'findings': return <AestheticFindingsForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.tricology} onChange={(d: any) => handleUpdateSection('findings', d)} onUploadingChange={setIsGlobalUploading} />;
             case 'labresults': return <AestheticLabResultsForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.labresults} onChange={(d: any[]) => handleUpdateSection('labresults', d)} onUploadingChange={setIsGlobalUploading} />;
             case 'diagnosis': return <DiagnosisActivityForm {...commonProps} data={formData.diagnosis} onChange={(d: any[]) => handleUpdateSection('diagnosis', d)} />;

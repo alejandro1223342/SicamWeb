@@ -17,15 +17,43 @@ const PrintMedicalHistoryTemplate: React.FC<PrintMedicalHistoryTemplateProps> = 
     const birthDate = pData.birthDate ? new Date(pData.birthDate).toLocaleDateString('es-ES') : 'N/A';
 
     const emergency = data?.emergency || {};
-    const family = data?.family || [];
-    const vaccines = data?.vaccines || [];
-    const risks = data?.risks || [];
+    // Normalización de Antecedentes Familiares
+    const familyObj = Array.isArray(data?.family) 
+        ? { selected: data.family, allergyDetails: '' } 
+        : { selected: data?.family?.selected || [], allergyDetails: data?.family?.allergyDetails || '' };
+    
+    const family = familyObj.selected;
+    const familyAllergyDetails = familyObj.allergyDetails;
+
+    // Normalización de Vacunas
+    const vaccinesObj = Array.isArray(data?.vaccines) 
+        ? { selected: data.vaccines, details: '' } 
+        : { selected: data?.vaccines?.selected || [], details: data?.vaccines?.details || '' };
+    
+    const vaccines = vaccinesObj.selected;
+    const vaccineDetails = vaccinesObj.details;
+
+    const consents = data?.consents?.signedFiles || [];
+    const treatmentDetails = data?.treatment_details || { treatment: '', observations: '' };
     const labresults = data?.labresults || [];
     const diagnosis = data?.diagnosis || '';
     const tricologyFindings = data?.tricology?.observations || '';
-    const reason = data?.reason || '';
-    const consents = data?.consents?.signedFiles || [];
-    const treatmentDetails = data?.treatment_details || { treatment: '', observations: '' };
+
+    // Normalización de Motivo y Enfermedad Actual
+    const reasonObj = typeof data?.reason === 'string' 
+        ? { reason: data.reason, currentIllness: '' } 
+        : { reason: data?.reason?.reason || '', currentIllness: data?.reason?.currentIllness || '' };
+    
+    const reason = reasonObj.reason;
+    const currentIllness = reasonObj.currentIllness;
+
+    // Normalización de Riesgos y Alergias
+    const risksObj = Array.isArray(data?.risks) 
+        ? { selected: data.risks, allergyDetails: '' } 
+        : { selected: data?.risks?.selected || [], allergyDetails: data?.risks?.allergyDetails || '' };
+    
+    const risks = risksObj.selected;
+    const allergyDetails = risksObj.allergyDetails;
 
     // Helper for table cells
     const Cell = ({ label, value, width, rowSpan, colSpan, height }: any) => (
@@ -175,7 +203,7 @@ const PrintMedicalHistoryTemplate: React.FC<PrintMedicalHistoryTemplateProps> = 
                                 </tbody>
                             </table>
                         </td>
-                        <Cell label="ENFERMEDAD ACTUAL" colSpan={3} value="" />
+                        <Cell label="ENFERMEDAD ACTUAL" colSpan={3} value={currentIllness} />
                     </tr>
                     <tr>
                         <Cell label="HALLAZGOS ÚLTIMO EXAMEN GINECOLÓGICO" colSpan={3} rowSpan={2} height="40px" />
@@ -226,11 +254,11 @@ const PrintMedicalHistoryTemplate: React.FC<PrintMedicalHistoryTemplateProps> = 
             <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px' }}>
                 <tbody>
                     <tr>
-                        <Cell label="ANTECEDENTES FAMILIARES" value={family.join(', ')} colSpan={3} />
-                        <Cell label="VACUNAS RECIENTES" value={vaccines.join(', ')} colSpan={3} />
+                        <Cell label="ANTECEDENTES FAMILIARES" value={`${family.join(', ')}${familyAllergyDetails ? ` (Alergias: ${familyAllergyDetails})` : ''}`} colSpan={3} />
+                        <Cell label="VACUNAS RECIENTES" value={`${vaccines.join(', ')}${vaccineDetails ? ` (Detalle: ${vaccineDetails})` : ''}`} colSpan={3} />
                     </tr>
                     <tr>
-                        <Cell label="FACTORES Y CONDUCTAS DE RIESGO" value={risks.join(', ')} colSpan={6} />
+                        <Cell label="FACTORES Y CONDUCTAS DE RIESGO" value={`${risks.join(', ')}${allergyDetails ? ` (Alergias: ${allergyDetails})` : ''}`} colSpan={6} />
                     </tr>
                 </tbody>
             </table>

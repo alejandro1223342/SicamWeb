@@ -69,12 +69,12 @@ export default function MedicalHistory() {
         currentRecordIdRef.current = currentRecordId;
     }, [currentRecordId]);
 
-    const [formData, setFormData] = useState({
-        reason: '',
+    const initialEmptyState = {
+        reason: { reason: '', currentIllness: '' },
         emergency: { name: '', relation: '', phone: '', address: '' },
-        family: [] as string[],
-        vaccines: [] as string[],
-        risks: [] as string[],
+        family: { selected: [] as string[], allergyDetails: '' },
+        vaccines: { selected: [] as string[], details: '' },
+        risks: { selected: [] as string[], allergyDetails: '' },
         labresults: [] as any[],
         diagnosis: [] as any[],
         consents: { signedFiles: [] as any[] },
@@ -82,8 +82,10 @@ export default function MedicalHistory() {
         exams: { options: [] as string[], other: '', diagnosis: '', treatment: '' },
         tricology: { observations: '', files: [] as any[] },
         prescription: { cie10: '', hasAllergies: false, allergiesDetails: '', medications: '', indications: '' },
-        sessionId: queryParams.get('session') || null as string | null
-    });
+        sessionId: queryParams.get('session') || null
+    };
+
+    const [formData, setFormData] = useState(initialEmptyState);
 
     const handleUpdateSection = (section: SectionKey, data: any) => {
         if (isReadOnly) return;
@@ -96,31 +98,29 @@ export default function MedicalHistory() {
             if (mode === 'new' && patientId && targetId) {
                 try {
                     const response = await api.get(`/medical-records/patient/${patientId}?specialtyId=${targetId}`);
-                    const history = response.data;
+                    const history = response.data?.data || response.data || [];
                     const prevRes = Array.isArray(history) ? history[0] : null;
 
-                    // Si no hay registro previo, buscamos los datos de onboarding del paciente
-                    let fallbackData = {
-                        emergency: { name: '', relation: '', phone: '', address: '' },
-                        family: [],
-                        vaccines: [],
-                        risks: []
-                    };
+                    let fallbackData = { ...initialEmptyState };
 
                     if (!prevRes) {
                         try {
                             const cleanId = patientId.trim();
-                            console.log('Fetching onboarding fallback for patient:', cleanId);
                             const patientRes = await api.get(`/users/patients/${cleanId}`);
                             const patientInfo = patientRes.data?.data || patientRes.data;
-                            console.log('Patient Info received:', patientInfo);
                             if (patientInfo?.onboardingData) {
-                                console.log('Applying onboarding fallback data:', patientInfo.onboardingData);
                                 fallbackData = {
-                                    emergency: patientInfo.onboardingData.emergency || fallbackData.emergency,
-                                    family: patientInfo.onboardingData.family || fallbackData.family,
-                                    vaccines: patientInfo.onboardingData.vaccines || fallbackData.vaccines,
-                                    risks: patientInfo.onboardingData.risks || fallbackData.risks,
+                                    ...fallbackData,
+                                    emergency: patientInfo.onboardingData.emergency || initialEmptyState.emergency,
+                                    family: patientInfo.onboardingData.family && typeof patientInfo.onboardingData.family === 'object' && 'selected' in patientInfo.onboardingData.family
+                                        ? patientInfo.onboardingData.family 
+                                        : { selected: Array.isArray(patientInfo.onboardingData.family) ? patientInfo.onboardingData.family : [], allergyDetails: '' },
+                                    vaccines: patientInfo.onboardingData.vaccines && typeof patientInfo.onboardingData.vaccines === 'object' && 'selected' in patientInfo.onboardingData.vaccines
+                                        ? patientInfo.onboardingData.vaccines 
+                                        : { selected: Array.isArray(patientInfo.onboardingData.vaccines) ? patientInfo.onboardingData.vaccines : [], details: '' },
+                                    risks: patientInfo.onboardingData.risks && typeof patientInfo.onboardingData.risks === 'object' && 'selected' in patientInfo.onboardingData.risks
+                                        ? patientInfo.onboardingData.risks 
+                                        : { selected: Array.isArray(patientInfo.onboardingData.risks) ? patientInfo.onboardingData.risks : [], allergyDetails: patientInfo.allergies || '' },
                                 };
                             }
                         } catch (pErr) {
@@ -128,21 +128,14 @@ export default function MedicalHistory() {
                         }
                     }
 
-                    setFormData({
-                        reason: prevRes?.data?.reason || '',
+                    setFormData(prev => ({
+                        ...prev,
+                        reason: prevRes?.data?.reason || fallbackData.reason,
                         emergency: prevRes?.data?.emergency || fallbackData.emergency,
                         family: prevRes?.data?.family || fallbackData.family,
                         vaccines: prevRes?.data?.vaccines || fallbackData.vaccines,
                         risks: prevRes?.data?.risks || fallbackData.risks,
-                        labresults: [],
-                        diagnosis: [],
-                        consents: { signedFiles: [] },
-                        treatment_details: { treatment: '', observations: '' },
-                        exams: { options: [], other: '', diagnosis: '', treatment: '' },
-                        tricology: { observations: '', files: [] },
-                        prescription: { cie10: '', hasAllergies: false, allergiesDetails: '', medications: '', indications: '' },
-                        sessionId: queryParams.get('session') || null
-                    });
+                    }));
                 } catch (error) {
                     console.error('Error fetching previous record:', error);
                 }
@@ -324,11 +317,11 @@ export default function MedicalHistory() {
     const renderActiveSection = () => {
         const commonProps = { readOnly: isReadOnly };
         switch (activeSection) {
-            case 'reason': return <ConsultationReasonForm {...commonProps} data={formData.reason} onChange={(d: string) => handleUpdateSection('reason', d)} />;
+            case 'reason': return <ConsultationReasonForm {...commonProps} data={formData.reason} onChange={(d: any) => handleUpdateSection('reason', d)} />;
             case 'emergency': return <EmergencyContactForm {...commonProps} data={formData.emergency} onChange={(d: any) => handleUpdateSection('emergency', d)} />;
-            case 'family': return <FamilyHistoryForm {...commonProps} data={formData.family} onChange={(d: string[]) => handleUpdateSection('family', d)} />;
-            case 'vaccines': return <RecentVaccinesForm {...commonProps} data={formData.vaccines} onChange={(d: string[]) => handleUpdateSection('vaccines', d)} />;
-            case 'risks': return <RiskFactorsForm {...commonProps} data={formData.risks} onChange={(d: string[]) => handleUpdateSection('risks', d)} />;
+            case 'family': return <FamilyHistoryForm {...commonProps} data={formData.family} onChange={(d: any) => handleUpdateSection('family', d)} />;
+            case 'vaccines': return <RecentVaccinesForm {...commonProps} data={formData.vaccines} onChange={(d: any) => handleUpdateSection('vaccines', d)} />;
+            case 'risks': return <RiskFactorsForm {...commonProps} data={formData.risks} onChange={(d: any) => handleUpdateSection('risks', d)} />;
             case 'tricology': return <TricologyFindingsForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.tricology} onChange={(d: any) => handleUpdateSection('tricology', d)} onUploadingChange={setIsGlobalUploading} />;
             case 'labresults': return <LabResultsForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.labresults} onChange={(d: any[]) => handleUpdateSection('labresults', d)} onUploadingChange={setIsGlobalUploading} />;
             case 'diagnosis': return <DiagnosisActivityForm {...commonProps} data={formData.diagnosis} onChange={(d: any[]) => handleUpdateSection('diagnosis', d)} />;

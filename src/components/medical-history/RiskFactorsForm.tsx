@@ -1,13 +1,22 @@
 import { useState, useEffect } from 'react';
 import api from '../../api';
 
+interface RiskFactorsData {
+    selected: string[];
+    allergyDetails?: string;
+}
+
 interface Props {
-    data: string[];
-    onChange: (data: string[]) => void;
+    data: string[] | RiskFactorsData;
+    onChange: (data: RiskFactorsData) => void;
     readOnly?: boolean;
 }
 
-export default function RiskFactorsForm({ data = [], onChange, readOnly = false }: Props) {
+export default function RiskFactorsForm({ data, onChange, readOnly = false }: Props) {
+    const normalizedData: RiskFactorsData = Array.isArray(data) 
+        ? { selected: data, allergyDetails: '' }
+        : { selected: data?.selected || [], allergyDetails: data?.allergyDetails || '' };
+
     const [options, setOptions] = useState<{ id: string, name: string }[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -28,23 +37,30 @@ export default function RiskFactorsForm({ data = [], onChange, readOnly = false 
     const toggleOption = (option: string) => {
         if (readOnly) return;
         
+        let newSelected = [...normalizedData.selected];
         if (option === 'NINGUNO') {
-            onChange(data.includes('NINGUNO') ? [] : ['NINGUNO']);
-            return;
-        }
-
-        let newData = [...data];
-        if (newData.includes('NINGUNO')) {
-            newData = newData.filter(item => item !== 'NINGUNO');
-        }
-
-        if (newData.includes(option)) {
-            newData = newData.filter(item => item !== option);
+            newSelected = newSelected.includes('NINGUNO') ? [] : ['NINGUNO'];
         } else {
-            newData.push(option);
+            if (newSelected.includes('NINGUNO')) {
+                newSelected = newSelected.filter(item => item !== 'NINGUNO');
+            }
+            if (newSelected.includes(option)) {
+                newSelected = newSelected.filter(item => item !== option);
+            } else {
+                newSelected.push(option);
+            }
         }
-        onChange(newData);
+        onChange({ ...normalizedData, selected: newSelected });
     };
+
+    const handleDetailsChange = (value: string) => {
+        if (readOnly) return;
+        onChange({ ...normalizedData, allergyDetails: value });
+    };
+
+    const hasAllergies = normalizedData.selected.some(opt => 
+        opt.toUpperCase().includes('ALERGIA')
+    );
 
     return (
         <div className="section-container" style={{ animation: 'fadeIn 0.3s ease-in-out' }}>
@@ -62,7 +78,7 @@ export default function RiskFactorsForm({ data = [], onChange, readOnly = false 
                 ) : (
                     options.map((optItem) => {
                         const opt = optItem.name;
-                        const isSelected = data.includes(opt);
+                        const isSelected = normalizedData.selected.includes(opt);
                         
                         if (readOnly && !isSelected) return null;
 
@@ -96,10 +112,38 @@ export default function RiskFactorsForm({ data = [], onChange, readOnly = false 
                         );
                     })
                 )}
-                {readOnly && !loading && data.length === 0 && (
+
+                {readOnly && !loading && normalizedData.selected.length === 0 && (
                     <div style={{ padding: '8px 16px', color: '#64748b', fontSize: '14px', fontStyle: 'italic' }}>Ninguno registrado.</div>
                 )}
             </div >
+
+            {hasAllergies && (
+                <div style={{ marginTop: '24px', animation: 'fadeIn 0.3s ease' }}>
+                    <label style={{ fontWeight: '600', color: '#475569', marginBottom: '12px', display: 'block', fontSize: '14px' }}>
+                        Especifique las Alergias:
+                    </label>
+                    <textarea
+                        className="form-input"
+                        value={normalizedData.allergyDetails}
+                        onChange={(e) => handleDetailsChange(e.target.value)}
+                        readOnly={readOnly}
+                        rows={3}
+                        placeholder={readOnly ? "Sin detalle" : "Mencione medicamentos, alimentos o sustancias..."}
+                        style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            border: '1.5px solid #e2e8f0',
+                            borderRadius: '12px',
+                            outline: 'none',
+                            transition: 'all 0.2s',
+                            fontSize: '15px',
+                            backgroundColor: readOnly ? '#f8fafc' : 'white',
+                            color: '#1e293b'
+                        }}
+                    />
+                </div>
+            )}
         </div >
     );
 }

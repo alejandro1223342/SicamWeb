@@ -30,7 +30,7 @@ const Patients: React.FC = () => {
     const [genderOptions, setGenderOptions] = useState<{ id: string, name: string }[]>([]);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
     const [formData, setFormData] = useState({
-        firstName: '', lastName: '', email: '', phone: '', idNumber: '', birthDate: '', gender: ''
+        firstName: '', lastName: '', email: '', phone: '', idNumber: '', birthDate: '', gender: '', allergies: ''
     });
 
     useEffect(() => {
@@ -80,7 +80,8 @@ const Patients: React.FC = () => {
             phone: patient.phone || '',
             idNumber: patient.idNumber || '',
             birthDate: patient.birthDate ? new Date(patient.birthDate).toISOString().split('T')[0] : '',
-            gender: patient.gender ? (genderLabelMap[patient.gender] || patient.gender) : ''
+            gender: patient.gender ? (genderLabelMap[patient.gender] || patient.gender) : '',
+            allergies: (patient as any).allergies || ''
         });
         setIsEditing(true);
         setSelectedPatientId(patient.id);
@@ -134,7 +135,7 @@ const Patients: React.FC = () => {
                         <h1 className="page-title">Gestión de Pacientes</h1>
                         <p className="page-subtitle">Administra tus pacientes de {activeSpecialty?.name}.</p>
                     </div>
-                    <button className="submit-btn" onClick={() => { setIsEditing(false); setFormData({firstName:'',lastName:'',email:'',phone:'',idNumber:'',birthDate:'',gender:''}); setShowModal(true); }} style={{ width: isMobile ? '100%' : 'auto' }}>
+                    <button className="submit-btn" onClick={() => { setIsEditing(false); setFormData({firstName:'',lastName:'',email:'',phone:'',idNumber:'',birthDate:'',gender:'',allergies:''}); setShowModal(true); }} style={{ width: isMobile ? '100%' : 'auto' }}>
                         <UserPlus size={18} /> Registrar Paciente
                     </button>
                 </div>
@@ -227,6 +228,7 @@ const Patients: React.FC = () => {
                                 <div><label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px' }}>Email*</label><input name="email" value={formData.email} onChange={handleChange} required className="form-input" /></div>
                                 <div><label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px' }}>Teléfono</label><input name="phone" value={formData.phone} onChange={handleChange} className="form-input" /></div>
                                 <div style={{ gridColumn: isMobile ? 'auto' : 'span 2' }}><label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px' }}>Nacimiento</label><input type="date" name="birthDate" value={formData.birthDate} onChange={handleChange} className="form-input" /></div>
+                                <div style={{ gridColumn: isMobile ? 'auto' : 'span 2' }}><label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px' }}>Alergias</label><textarea name="allergies" value={(formData as any).allergies || ''} onChange={handleChange as any} className="form-input" placeholder="Medicamentos, alimentos, etc." rows={2} style={{ resize: 'vertical' }} /></div>
                             </div>
                             <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                                 <button type="button" onClick={() => setShowModal(false)} className="btn-outline" style={{ padding: '10px 20px' }}>Cancelar</button>

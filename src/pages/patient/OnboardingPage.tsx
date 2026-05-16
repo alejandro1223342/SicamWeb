@@ -20,7 +20,7 @@ export default function OnboardingPage() {
         emergency: { name: '', relation: '', phone: '', address: '' },
         family: [] as string[],
         vaccines: [] as string[],
-        risks: [] as string[],
+        risks: { selected: [] as string[], allergyDetails: '' },
     });
 
     const steps = [
@@ -57,7 +57,7 @@ export default function OnboardingPage() {
             case 4:
                 return formData.vaccines.length > 0;
             case 5:
-                return formData.risks.length > 0;
+                return formData.risks.selected.length > 0;
             default:
                 return false;
         }
