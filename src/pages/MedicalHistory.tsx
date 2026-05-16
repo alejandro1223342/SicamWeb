@@ -79,16 +79,18 @@ export default function MedicalHistory() {
         diagnosis: [] as any[],
         consents: { signedFiles: [] as any[] },
         treatment_details: { treatment: '', observations: '' },
+        prescription: { cie10: '', hasAllergies: false, allergiesDetails: '', medications: '', indications: '' },
         exams: { options: [] as string[], other: '', diagnosis: '', treatment: '' },
         tricology: { observations: '', files: [] as any[] },
-        prescription: { cie10: '', hasAllergies: false, allergiesDetails: '', medications: '', indications: '' },
-        sessionId: queryParams.get('session') || null
+        sessionId: queryParams.get('session') || (null as string | null)
     };
 
     const [formData, setFormData] = useState(initialEmptyState);
+    const [isDirty, setIsDirty] = useState(false);
 
     const handleUpdateSection = (section: SectionKey, data: any) => {
         if (isReadOnly) return;
+        setIsDirty(true);
         setFormData(prev => ({ ...prev, [section]: data }));
     };
 
@@ -298,6 +300,7 @@ export default function MedicalHistory() {
             }
             if (!isAuto) toast.success('Historia clínica guardada');
             setSaveStatus('saved');
+            setIsDirty(false);
             return recordData?.id;
         } catch (error: any) {
             setSaveStatus('error');
@@ -309,10 +312,10 @@ export default function MedicalHistory() {
     }, [activeSpecialty, patientId, isReadOnly, mode, formData, isGlobalUploading]);
 
     useEffect(() => {
-        if (isReadOnly) return;
+        if (isReadOnly || !isDirty) return;
         const timer = setTimeout(() => handleSaveAll(true), 5000);
         return () => clearTimeout(timer);
-    }, [formData, isReadOnly, handleSaveAll]);
+    }, [formData, isReadOnly, handleSaveAll, isDirty]);
 
     const renderActiveSection = () => {
         const commonProps = { readOnly: isReadOnly };

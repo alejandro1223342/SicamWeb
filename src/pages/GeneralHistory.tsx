@@ -61,6 +61,7 @@ export default function GeneralHistory() {
     const [currentRecordId, setCurrentRecordId] = useState<string | null>(recordId || null);
     const currentRecordIdRef = useRef<string | null>(recordId || null);
     const isSavingRef = useRef(false);
+    const [isDirty, setIsDirty] = useState(false);
 
     const [formData, setFormData] = useState({
         anamnesis_002: {
@@ -423,6 +424,7 @@ export default function GeneralHistory() {
 
     const handleUpdateSection = (section: SectionKey, data: any) => {
         if (isReadOnly) return;
+        setIsDirty(true);
         setFormData(prev => ({ ...prev, [section]: data }));
         setSaveStatus('idle');
     };
@@ -544,8 +546,10 @@ export default function GeneralHistory() {
                 }
                 currentRecordIdRef.current = response.data.id;
             }
-            if (!isAuto) toast.success('Registro guardado');
+            if (!isAuto) toast.success('Historia clínica guardada');
             setSaveStatus('saved');
+            setIsDirty(false);
+            return response.data?.id;
         } catch (error: any) {
             console.error('SAVE ERROR DETAILS:', {
                 status: error.response?.status,
@@ -566,10 +570,10 @@ export default function GeneralHistory() {
     }, [activeSpecialty, patientId, isReadOnly, formData]);
 
     useEffect(() => {
-        if (isReadOnly) return;
+        if (isReadOnly || !isDirty) return;
         const timer = setTimeout(() => handleSaveAll(true), 5000);
         return () => clearTimeout(timer);
-    }, [formData, isReadOnly, handleSaveAll]);
+    }, [formData, isReadOnly, handleSaveAll, isDirty]);
 
     const renderActiveSection = () => {
         switch (activeSection) {

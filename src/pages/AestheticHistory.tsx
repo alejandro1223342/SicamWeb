@@ -99,6 +99,7 @@ export default function AestheticHistory() {
     useEffect(() => {
         currentRecordIdRef.current = currentRecordId;
     }, [currentRecordId]);
+
     const initialEmptyState = {
         reason: { reason: '', currentIllness: '' },
         emergency: { name: '', relation: '', phone: '', address: '' },
@@ -121,9 +122,11 @@ export default function AestheticHistory() {
     };
 
     const [formData, setFormData] = useState(initialEmptyState);
+    const [isDirty, setIsDirty] = useState(false);
 
     const handleUpdateSection = (section: SectionKey, data: any) => {
         if (isReadOnly) return;
+        setIsDirty(true);
         const mappedSection = section === 'findings' ? 'tricology' : section;
         setFormData(prev => ({ ...prev, [mappedSection]: data }));
     };
@@ -313,6 +316,7 @@ export default function AestheticHistory() {
             }
             if (!isAuto) toast.success('Historia clínica guardada');
             setSaveStatus('saved');
+            setIsDirty(false);
             return recordData?.id;
         } catch (error: any) {
             setSaveStatus('error');
@@ -324,10 +328,10 @@ export default function AestheticHistory() {
     }, [activeSpecialty, patientId, isReadOnly, mode, formData, isGlobalUploading]);
 
     useEffect(() => {
-        if (isReadOnly) return;
+        if (isReadOnly || !isDirty) return;
         const timer = setTimeout(() => handleSaveAll(true), 5000);
         return () => clearTimeout(timer);
-    }, [formData, isReadOnly, handleSaveAll]);
+    }, [formData, isReadOnly, handleSaveAll, isDirty]);
 
     const renderActiveSection = () => {
         const commonProps = { readOnly: isReadOnly };

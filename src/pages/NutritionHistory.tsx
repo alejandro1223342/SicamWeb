@@ -48,6 +48,7 @@ export default function NutritionHistory() {
     const [currentRecordId, setCurrentRecordId] = useState<string | null>(recordId || null);
     const currentRecordIdRef = useRef<string | null>(recordId || null);
     const isSavingRef = useRef(false);
+    const [isDirty, setIsDirty] = useState(false);
 
     const getSections = useCallback((): SectionDef[] => {
         return [
@@ -182,6 +183,7 @@ export default function NutritionHistory() {
 
     const handleUpdateSection = (section: SectionKey, data: any) => {
         if (isReadOnly) return;
+        setIsDirty(true);
         setFormData(prev => ({ ...prev, [section]: data }));
     };
 
@@ -409,6 +411,7 @@ export default function NutritionHistory() {
             }
             if (!isAuto) toast.success('Historia clínica guardada');
             setSaveStatus('saved');
+            setIsDirty(false);
             return recordData?.id;
         } catch (error: any) {
             setSaveStatus('error');
@@ -420,10 +423,10 @@ export default function NutritionHistory() {
     }, [activeSpecialty, patientId, isReadOnly, mode, formData, patient?.jobActivity, patient?.jobDescription, patient?.jobSchedule, patient?.stressLevel, patient?.bloodType]);
 
     useEffect(() => {
-        if (isReadOnly) return;
+        if (isReadOnly || !isDirty) return;
         const timer = setTimeout(() => handleSaveAll(true), 5000);
         return () => clearTimeout(timer);
-    }, [formData, isReadOnly, handleSaveAll]);
+    }, [formData, isReadOnly, handleSaveAll, isDirty]);
 
     const renderActiveSection = () => {
         const commonProps = { readOnly: isReadOnly };
