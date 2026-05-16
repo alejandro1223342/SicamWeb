@@ -14,12 +14,13 @@ import BodyMapForm from '../components/medical-history/BodyMapForm';
 import ConsultationReasonForm from '../components/medical-history/ConsultationReasonForm';
 import TreatmentForm from '../components/medical-history/TreatmentForm';
 import ConsentForm from '../components/medical-history/ConsentForm';
+import MedicalPrescriptionForm from '../components/medical-history/MedicalPrescriptionForm';
 import { useSpecialty } from '../context/SpecialtyContext';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { CheckCircle, CloudUpload } from 'lucide-react';
 
-type SectionKey = 'reason' | 'emergency' | 'family' | 'vaccines' | 'risks' | 'labresults' | 'diagnosis' | 'exams' | 'findings' | 'consents' | 'bodymap_male' | 'bodymap_female' | 'bodymap_face' | 'bodymap_face_male' | 'bodymap_face_female' | 'treatment_details';
+type SectionKey = 'reason' | 'emergency' | 'family' | 'vaccines' | 'risks' | 'labresults' | 'diagnosis' | 'exams' | 'findings' | 'consents' | 'bodymap_male' | 'bodymap_female' | 'bodymap_face' | 'bodymap_face_male' | 'bodymap_face_female' | 'treatment_details' | 'prescription';
 
 interface SectionDef {
     id: SectionKey;
@@ -88,6 +89,7 @@ export default function AestheticHistory() {
             { id: 'diagnosis', title: 'Diagnóstico/Actividad', icon: <Stethoscope size={18} /> },
             { id: 'exams', title: 'Exámenes complementarios solicitados', icon: <FileSignature size={18} /> },
             { id: 'consents', title: 'Consentimientos Informados', icon: <FileText size={18} /> },
+            { id: 'prescription', title: 'Receta Médica', icon: <FileText size={18} /> },
             { id: 'treatment_details', title: 'Procedimiento / Tratamiento y Observaciones', icon: <FileText size={18} /> },
         );
 
@@ -115,6 +117,7 @@ export default function AestheticHistory() {
         bodymap_face: {} as Record<string, number>,
         bodymap_face_male: {} as Record<string, number>,
         bodymap_face_female: {} as Record<string, number>,
+        prescription: { cie10: '', hasAllergies: false, allergiesDetails: '', medications: '', indications: '' },
         sessionId: queryParams.get('session') || null as string | null
     });
 
@@ -143,6 +146,7 @@ export default function AestheticHistory() {
                 bodymap_face: {} as Record<string, number>,
                 bodymap_face_male: {} as Record<string, number>,
                 bodymap_face_female: {} as Record<string, number>,
+                prescription: { cie10: '', hasAllergies: false, allergiesDetails: '', medications: '', indications: '' },
                 sessionId: queryParams.get('session') || (null as string | null)
             };
 
@@ -202,6 +206,7 @@ export default function AestheticHistory() {
                             family: fallbackData.family,
                             vaccines: fallbackData.vaccines,
                             risks: fallbackData.risks,
+                            prescription: { cie10: '', hasAllergies: false, allergiesDetails: '', medications: '', indications: '' }
                         });
                     }
                 } catch (error) {
@@ -263,6 +268,10 @@ export default function AestheticHistory() {
                         bodymap_face: dbData.data?.bodymap_face || prev.bodymap_face,
                         bodymap_face_male: dbData.data?.bodymap_face_male || prev.bodymap_face_male,
                         bodymap_face_female: dbData.data?.bodymap_face_female || prev.bodymap_face_female,
+                        prescription: {
+                            ...(dbData.data?.prescription || prev.prescription),
+                            prescriptionNumber: dbData.prescriptions?.[0]?.prescriptionNumber,
+                        },
                         sessionId: dbData.data?.sessionId || prev.sessionId
                     }));
                     if (dbData.patient) setPatient((prev: any) => ({ ...prev, ...dbData.patient }));
@@ -315,6 +324,15 @@ export default function AestheticHistory() {
                         navigate(`/dashboard/specialty/${specialtyId}/aesthetic-history/${patientId}/${recordData.id}?mode=edit`, { replace: true });
                     }
                 }
+                if (recordData.prescriptions && recordData.prescriptions.length > 0) {
+                    setFormData(prev => ({
+                        ...prev,
+                        prescription: {
+                            ...prev.prescription,
+                            prescriptionNumber: recordData.prescriptions[0].prescriptionNumber
+                        }
+                    }));
+                }
                 currentRecordIdRef.current = recordData.id;
             }
             if (!isAuto) toast.success('Historia clínica guardada');
@@ -348,6 +366,7 @@ export default function AestheticHistory() {
             case 'diagnosis': return <DiagnosisActivityForm {...commonProps} data={formData.diagnosis} onChange={(d: any[]) => handleUpdateSection('diagnosis', d)} />;
             case 'exams': return <ComplementaryExamsForm {...commonProps} data={formData.exams} onChange={(d: any) => handleUpdateSection('exams', d)} patient={patient} fullCatalog={examCatalog} recordId={currentRecordId} />;
             case 'treatment_details': return <TreatmentForm {...commonProps} data={formData.treatment_details} onChange={(d: any) => handleUpdateSection('treatment_details', d)} />;
+            case 'prescription': return <MedicalPrescriptionForm {...commonProps} data={formData.prescription} onChange={(d: any) => handleUpdateSection('prescription', d)} patient={patient} recordId={currentRecordId} />;
             case 'consents': return <ConsentForm {...commonProps} specialty="Estética" patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.consents} onChange={(d: any) => handleUpdateSection('consents', d)} onUploadingChange={setIsGlobalUploading} />;
             case 'bodymap_male':
                 return <BodyMapForm {...commonProps} gender="male" data={formData.bodymap_male} onChange={(d: any) => handleUpdateSection('bodymap_male' as any, d)} />;

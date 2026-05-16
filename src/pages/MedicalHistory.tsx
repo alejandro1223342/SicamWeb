@@ -18,8 +18,9 @@ import { CheckCircle, CloudUpload } from 'lucide-react';
 import ConsultationReasonForm from '../components/medical-history/ConsultationReasonForm';
 import TreatmentForm from '../components/medical-history/TreatmentForm';
 import TricologyConsentForm from '../components/medical-history/TricologyConsentForm';
+import MedicalPrescriptionForm from '../components/medical-history/MedicalPrescriptionForm';
 
-type SectionKey = 'emergency' | 'family' | 'vaccines' | 'risks' | 'labresults' | 'diagnosis' | 'exams' | 'tricology' | 'reason' | 'consents' | 'treatment_details';
+type SectionKey = 'emergency' | 'family' | 'vaccines' | 'risks' | 'labresults' | 'diagnosis' | 'exams' | 'tricology' | 'reason' | 'consents' | 'treatment_details' | 'prescription';
 
 interface SectionDef {
     id: SectionKey;
@@ -38,6 +39,7 @@ const getSections = (): SectionDef[] => {
         { id: 'labresults', title: 'Resultados de laboratorio e imágenes', icon: <FileText size={18} /> },
         { id: 'diagnosis', title: 'Diagnóstico/Actividad', icon: <Stethoscope size={18} /> },
         { id: 'consents', title: 'Consentimientos Informados', icon: <FileSignature size={18} /> },
+        { id: 'prescription', title: 'Receta Médica', icon: <FileText size={18} /> },
         { id: 'treatment_details', title: 'Procedimiento / Tratamiento y Observaciones', icon: <Stethoscope size={18} /> },
         { id: 'exams', title: 'Exámenes complementarios solicitados', icon: <FileSignature size={18} /> },
     ];
@@ -79,6 +81,7 @@ export default function MedicalHistory() {
         treatment_details: { treatment: '', observations: '' },
         exams: { options: [] as string[], other: '', diagnosis: '', treatment: '' },
         tricology: { observations: '', files: [] as any[] },
+        prescription: { cie10: '', hasAllergies: false, allergiesDetails: '', medications: '', indications: '' },
         sessionId: queryParams.get('session') || null as string | null
     });
 
@@ -137,6 +140,7 @@ export default function MedicalHistory() {
                         treatment_details: { treatment: '', observations: '' },
                         exams: { options: [], other: '', diagnosis: '', treatment: '' },
                         tricology: { observations: '', files: [] },
+                        prescription: { cie10: '', hasAllergies: false, allergiesDetails: '', medications: '', indications: '' },
                         sessionId: queryParams.get('session') || null
                     });
                 } catch (error) {
@@ -195,6 +199,10 @@ export default function MedicalHistory() {
                         treatment_details: dbData.data?.treatment_details || prev.treatment_details,
                         exams: { ...prev.exams, ...dbData.data?.exams },
                         tricology: { ...prev.tricology, ...dbData.data?.tricology },
+                        prescription: {
+                            ...(dbData.data?.prescription || prev.prescription),
+                            prescriptionNumber: dbData.prescriptions?.[0]?.prescriptionNumber,
+                        },
                         sessionId: dbData.data?.sessionId || prev.sessionId
                     }));
                     if (dbData.patient) setPatient(dbData.patient);
@@ -227,6 +235,10 @@ export default function MedicalHistory() {
                         treatment_details: dbData.data?.treatment_details || prev.treatment_details,
                         exams: { ...prev.exams, ...dbData.data?.exams },
                         tricology: { ...prev.tricology, ...dbData.data?.tricology },
+                        prescription: {
+                            ...(dbData.data?.prescription || prev.prescription),
+                            prescriptionNumber: dbData.prescriptions?.[0]?.prescriptionNumber,
+                        },
                         sessionId: dbData.data?.sessionId || prev.sessionId
                     }));
                     if (dbData.patient) setPatient((prev: any) => ({ ...prev, ...dbData.patient }));
@@ -280,6 +292,15 @@ export default function MedicalHistory() {
                         navigate(`/dashboard/specialty/${specialtyId}/medical-history/${patientId}/${recordData.id}?mode=edit`, { replace: true });
                     }
                 }
+                if (recordData.prescriptions && recordData.prescriptions.length > 0) {
+                    setFormData(prev => ({
+                        ...prev,
+                        prescription: {
+                            ...prev.prescription,
+                            prescriptionNumber: recordData.prescriptions[0].prescriptionNumber
+                        }
+                    }));
+                }
                 currentRecordIdRef.current = recordData.id;
             }
             if (!isAuto) toast.success('Historia clínica guardada');
@@ -313,6 +334,7 @@ export default function MedicalHistory() {
             case 'diagnosis': return <DiagnosisActivityForm {...commonProps} data={formData.diagnosis} onChange={(d: any[]) => handleUpdateSection('diagnosis', d)} />;
             case 'consents': return <TricologyConsentForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.consents} onChange={(d: any) => handleUpdateSection('consents', d)} onUploadingChange={setIsGlobalUploading} />;
             case 'treatment_details': return <TreatmentForm {...commonProps} data={formData.treatment_details} onChange={(d: any) => handleUpdateSection('treatment_details', d)} />;
+            case 'prescription': return <MedicalPrescriptionForm {...commonProps} data={formData.prescription} onChange={(d: any) => handleUpdateSection('prescription', d)} patient={patient} recordId={currentRecordId} />;
             case 'exams': return <ComplementaryExamsForm {...commonProps} data={formData.exams} onChange={(d: any) => handleUpdateSection('exams', d)} patient={patient} fullCatalog={examCatalog} recordId={currentRecordId} />;
             default: return null;
         }

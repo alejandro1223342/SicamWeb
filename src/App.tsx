@@ -23,6 +23,7 @@ import NutritionHistory from './pages/NutritionHistory';
 import PrintAestheticPage from './pages/PrintAestheticPage';
 import PrintExamsPage from './pages/PrintExamsPage';
 import PrintMealPlanPage from './pages/PrintMealPlanPage';
+import PrintPrescriptionPage from './pages/PrintPrescriptionPage';
 // Patient routes
 import PatientProfilePage from './pages/patient/PatientProfilePage';
 import PatientAppointmentsPage from './pages/patient/PatientAppointmentsPage';
@@ -114,6 +115,7 @@ function App() {
           </Route>
 
           {/* Dedicated Print Routes (No Layout) */}
+          <Route path="/print/prescription" element={<PrintPrescriptionPage />} />
           <Route path="/print/history/:patientId/:recordId" element={<PrintHistoryPage />} />
           <Route path="/print/aesthetic/:patientId/:recordId" element={<PrintAestheticPage />} />
           <Route path="/print/exams/:patientId/:recordId" element={<PrintExamsPage />} />
