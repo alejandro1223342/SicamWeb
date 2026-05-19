@@ -18,8 +18,8 @@ export default function OnboardingPage() {
     const [formData, setFormData] = useState({
         personalInfo: { idNumber: '', gender: '', phone: '', birthDate: '' },
         emergency: { name: '', relation: '', phone: '', address: '' },
-        family: [] as string[],
-        vaccines: [] as string[],
+        family: { selected: [] as string[], allergyDetails: '' },
+        vaccines: { selected: [] as string[], details: '' },
         risks: { selected: [] as string[], allergyDetails: '' },
     });
 
@@ -53,9 +53,9 @@ export default function OnboardingPage() {
             case 2:
                 return formData.emergency.name && formData.emergency.phone;
             case 3:
-                return formData.family.length > 0;
+                return formData.family.selected.length > 0;
             case 4:
-                return formData.vaccines.length > 0;
+                return formData.vaccines.selected.length > 0;
             case 5:
                 return formData.risks.selected.length > 0;
             default:
