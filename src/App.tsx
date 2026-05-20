@@ -36,6 +36,8 @@ import LogoutPage from './pages/auth/LogoutPage';
 import SpecialtySync from './components/SpecialtySync';
 import DoctorProfilePage from './pages/doctor/DoctorProfilePage';
 import { Outlet } from 'react-router-dom';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
 
 // Los componentes SignIn y SignUp se han movido a src/pages/auth/
 
@@ -73,6 +75,8 @@ function App() {
           <Route path="/" element={<SignIn />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/logout" element={<LogoutPage />} />
