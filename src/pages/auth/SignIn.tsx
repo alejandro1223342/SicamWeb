@@ -9,7 +9,7 @@ import { useSpecialty } from '../../context/SpecialtyContext';
 
 const signInSchema = z.object({
     email: z.string().email('Correo electrónico inválido'),
-    password: z.string().min(1, 'La contraseña es requerida'),
+    password: z.string().min(8, 'Usuario o contraseña incorrecta'),
     keepLoggedIn: z.boolean().optional(),
 });
 
@@ -40,8 +40,6 @@ export default function SignIn() {
                 password: data.password
             });
 
-            console.log('Inicio de sesión exitoso:', response.data);
-
             const { access_token, ...user } = response.data;
             localStorage.setItem('token', access_token);
             localStorage.setItem('user', JSON.stringify(user));
@@ -56,13 +54,23 @@ export default function SignIn() {
                 navigate('/dashboard');
             }
         } catch (err: any) {
-            console.error('Error al iniciar sesión:', err);
+            // Clean up any potential leftover auth data in case of failure
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
 
-            if (err.response?.status === 401) {
-                setError('Usuario o contraseña incorrecto');
-            } else {
-                setError('Error al intentar iniciar sesión. Por favor intenta de nuevo.');
+            // Handle specific error codes cleanly
+            if (err?.isAxiosError || err?.response) {
+                if (err.response?.status === 429) {
+                    setError('Has excedido el límite de intentos. Por favor espera 1 minuto por seguridad.');
+                    return;
+                }
+                if (err.response?.status === 401) {
+                    setError('Correo o contraseña incorrectos');
+                    return;
+                }
             }
+            
+            setError('Error al intentar iniciar sesión. Por favor intenta de nuevo.');
         } finally {
             setLoading(false);
         }

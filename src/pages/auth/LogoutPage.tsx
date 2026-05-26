@@ -1,25 +1,37 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { cancelAllRequests, clearAxiosAuth } from '../../api';
+import { useSpecialty } from '../../context/SpecialtyContext';
 
 export default function LogoutPage() {
     const navigate = useNavigate();
+    const { refreshSpecialties } = useSpecialty();
 
     useEffect(() => {
         const performLogout = async () => {
+            // 1. Cancelar de inmediato cualquier petición en vuelo
+            cancelAllRequests();
+
             // Un pequeño delay para que la animación sea visible y agradable
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // Limpiar todo el almacenamiento local
+            // 2. Limpiar Headers de la instancia global de Axios explícitamente
+            clearAxiosAuth();
+
+            // 3. Limpiar todo el almacenamiento local
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             localStorage.removeItem('activeSpecialty');
             
-            // Redirigir al login
-            navigate('/signin', { replace: true });
+            // 4. Limpieza absoluta de variables en el Contexto/Memoria
+            refreshSpecialties();
+            
+            // Redirigir al login y forzar un hard reload para limpiar toda la memoria y la pestaña Network del navegador
+            window.location.href = '/signin';
         };
 
         performLogout();
-    }, [navigate]);
+    }, [navigate, refreshSpecialties]);
 
     return (
         <div style={{

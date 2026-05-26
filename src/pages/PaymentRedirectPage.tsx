@@ -9,6 +9,27 @@ export default function PaymentRedirectPage() {
     const { showToast } = useToast();
     const [message, setMessage] = useState('Preparando entorno de pago seguro...');
 
+    // 1. Inyectar el script de PayPhone de forma dinámica solo en esta vista
+    useEffect(() => {
+        // IMPORTANTE: La URL de PayPhone falla (Not found/400) si no se le pasa el parámetro 'appId'
+        // Puedes reemplazar 'TU_CLIENT_ID' directamente o usar una variable de entorno.
+        const payphoneAppId = import.meta.env.VITE_PAYPHONE_APP_ID || 'TU_CLIENT_ID';
+        const scriptUrl = `https://pay.payphonetodoesposible.com/api/button/js?appId=${payphoneAppId}`;
+        
+        const script = document.createElement('script');
+        script.src = scriptUrl;
+        script.async = true;
+        
+        document.body.appendChild(script);
+
+        // Función de limpieza: Remueve el script del DOM cuando el usuario abandone esta pantalla
+        return () => {
+            if (document.body.contains(script)) {
+                document.body.removeChild(script);
+            }
+        };
+    }, []);
+
     useEffect(() => {
         const preparePayment = async () => {
             try {
