@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '../Toast';
 import { Loader2, Camera, User as UserIcon } from 'lucide-react';
 import api from '../../api';
+import imageCompression from 'browser-image-compression';
+import { SecureImage } from '../common/SecureImage';
 
 export default function PatientProfileForm() {
     const { showToast } = useToast();
@@ -104,11 +106,18 @@ export default function PatientProfileForm() {
             return;
         }
 
-        const formData = new FormData();
-        formData.append('file', file);
-
         setUploadingPhoto(true);
         try {
+            // Compress avatar extremely
+            const options = {
+                maxSizeMB: 0.3, // 300KB
+                maxWidthOrHeight: 800,
+                useWebWorker: true
+            };
+            const compressedFile = await imageCompression(file, options);
+            
+            const formData = new FormData();
+            formData.append('file', compressedFile, file.name);
             const token = localStorage.getItem('token');
             const res = await api.patch('/users/patients/me/photo', formData, {
                 headers: { 
@@ -196,7 +205,7 @@ export default function PatientProfileForm() {
                         position: 'relative'
                     }}>
                         {photoUrl ? (
-                            <img src={photoUrl} alt="Perfil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <SecureImage src={photoUrl} alt="Perfil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
                             <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#94a3b8' }}>
                                 {getInitials() || <UserIcon size={48} />}

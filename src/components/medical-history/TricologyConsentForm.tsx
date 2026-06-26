@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../Toast';
+import { SecureIframe } from '../common/SecureIframe';
 import { FileText, Eye, Upload, Trash2, Search, X, CheckCircle, Printer } from 'lucide-react';
 import api from '../../api';
 
@@ -237,7 +238,7 @@ export default function TricologyConsentForm({ patientId, recordId, sessionId, d
                         <div style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 10 }}>
                             <button onClick={() => setPreviewUrl(null)} style={{ background: 'rgba(255,255,255,0.9)', border: 'none', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}><X size={20} /></button>
                         </div>
-                        <iframe src={previewUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Preview" />
+                        <SecureIframe src={previewUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Preview" />
                     </div>
                 </div>
             )}

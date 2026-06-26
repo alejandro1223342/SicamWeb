@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useToast } from '../Toast';
 import { Upload, Trash2, Eye, X, FileImage, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import api from '../../api';
+import { SecureImage } from '../common/SecureImage';
+import { SecureIframe } from '../common/SecureIframe';
 
 interface AestheticFindingsFormProps {
     patientId: string;
@@ -239,7 +241,7 @@ export default function AestheticFindingsForm({ patientId, recordId, sessionId, 
                                         {file.type === 'application/pdf' || file.url.toLowerCase().endsWith('.pdf') ? (
                                             <FileText size={24} color="#64748b" />
                                         ) : (
-                                            <img src={file.url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <SecureImage src={file.url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         )}
                                         {file.status === 'uploading' && (
                                             <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -270,9 +272,9 @@ export default function AestheticFindingsForm({ patientId, recordId, sessionId, 
                         )}
                         <div style={{ position: 'relative', textAlign: 'center', width: '100%', display: 'flex', justifyContent: 'center' }}>
                             {previewFiles[selectedImageIndex].type === 'application/pdf' ? (
-                                <iframe src={previewFiles[selectedImageIndex].url} style={{ width: '90vw', maxWidth: '1000px', height: '85vh', backgroundColor: 'white', borderRadius: '20px', border: 'none' }} title="PDF Preview" />
+                                <SecureIframe src={previewFiles[selectedImageIndex].url} style={{ width: '90vw', maxWidth: '1000px', height: '85vh', backgroundColor: 'white', borderRadius: '20px', border: 'none' }} title="PDF Preview" />
                             ) : (
-                                <img src={previewFiles[selectedImageIndex].url} alt="Full preview" style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '12px' }} />
+                                <SecureImage src={previewFiles[selectedImageIndex].url} alt="Full preview" style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '12px' }} />
                             )}
                         </div>
                         {previewFiles.length > 1 && (

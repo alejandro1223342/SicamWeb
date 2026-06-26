@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useToast } from '../Toast';
+import { SecureImage } from '../common/SecureImage';
+import { SecureIframe } from '../common/SecureIframe';
 import { Upload, Trash2, Eye, X, FileImage, ChevronLeft, ChevronRight, FileText, Download, ExternalLink } from 'lucide-react';
 import api from '../../api';
 
@@ -268,13 +270,15 @@ export default function TricologyFindingsForm({ patientId, recordId, sessionId, 
                                         {file.type === 'application/pdf' || file.url.toLowerCase().endsWith('.pdf') ? (
                                             <FileText size={24} color="#64748b" />
                                         ) : (
-                                            <img
+                                            <SecureImage
                                                 src={file.url}
                                                 alt="preview"
                                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                onError={(e) => {
+                                                onError={(e: any) => {
                                                     e.currentTarget.style.display = 'none';
-                                                    e.currentTarget.parentElement!.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fee2e2;color:#ef4444;font-size:10px;font-weight:700">ERR</div>';
+                                                    if(e.currentTarget.parentElement) {
+                                                      e.currentTarget.parentElement.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fee2e2;color:#ef4444;font-size:10px;font-weight:700">ERR</div>';
+                                                    }
                                                 }}
                                             />
                                         )}
@@ -405,14 +409,14 @@ export default function TricologyFindingsForm({ patientId, recordId, sessionId, 
                                             </a>
                                         </div>
                                     </div>
-                                    <iframe
+                                    <SecureIframe
                                         src={previewFiles[selectedImageIndex].url}
                                         style={{ width: '100%', flex: 1, border: 'none' }}
                                         title="PDF Preview"
                                     />
                                 </div>
                             ) : (
-                                <img
+                                <SecureImage
                                     src={previewFiles[selectedImageIndex].url}
                                     alt="Full preview"
                                     style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', transition: 'all 0.3s ease' }}

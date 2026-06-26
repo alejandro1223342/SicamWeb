@@ -27,6 +27,8 @@ const GeneralHistory = lazy(() => import('./pages/GeneralHistory'));
 const GeneralHistoryList = lazy(() => import('./pages/GeneralHistoryList'));
 const AestheticHistory = lazy(() => import('./pages/AestheticHistory'));
 const NutritionHistory = lazy(() => import('./pages/NutritionHistory'));
+const CabinHistory = lazy(() => import('./pages/CabinHistory'));
+const CabinHistoryList = lazy(() => import('./pages/CabinHistoryList'));
 const PrintAestheticPage = lazy(() => import('./pages/PrintAestheticPage'));
 const PrintExamsPage = lazy(() => import('./pages/PrintExamsPage'));
 const PrintMealPlanPage = lazy(() => import('./pages/PrintMealPlanPage'));
@@ -113,6 +115,8 @@ function App() {
                   <Route path="general-history-list/:patientId" element={<GeneralHistoryList />} />
                   <Route path="nutrition-history/:patientId/:recordId?" element={<NutritionHistory />} />
                   <Route path="medical-history-list/:patientId" element={<MedicalHistoryList />} />
+                  <Route path="cabin-history/:patientId/:recordId?" element={<CabinHistory />} />
+                  <Route path="cabin-history-list/:patientId" element={<CabinHistoryList />} />
                 </Route>
 
                 {/* Redirects for shared legacy paths */}

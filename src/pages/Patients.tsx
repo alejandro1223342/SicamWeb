@@ -111,12 +111,14 @@ const Patients: React.FC = () => {
         if (activeSpecialty?.name === 'Estética') path = 'aesthetic-history';
         if (activeSpecialty?.name === 'Nutrición') path = 'nutrition-history';
         if (activeSpecialty?.name === 'Medicina General') path = 'general-history';
+        if (activeSpecialty?.name === 'Cabina') path = 'cabin-history';
         navigate(`/dashboard/specialty/${urlSpecialtyId || activeSpecialty?.id}/${path}/${patient.id}?mode=new&session=${sessionId}`);
     };
 
     const handleViewHistories = (patient: Patient) => {
         let listPath = 'medical-history-list';
         if (activeSpecialty?.name === 'Medicina General') listPath = 'general-history-list';
+        if (activeSpecialty?.name === 'Cabina') listPath = 'cabin-history-list';
         navigate(`/dashboard/specialty/${urlSpecialtyId || activeSpecialty?.id}/${listPath}/${patient.id}`);
     };
 

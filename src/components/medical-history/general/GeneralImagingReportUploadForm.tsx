@@ -1,6 +1,8 @@
 import { Upload, FileText, Eye, X, Loader2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../../../api';
 import { useToast } from '../../Toast';
+import { SecureImage } from '../../common/SecureImage';
+import { SecureIframe } from '../../common/SecureIframe';
 import { useState } from 'react';
 
 interface ReportFile {
@@ -247,10 +249,10 @@ const GeneralImagingReportUploadForm: React.FC<GeneralImagingReportUploadFormPro
 
                         <div style={{ width: '100%', height: '100%', paddingTop: '0' }}>
                             {isPdf(data.files[previewIndex].name) ? (
-                                <iframe src={data.files[previewIndex].url} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Preview" />
+                                <SecureIframe src={data.files[previewIndex].url} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Preview" />
                             ) : (
                                 <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9' }}>
-                                    <img src={data.files[previewIndex].url} alt="Report Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                    <SecureImage src={data.files[previewIndex].url} alt="Report Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                                 </div>
                             )}
                         </div>

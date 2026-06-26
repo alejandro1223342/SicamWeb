@@ -6,7 +6,6 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
 import { X } from 'lucide-react';
-import axios from 'axios';
 import api from '../api';
 import toast, { Toaster } from 'react-hot-toast';
 import { useSpecialty } from '../context/SpecialtyContext';
@@ -49,6 +48,12 @@ export default function Schedules() {
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    
+    // Conflict Modal State
+    const [conflictModalOpen, setConflictModalOpen] = useState(false);
+    const [conflictData, setConflictData] = useState<any>(null);
+    const [pendingPayload, setPendingPayload] = useState<any>(null);
+
     
     interface ScheduleFormData {
         title: string;
@@ -116,13 +121,9 @@ export default function Schedules() {
     };
 
     const fetchSchedules = async (doctorId: string) => {
-        const targetSpecialtyId = urlSpecialtyId || getActiveSpecialtyId();
-        if (!targetSpecialtyId) return;
-
         try {
-            const response = await api.get(`/schedules/doctor/${doctorId}`, {
-                params: { specialtyId: targetSpecialtyId }
-            });
+            // Fetch ALL schedules so we can show blocked times
+            const response = await api.get('/schedules');
 
             setEvents(response.data.map((s: any) => {
                 const extractLocalTime = (dateStr: string) => {
@@ -139,23 +140,36 @@ export default function Schedules() {
                 const endDate = new Date(s.endDate);
                 endDate.setDate(endDate.getDate() + 1);
 
+                const isMine = s.doctorId === doctorId;
+                
+                let title = `${s.office?.name || 'Consultorio'}`;
+                if (isMine) {
+                    title += ` (${start} - ${end})`;
+                } else {
+                    title += ` - Ocupado por Dr. ${s.doctor?.firstName} ${s.doctor?.lastName} (${s.specialty?.name})`;
+                }
+
                 return {
                     id: s.id,
-                    title: `${s.office?.name || 'Consultorio'} (${start} - ${end})`,
+                    title,
                     daysOfWeek: [getDayId(s.dayOfWeek)],
                     startTime: start,
                     endTime: end,
-                    startRecur: s.startDate.split('T')[0],
+                    startRecur: s.startDate ? s.startDate.split('T')[0] : undefined,
                     endRecur: endDate.toISOString().split('T')[0],
-                    backgroundColor: s.isActive ? '#6366f1' : '#e5e7eb',
-                    borderColor: s.isActive ? '#6366f1' : '#d1d5db',
-                    textColor: s.isActive ? 'white' : '#9ca3af',
+                    backgroundColor: isMine ? (s.isActive ? '#6366f1' : '#e5e7eb') : '#4b5563', // gray for others
+                    borderColor: isMine ? (s.isActive ? '#6366f1' : '#d1d5db') : '#374151',
+                    textColor: isMine ? (s.isActive ? 'white' : '#9ca3af') : '#e5e7eb',
+                    editable: isMine,
+                    startEditable: isMine,
+                    durationEditable: isMine,
                     extendedProps: {
                         isActive: s.isActive !== false,
                         officeId: s.officeId,
                         specialtyId: s.specialtyId,
                         originalStartDate: s.startDate,
-                        originalEndDate: s.endDate
+                        originalEndDate: s.endDate,
+                        isMine
                     }
                 };
             }));
@@ -183,6 +197,11 @@ export default function Schedules() {
     };
 
     const handleEventClick = (clickInfo: any) => {
+        if (clickInfo.event.extendedProps.isMine === false) {
+            toast.error('No puedes editar el horario de otro médico.');
+            return;
+        }
+
         setModalMode('edit');
         setSelectedEventId(clickInfo.event.id);
 
@@ -250,13 +269,56 @@ export default function Schedules() {
 
             setShowModal(false);
             fetchSchedules(user.id);
-        } catch (error) {
-            console.error('Error saving schedule:', error);
-            if (axios.isAxiosError(error) && error.response) {
-                toast.error(`Error: ${error.response.data.message || 'Error al guardar'}`);
+        } catch (error: any) {
+            console.error('Error guardando horario:', error);
+            if (error.response?.status === 409 && error.response.data?.conflict) {
+                // Any doctor can override if they accept the warning
+                setConflictData(error.response.data);
+                
+                // Rebuild payload to have it ready for forced submit
+                const startDateTime = new Date(`${formData.startDate}T${formData.startTime}:00`);
+                const endDateTime = new Date(`${formData.endDate}T${formData.endTime}:00`);
+                const userData = localStorage.getItem('user');
+                const userObj = userData ? JSON.parse(userData) : { id: '' };
+
+                setPendingPayload({
+                    officeId: selectedOfficeId || offices[0].id,
+                    doctorId: userObj.id,
+                    specialtyId: urlSpecialtyId || getActiveSpecialtyId(),
+                    dayOfWeek: getDayOfWeek(formData.startDate),
+                    startDate: new Date(formData.startDate).toISOString(),
+                    endDate: new Date(formData.endDate).toISOString(),
+                    startTime: startDateTime.toISOString(),
+                    endTime: endDateTime.toISOString(),
+                    isActive: formData.isActive
+                });
+                
+                setConflictModalOpen(true);
             } else {
-                toast.error('Error al guardar el horario');
+                toast.error('Error al guardar el evento');
             }
+        }
+    };
+
+    const confirmForceSubmit = async () => {
+        if (!pendingPayload) return;
+        try {
+            const payloadWithOverride = { ...pendingPayload, forceOverride: true };
+            if (modalMode === 'add') {
+                await api.post('/schedules', payloadWithOverride);
+                toast.success('Horario creado forzosamente');
+            } else if (selectedEventId) {
+                await api.patch(`/schedules/${selectedEventId}`, payloadWithOverride);
+                toast.success('Horario actualizado forzosamente');
+            }
+            setConflictModalOpen(false);
+            setShowModal(false);
+            
+            const userData = localStorage.getItem('user');
+            if (userData) fetchSchedules(JSON.parse(userData).id);
+        } catch (error) {
+            console.error(error);
+            toast.error('Error al forzar guardado');
         }
     };
 
@@ -420,6 +482,10 @@ export default function Schedules() {
                         expandRows={true}
                         stickyHeaderDates={true}
                         eventDrop={async (info) => {
+                            if (info.event.extendedProps.isMine === false) {
+                                info.revert();
+                                return;
+                            }
                             try {
                                 const newStart = info.event.start;
                                 const newEnd = info.event.end || info.event.start;
@@ -434,10 +500,31 @@ export default function Schedules() {
                                 toast.success('Horario actualizado');
                             } catch (error: any) {
                                 info.revert();
-                                toast.error('Error al mover el evento');
+                                if (error.response?.status === 409 && error.response.data?.conflict) {
+                                    setConflictData(error.response.data);
+                                    
+                                    const newStart = info.event.start;
+                                    const newEnd = info.event.end || info.event.start;
+                                    const days = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
+                                    
+                                    setPendingPayload({
+                                        startTime: newStart?.toISOString(),
+                                        endTime: newEnd?.toISOString(),
+                                        dayOfWeek: newStart ? days[newStart.getDay()] : undefined
+                                    });
+                                    setSelectedEventId(info.event.id);
+                                    setModalMode('edit');
+                                    setConflictModalOpen(true);
+                                } else {
+                                    toast.error(error.response?.data?.message || 'Error al mover el evento');
+                                }
                             }
                         }}
                         eventResize={async (info) => {
+                            if (info.event.extendedProps.isMine === false) {
+                                info.revert();
+                                return;
+                            }
                             try {
                                 const newStart = info.event.start;
                                 const newEnd = info.event.end;
@@ -449,7 +536,19 @@ export default function Schedules() {
                                 toast.success('Duración actualizada');
                             } catch (error: any) {
                                 info.revert();
-                                toast.error('Error al cambiar duración');
+                                if (error.response?.status === 409 && error.response.data?.conflict) {
+                                    setConflictData(error.response.data);
+                                    
+                                    setPendingPayload({
+                                        startTime: info.event.start?.toISOString(),
+                                        endTime: info.event.end?.toISOString()
+                                    });
+                                    setSelectedEventId(info.event.id);
+                                    setModalMode('edit');
+                                    setConflictModalOpen(true);
+                                } else {
+                                    toast.error(error.response?.data?.message || 'Error al cambiar duración');
+                                }
                             }
                         }}
                     />
@@ -521,6 +620,39 @@ export default function Schedules() {
                                 </div>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Conflict Modal */}
+            {conflictModalOpen && conflictData && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px' }}>
+                    <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', padding: '24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: '#b91c1c' }}>
+                            <div style={{ background: '#fee2e2', padding: '8px', borderRadius: '50%' }}>
+                                <X size={24} />
+                            </div>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: '600', margin: 0 }}>Conflicto de Horario</h3>
+                        </div>
+                        
+                        <p style={{ fontSize: '0.9rem', color: '#4b5563', lineHeight: '1.5', marginBottom: '24px' }}>
+                            {conflictData.message}
+                            <br /><br />
+                            <strong>A pesar de esto, ¿deseas forzar la creación de este horario y compartir el consultorio?</strong>
+                        </p>
+
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                            <button 
+                                onClick={() => setConflictModalOpen(false)} 
+                                style={{ background: 'white', border: '1px solid #d1d5db', padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', color: '#374151' }}>
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={confirmForceSubmit} 
+                                style={{ background: '#b91c1c', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
+                                Sí, forzar guardado
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

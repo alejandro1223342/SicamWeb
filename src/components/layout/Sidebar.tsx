@@ -138,7 +138,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
     const sidebarStyle: React.CSSProperties = {
         backgroundColor: '#ffffff',
-        zIndex: 100000,
+        zIndex: 100,
         position: 'fixed',
         left: 0,
         top: 0,

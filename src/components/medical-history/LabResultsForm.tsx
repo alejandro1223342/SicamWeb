@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Plus, X, Trash2, FileText, Eye, ChevronLeft, ChevronRight, Download, ExternalLink, Upload, Image as ImageIcon, Loader2 } from 'lucide-react';
 import api from '../../api';
-import toast from 'react-hot-toast';
+import { useToast } from '../Toast';
+import { SecureImage } from '../common/SecureImage';
+import { SecureIframe } from '../common/SecureIframe';
 
 interface LabResult {
     id: string;
@@ -23,6 +25,7 @@ interface LabResultsFormProps {
 }
 
 export default function LabResultsForm({ patientId, recordId, sessionId, data, onChange, onUploadingChange, readOnly = false }: LabResultsFormProps) {
+    const { showToast } = useToast();
     const [showModal, setShowModal] = useState(false);
     const [dragActive, setDragActive] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -32,9 +35,25 @@ export default function LabResultsForm({ patientId, recordId, sessionId, data, o
         exam: '', observations: '', value: '', date: '', files: []
     });
 
+    const handleCancelModal = async () => {
+        if (newItem.files && newItem.files.length > 0) {
+            for (const file of newItem.files) {
+                try {
+                    const parts = file.url.split('/');
+                    const fileId = parts[parts.length - 1];
+                    if (fileId) await api.delete(`/drive/file/${fileId}`);
+                } catch (error) {
+                    console.error('Error deleting orphaned file:', error);
+                }
+            }
+        }
+        setNewItem({ exam: '', observations: '', value: '', date: '', files: [] });
+        setShowModal(false);
+    };
+
     const handleAddItem = () => {
         if (!newItem.exam || !newItem.observations || !newItem.value || !newItem.date) {
-            toast.error('Por favor llene todos los campos obligatorios (*)');
+            showToast('Por favor llene todos los campos obligatorios (*)', 'error');
             return;
         }
         const result: LabResult = {
@@ -48,7 +67,7 @@ export default function LabResultsForm({ patientId, recordId, sessionId, data, o
         onChange([...data, result]);
         setNewItem({ exam: '', observations: '', value: '', date: '', files: [] });
         setShowModal(false);
-        toast.success('Resultado de laboratorio agregado correctamente.');
+        showToast('Resultado de laboratorio agregado exitosamente.', 'success');
     };
 
     const handleRemove = async (id: string) => {
@@ -66,7 +85,7 @@ export default function LabResultsForm({ patientId, recordId, sessionId, data, o
             }
         }
         onChange(data.filter(item => item.id !== id));
-        toast.success('Resultado de laboratorio eliminado correctamente.');
+        showToast('Resultado de laboratorio eliminado exitosamente.', 'success');
     };
 
     const handleRemoveFileInModal = async (idx: number) => {
@@ -127,19 +146,30 @@ export default function LabResultsForm({ patientId, recordId, sessionId, data, o
     const handleFileSelection = async (fileList: FileList) => {
         if (readOnly) return;
         const files = Array.from(fileList);
+        const validFiles: File[] = [];
+        const invalidFiles: File[] = [];
 
         for (const file of files) {
             const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
             if (!allowedTypes.includes(file.type)) {
-                toast.error(`El archivo ${file.name} no es un tipo permitido (Imágenes o PDF).`);
+                showToast(`El archivo ${file.name} no es un tipo permitido (Imágenes o PDF).`, 'error');
                 continue;
             }
 
             if (file.size > 10 * 1024 * 1024) {
-                toast.error(`El archivo ${file.name} supera el límite de 10MB.`);
+                invalidFiles.push(file);
                 continue;
             }
+            validFiles.push(file);
+        }
 
+        if (invalidFiles.length > 0) {
+            showToast(`Se omitieron ${invalidFiles.length} archivo(s) que superan los 10MB`, 'warning');
+        }
+
+        if (validFiles.length === 0) return;
+
+        for (const file of validFiles) {
             setIsUploading(true);
             onUploadingChange?.(true);
             const formData = new FormData();
@@ -152,17 +182,39 @@ export default function LabResultsForm({ patientId, recordId, sessionId, data, o
 
                 if (response.data?.data?.url) {
                     const proxyUrl = response.data.data.url;
-                    setNewItem(prev => ({
-                        ...prev,
-                        files: [
-                            ...(prev.files || []),
-                            { name: response.data.data.name || file.name, url: proxyUrl, type: file.type }
-                        ]
-                    }));
+                    setNewItem(prev => {
+                        const updated = {
+                            ...prev,
+                            files: [
+                                ...(prev.files || []),
+                                { name: response.data.data.name || file.name, url: proxyUrl, type: file.type }
+                            ]
+                        };
+                        // Check if this is the last file
+                        if (file === validFiles[validFiles.length - 1]) {
+                            if (updated.exam && updated.observations && updated.value && updated.date) {
+                                setTimeout(() => {
+                                    const result: LabResult = {
+                                        id: Date.now().toString(),
+                                        exam: updated.exam!,
+                                        observations: updated.observations!,
+                                        value: updated.value!,
+                                        date: updated.date!,
+                                        files: updated.files || []
+                                    };
+                                    onChange([...data, result]);
+                                    setNewItem({ exam: '', observations: '', value: '', date: '', files: [] });
+                                    setShowModal(false);
+                                    showToast('Resultado de laboratorio guardado automáticamente.', 'success');
+                                }, 1200);
+                            }
+                        }
+                        return updated;
+                    });
                 }
             } catch (error) {
                 console.error('Error uploading file:', error);
-                toast.error('Error al subir el archivo');
+                showToast('Error al subir el archivo.', 'error');
             } finally {
                 setIsUploading(false);
                 onUploadingChange?.(false);
@@ -340,7 +392,7 @@ export default function LabResultsForm({ patientId, recordId, sessionId, data, o
                     <div style={{ backgroundColor: 'white', borderRadius: '24px', width: '100%', maxWidth: '700px', maxHeight: '95vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)', animation: 'modalFadeIn 0.3s ease-out' }}>
                         <div style={{ padding: '24px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10 }}>
                             <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Nuevo Resultado de Laboratorio</h2>
-                            <button onClick={() => setShowModal(false)} style={{ background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b', transition: 'all 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor = '#fee2e2'} onMouseOut={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}><X size={20} /></button>
+                            <button onClick={handleCancelModal} style={{ background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b', transition: 'all 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor = '#fee2e2'} onMouseOut={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}><X size={20} /></button>
                         </div>
                         
                         <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -424,7 +476,7 @@ export default function LabResultsForm({ patientId, recordId, sessionId, data, o
 
                         <div style={{ padding: '24px 32px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '12px', backgroundColor: '#f8fafc', borderBottomLeftRadius: '24px', borderBottomRightRadius: '24px' }}>
                             <button 
-                                onClick={() => !isUploading && setShowModal(false)}
+                                onClick={() => !isUploading && handleCancelModal()}
                                 disabled={isUploading}
                                 style={{ 
                                     padding: '10px 24px', 
@@ -501,9 +553,9 @@ export default function LabResultsForm({ patientId, recordId, sessionId, data, o
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9', overflow: 'hidden' }}>
                                 {selectedFilePreview.file.type.includes('pdf') ? (
-                                    <iframe src={selectedFilePreview.file.url} style={{ width: '80vw', height: '70vh', border: 'none' }} title="PDF" />
+                                    <SecureIframe src={selectedFilePreview.file.url} style={{ width: '80vw', height: '70vh', border: 'none' }} title="PDF" />
                                 ) : (
-                                    <img src={selectedFilePreview.file.url} alt="Preview" style={{ maxWidth: '100%', maxHeight: '70vh', display: 'block', objectFit: 'contain' }} />
+                                    <SecureImage src={selectedFilePreview.file.url} alt="Preview" style={{ maxWidth: '100%', maxHeight: '70vh', display: 'block', objectFit: 'contain' }} />
                                 )}
                             </div>
                         </div>

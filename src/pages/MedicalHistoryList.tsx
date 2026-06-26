@@ -158,12 +158,17 @@ const MedicalHistoryList: React.FC = () => {
                                 <p className="text-muted">No se registran atenciones previas.</p>
                             </div>
                         ) : (
-                            records.map(record => (
+                            records.map((record, index) => (
                                 <div key={record.id} className="card" style={{ padding: '20px', background: 'white' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dark)', fontWeight: '600' }}>
-                                            <Calendar size={18} className="text-muted" />
-                                            {new Date(record.createdAt).toLocaleDateString()}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-dark)', fontWeight: '600' }}>
+                                            <div style={{ backgroundColor: '#f1f5f9', padding: '4px 10px', borderRadius: '8px', fontSize: '13px', color: '#475569', fontWeight: '700' }}>
+                                                Nº {records.length - index}
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <Calendar size={18} className="text-muted" />
+                                                {new Date(record.createdAt).toLocaleDateString()}
+                                            </div>
                                         </div>
                                         <button
                                             className="action-btn-outline"
@@ -200,6 +205,7 @@ const MedicalHistoryList: React.FC = () => {
                             <table className="custom-table">
                                 <thead>
                                     <tr>
+                                        <th className="text-center" style={{ width: '80px' }}>Nº</th>
                                         <th className="text-center">Fecha</th>
                                         <th className="text-center">Especialidad</th>
                                         <th className="text-center">Médico</th>
@@ -209,13 +215,16 @@ const MedicalHistoryList: React.FC = () => {
                                 <tbody>
                                     {records.length === 0 ? (
                                         <tr>
-                                            <td colSpan={4} className="text-center py-12" style={{ padding: '60px' }}>
+                                            <td colSpan={5} className="text-center py-12" style={{ padding: '60px' }}>
                                                 <p className="text-muted">No se registran atenciones previas para este paciente.</p>
                                             </td>
                                         </tr>
                                     ) : (
-                                        records.map(record => (
+                                        records.map((record, index) => (
                                             <tr key={record.id}>
+                                                <td className="text-center" style={{ fontWeight: '700', color: '#475569', fontSize: '15px' }}>
+                                                    {records.length - index}
+                                                </td>
                                                 <td className="text-center">
                                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--text-dark)', fontWeight: '500' }}>
                                                         <Calendar size={16} className="text-muted" />

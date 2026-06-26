@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bell, ChevronDown, LogOut, Check, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { SecureImage } from '../common/SecureImage';
 
 export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
     const [user, setUser] = useState<any>(null);
@@ -19,7 +20,8 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                 try {
                     const parsedUser = JSON.parse(userData);
                     setUser(parsedUser);
-                    // Todos los roles (PACIENTE, MEDICO, ADMIN) deben poder ver sus notificaciones
+                    // Todos los roles deben poder ver sus notificaciones
+                    fetchUnreadCount();
                     fetchNotifications();
                 } catch (e) {
                     console.error("Error al parsear usuario en Header", e);
@@ -40,6 +42,24 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
         };
     }, []);
 
+    const fetchUnreadCount = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+            const res = await fetch(`${baseUrl}/notifications/unread-count`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setUnreadCount(data.count);
+            }
+        } catch (error) {
+            console.error('Error fetching unread count:', error);
+        }
+    };
+
     const fetchNotifications = async () => {
         try {
             const token = localStorage.getItem('token');
@@ -52,7 +72,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
             if (res.ok) {
                 const data = await res.json();
                 setNotifications(data);
-                setUnreadCount(data.filter((n: any) => !n.isRead).length);
+                // El contador ahora se maneja por separado mediante fetchUnreadCount
             }
         } catch (error) {
             console.error('Error fetching notifications:', error);
@@ -83,19 +103,18 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
         try {
             const token = localStorage.getItem('token');
             const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-            const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
             
-            // Mark all concurrently
-            await Promise.all(
-                unreadIds.map(id => fetch(`${baseUrl}/notifications/${id}/read`, {
-                    method: 'PATCH',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }))
-            );
+            // Un solo request al servidor para marcar todas como leídas
+            const res = await fetch(`${baseUrl}/notifications/read-all`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             
-            // Clear local notifications array completely
-            setNotifications([]);
-            setUnreadCount(0);
+            if (res.ok) {
+                // Actualizar notificaciones en el state para reflejar que están leídas
+                setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+                setUnreadCount(0);
+            }
         } catch (error) {
             console.error('Error marking all notifications as read:', error);
         }
@@ -280,8 +299,9 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                             style={{ cursor: 'pointer' }}
                         >
-                            <img
-                                src={user?.photoUrl || `https://ui-avatars.com/api/?name=${user?.firstName || 'User'}+${user?.lastName || ''}&background=5D5FEF&color=fff&rounded=true`}
+                            <SecureImage
+                                src={user?.photoUrl || ''}
+                                fallbackSrc={`https://ui-avatars.com/api/?name=${user?.firstName || 'User'}+${user?.lastName || ''}&background=5D5FEF&color=fff&rounded=true`}
                                 alt="User"
                                 className="user-avatar"
                                 style={{ objectFit: 'cover' }}
@@ -321,8 +341,9 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                                     alignItems: 'center',
                                     gap: '0.75rem'
                                 }}>
-                                    <img
-                                        src={user?.photoUrl || `https://ui-avatars.com/api/?name=${user?.firstName || 'User'}+${user?.lastName || ''}&background=5D5FEF&color=fff&rounded=true`}
+                                    <SecureImage
+                                        src={user?.photoUrl || ''}
+                                        fallbackSrc={`https://ui-avatars.com/api/?name=${user?.firstName || 'User'}+${user?.lastName || ''}&background=5D5FEF&color=fff&rounded=true`}
                                         alt="User"
                                         style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
                                     />

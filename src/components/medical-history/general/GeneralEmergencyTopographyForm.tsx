@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Undo2, Eraser, Map as MapIcon, X, Maximize2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import bodyMapImg from '../../../assets/body-map/cuerpoHumano.png';
 
@@ -215,7 +216,6 @@ export default function GeneralEmergencyTopographyForm({ data, onChange, readOnl
                         value={safeData.comments}
                         onChange={(e) => onChange({ ...safeData, comments: e.target.value })}
                         onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                        onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                         placeholder="Detalle hallazgos específicos analizados en el diagrama..."
                         disabled={readOnly}
                     />
@@ -223,7 +223,7 @@ export default function GeneralEmergencyTopographyForm({ data, onChange, readOnl
             </div>
 
             {/* MODAL EDITOR */}
-            {isModalOpen && (
+            {isModalOpen && createPortal(
                 <div style={{
                     position: 'fixed',
                     inset: 0,
@@ -232,7 +232,7 @@ export default function GeneralEmergencyTopographyForm({ data, onChange, readOnl
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    zIndex: 10000,
+                    zIndex: 999999, /* Alto z-index para que tape el sidebar */
                     padding: '20px',
                     animation: 'modalFadeIn 0.3s ease-out'
                 }}>
@@ -353,11 +353,11 @@ export default function GeneralEmergencyTopographyForm({ data, onChange, readOnl
                         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                     `}</style>
                 </div>
-            )}
+            , document.body)}
 
             {/* Custom Confirmation Modal */}
-            {showDeleteConfirm && (
-                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001, padding: '20px' }}>
+            {showDeleteConfirm && createPortal(
+                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999999, padding: '20px' }}>
                     <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '32px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                             <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
@@ -384,7 +384,7 @@ export default function GeneralEmergencyTopographyForm({ data, onChange, readOnl
                         </div>
                     </div>
                 </div>
-            )}
+            , document.body)}
         </div>
     );
 }

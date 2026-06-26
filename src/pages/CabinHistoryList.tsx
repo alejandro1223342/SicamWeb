@@ -5,7 +5,7 @@ import { ArrowLeft, Eye, Loader2, Calendar, User, Stethoscope } from 'lucide-rea
 import toast, { Toaster } from 'react-hot-toast';
 import { useSpecialty } from '../context/SpecialtyContext';
 
-interface GeneralRecord {
+interface MedicalRecord {
     id: string;
     createdAt: string;
     doctor: {
@@ -24,10 +24,10 @@ interface Patient {
     idNumber: string | null;
 }
 
-const GeneralHistoryList: React.FC = () => {
+const CabinHistoryList: React.FC = () => {
     const { patientId } = useParams<{ patientId: string }>();
     const navigate = useNavigate();
-    const [records, setRecords] = useState<GeneralRecord[]>([]);
+    const [records, setRecords] = useState<MedicalRecord[]>([]);
     const [patient, setPatient] = useState<Patient | null>(null);
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -37,7 +37,7 @@ const GeneralHistoryList: React.FC = () => {
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 1024);
         window.addEventListener('resize', handleResize);
-
+        
         const fetchData = async () => {
             if (!patientId || !activeSpecialty) return;
             try {
@@ -45,14 +45,14 @@ const GeneralHistoryList: React.FC = () => {
                 const patientRes = await api.get(`/users/patients/${patientId}`);
                 setPatient(patientRes.data.data || patientRes.data);
 
-                // Fetch general records filtered by specialty
-                const recordsRes = await api.get(`/general-records/patient/${patientId}`, {
+                // Fetch medical records filtered by specialty
+                const recordsRes = await api.get(`/medical-records/patient/${patientId}`, {
                     params: { specialtyId: activeSpecialty.id }
                 });
                 setRecords(recordsRes.data);
             } catch (error) {
-                console.error('Error fetching general medical history:', error);
-                toast.error('Error al cargar el historial de atenciones');
+                console.error('Error fetching medical history:', error);
+                toast.error('Error al cargar la historia clÃ­nica');
             } finally {
                 setLoading(false);
             }
@@ -69,14 +69,14 @@ const GeneralHistoryList: React.FC = () => {
                  const patientRes = await api.get(`/users/patients/${patientId}`);
                  setPatient(patientRes.data.data || patientRes.data);
  
-                 // Fetch general records filtered by specialty
-                 const recordsRes = await api.get(`/general-records/patient/${patientId}`, {
+                 // Fetch medical records filtered by specialty
+                 const recordsRes = await api.get(`/medical-records/patient/${patientId}`, {
                      params: { specialtyId: activeSpecialty.id }
                  });
                  setRecords(recordsRes.data);
              } catch (error) {
-                 console.error('Error fetching general medical history:', error);
-                 toast.error('Error al cargar el historial de atenciones');
+                 console.error('Error fetching medical history:', error);
+                 toast.error('Error al cargar la historia clÃ­nica');
              } finally {
                  setLoading(false);
              }
@@ -87,9 +87,13 @@ const GeneralHistoryList: React.FC = () => {
 
     const handleViewRecord = (recordId: string) => {
         if (!activeSpecialty) return;
-        navigate(`/dashboard/specialty/${activeSpecialty.id}/general-history/${patientId}/${recordId}`);
-    };
+        let path = 'medical-history';
+        if (activeSpecialty.name === 'EstÃ©tica') path = 'aesthetic-history';
+        if (activeSpecialty.name === 'NutriciÃ³n') path = 'nutrition-history';
+        if (activeSpecialty.name === 'Cabina') path = 'cabin-history';
 
+        navigate(`/dashboard/specialty/${activeSpecialty.id}/${path}/${patientId}/${recordId}`);
+    };
 
     if (loading) {
         return (
@@ -123,7 +127,7 @@ const GeneralHistoryList: React.FC = () => {
                                 <ArrowLeft size={20} />
                             </button>
                             <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#1e293b', margin: 0, letterSpacing: '-0.02em' }}>
-                                Historial de Atenciones (Med. General)
+                                Historial de Atenciones (Cabina)
                             </h2>
                         </div>
 
@@ -263,4 +267,5 @@ const GeneralHistoryList: React.FC = () => {
     );
 };
 
-export default GeneralHistoryList;
+export default CabinHistoryList;
+

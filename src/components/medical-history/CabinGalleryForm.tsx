@@ -1,38 +1,39 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, X, Trash2, FileText, Eye, ChevronLeft, ChevronRight, Download, ExternalLink, Upload, Image as ImageIcon, Loader2 } from 'lucide-react';
 import api from '../../api';
 import { useToast } from '../Toast';
 import { SecureImage } from '../common/SecureImage';
 import { SecureIframe } from '../common/SecureIframe';
 
-interface LabResult {
+interface CabinGalleryItem {
     id: string;
-    exam: string;
+    title: string;
     observations: string;
     value: string;
     date: string;
     files: { name: string, url: string, type: string }[];
 }
 
-interface AestheticLabResultsFormProps {
+interface CabinGalleryFormProps {
     patientId: string;
     recordId?: string | null;
     sessionId?: string | null;
-    data: LabResult[];
-    onChange: (data: LabResult[]) => void;
+    data: CabinGalleryItem[];
+    onChange: (data: CabinGalleryItem[]) => void;
     onUploadingChange?: (uploading: boolean) => void;
     readOnly?: boolean;
 }
 
-export default function AestheticLabResultsForm({ patientId, recordId, sessionId, data, onChange, onUploadingChange, readOnly = false }: AestheticLabResultsFormProps) {
+export default function CabinGalleryForm({ patientId, recordId, sessionId, data, onChange, onUploadingChange, readOnly = false }: CabinGalleryFormProps) {
     const { showToast } = useToast();
     const [showModal, setShowModal] = useState(false);
     const [dragActive, setDragActive] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [selectedFilePreview, setSelectedFilePreview] = useState<{ file: { url: string, type: string, name: string }, allFiles: { url: string, type: string, name: string }[], currentIndex: number } | null>(null);
-    const [newItem, setNewItem] = useState<Partial<LabResult>>({
-        exam: '', observations: '', value: '', date: '', files: []
+    const [newItem, setNewItem] = useState<Partial<CabinGalleryItem>>({
+        title: '', observations: '', value: '', date: new Date().toISOString().split('T')[0], files: []
     });
 
     const handleCancelModal = async () => {
@@ -47,27 +48,27 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                 }
             }
         }
-        setNewItem({ exam: '', observations: '', value: '', date: '', files: [] });
+        setNewItem({ title: '', observations: '', value: '', date: new Date().toISOString().split('T')[0], files: [] });
         setShowModal(false);
     };
 
     const handleAddItem = () => {
-        if (!newItem.exam || !newItem.observations || !newItem.value || !newItem.date) {
+        if (!newItem.title || !newItem.observations || !newItem.value || !newItem.date) {
             showToast('Por favor llene todos los campos obligatorios (*)', 'error');
             return;
         }
-        const result: LabResult = {
+        const result: CabinGalleryItem = {
             id: Date.now().toString(),
-            exam: newItem.exam!,
+            title: newItem.title!,
             observations: newItem.observations!,
             value: newItem.value!,
             date: newItem.date!,
             files: newItem.files || []
         };
         onChange([...data, result]);
-        setNewItem({ exam: '', observations: '', value: '', date: '', files: [] });
+        setNewItem({ title: '', observations: '', value: '', date: new Date().toISOString().split('T')[0], files: [] });
         setShowModal(false);
-        showToast('Resultado de laboratorio agregado exitosamente.', 'success');
+        showToast('Imagen agregada correctamente a la galería.', 'success');
     };
 
     const handleRemove = async (id: string) => {
@@ -80,12 +81,13 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                     const fileId = parts[parts.length - 1];
                     if (fileId) await api.delete(`/drive/file/${fileId}`);
                 } catch (error) {
-                    console.error('Error deleting file from Drive (Estética):', error);
+                    console.error('Error deleting file from Drive:', error);
                 }
             }
         }
-        onChange(data.filter(item => item.id !== id));
-        showToast('Resultado de laboratorio eliminado exitosamente.', 'success');
+        const newData = data.filter(item => item.id !== id);
+        onChange(newData);
+        showToast('Imagen eliminada correctamente.', 'success');
     };
 
     const handleRemoveFileInModal = async (idx: number) => {
@@ -118,14 +120,14 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
             if (fileId) {
                 await api.delete(`/drive/file/${fileId}`);
             }
-            const updatedFiles = record.files.filter((_, i) => i !== fileIdx);
-            const updatedData = data.map(r => r.id === recordId ? { ...r, files: updatedFiles } : r);
-            onChange(updatedData);
-            showToast('Archivo eliminado correctamente.', 'success');
         } catch (error) {
             console.error('Error deleting file from record:', error);
             showToast('Error al eliminar el archivo.', 'error');
         }
+
+        const updatedFiles = record.files.filter((_, i) => i !== fileIdx);
+        const updatedData = data.map(r => r.id === recordId ? { ...r, files: updatedFiles } : r);
+        onChange(updatedData);
     };
 
     const handleDrag = (e: React.DragEvent) => {
@@ -178,7 +180,7 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
             formData.append('file', file);
 
             try {
-                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=Estetica&folder=Examenes de Estética&recordId=${recordId || ''}&sessionId=${sessionId || ''}`, formData, {
+                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=Cabina&folder=Galeria%20de%20Cabina&recordId=${recordId || ''}&sessionId=${sessionId || ''}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
 
@@ -192,29 +194,31 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                                 { name: file.name, url: proxyUrl, type: file.type }
                             ]
                         };
+                        // Check if this is the last file in the validFiles array
                         if (file === validFiles[validFiles.length - 1]) {
-                            if (updated.exam && updated.observations && updated.value && updated.date) {
+                            // Si todos los campos están llenos, autoguardar con ligero retraso
+                            if (updated.title && updated.observations && updated.value && updated.date) {
                                 setTimeout(() => {
-                                    const result: LabResult = {
+                                    const result: CabinGalleryItem = {
                                         id: Date.now().toString(),
-                                        exam: updated.exam!,
+                                        title: updated.title!,
                                         observations: updated.observations!,
                                         value: updated.value!,
                                         date: updated.date!,
                                         files: updated.files || []
                                     };
                                     onChange([...data, result]);
-                                    setNewItem({ exam: '', observations: '', value: '', date: '', files: [] });
+                                    setNewItem({ title: '', observations: '', value: '', date: new Date().toISOString().split('T')[0], files: [] });
                                     setShowModal(false);
-                                    showToast('Resultado de laboratorio guardado automáticamente.', 'success');
-                                }, 1200);
+                                    showToast('Imagen agregada y guardada automáticamente.', 'success');
+                                }, 1200); // 1.2 segundos para que no sea al milisegundo
                             }
                         }
                         return updated;
                     });
                 }
             } catch (error) {
-                console.error('Error uploading file (Estética):', error);
+                console.error('Error uploading file:', error);
                 showToast('Error al subir el archivo', 'error');
             } finally {
                 setIsUploading(false);
@@ -256,14 +260,14 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                     <div style={{ padding: '8px', backgroundColor: '#f5f3ff', borderRadius: '12px', color: '#4f46e5', display: 'flex' }}>
                         <ImageIcon size={24} />
                     </div>
-                    Resultados de laboratorio e imágenes - Estética
+                    Galería Fotográfica - Cabina
                 </h3>
                 {!readOnly && (
                     <button
                         onClick={() => setShowModal(true)}
                         style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#4f46e5', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.15)' }}
                     >
-                        Agregar resultado Estética <Plus size={18} />
+                        Agregar a Galería <Plus size={18} />
                     </button>
                 )}
             </div>
@@ -273,8 +277,8 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                     <thead style={{ backgroundColor: '#f8fafc', color: '#64748b', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>
                         <tr>
                             <th style={{ padding: '16px 20px', width: '40px' }}></th>
-                            <th style={{ padding: '16px 20px' }}>EXAMEN</th>
-                            <th style={{ padding: '16px 20px' }}>VALOR/NSH</th>
+                            <th style={{ padding: '16px 20px' }}>TÍTULO DE FOTO</th>
+                            <th style={{ padding: '16px 20px' }}>RESULTADOS</th>
                             <th style={{ padding: '16px 20px' }}>FECHA</th>
                             <th style={{ padding: '16px 20px', textAlign: 'center' }}>ADJUNTOS</th>
                             {!readOnly && <th style={{ padding: '16px 20px', width: '80px', textAlign: 'center' }}>ACCIONES</th>}
@@ -289,7 +293,7 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                                             <FileText size={32} />
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <span style={{ fontSize: '16px', fontWeight: '700', color: '#475569' }}>Sin registros Estética aún</span>
+                                            <span style={{ fontSize: '16px', fontWeight: '700', color: '#475569' }}>Sin imágenes en la galería aún</span>
                                         </div>
                                     </div>
                                 </td>
@@ -307,7 +311,7 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                                             </div>
                                         </td>
                                         <td style={{ padding: '20px' }}>
-                                            <span style={{ fontWeight: '700', color: '#0f172a', fontSize: '15px' }}>{item.exam}</span>
+                                            <span style={{ fontWeight: '700', color: '#0f172a', fontSize: '15px' }}>{item.title}</span>
                                         </td>
                                         <td style={{ padding: '20px' }}>
                                             <span style={{ fontWeight: '700', color: '#4f46e5', backgroundColor: '#eef2ff', padding: '6px 12px', borderRadius: '8px', fontSize: '13px' }}>
@@ -388,22 +392,22 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                 </table>
             </div>
 
-            {showModal && (
-                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', backdropFilter: 'blur(4px)' }}>
+            {showModal && createPortal(
+                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', zIndex: 100000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', backdropFilter: 'blur(4px)' }}>
                     <div style={{ backgroundColor: 'white', borderRadius: '24px', width: '100%', maxWidth: '700px', maxHeight: '95vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)', animation: 'modalFadeIn 0.3s ease-out' }}>
                         <div style={{ padding: '24px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10 }}>
-                            <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Nuevo Resultado de Laboratorio (Estética)</h2>
+                            <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Nueva Imagen de Galería (Cabina)</h2>
                             <button onClick={handleCancelModal} style={{ background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b', transition: 'all 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor = '#fee2e2'} onMouseOut={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}><X size={20} /></button>
                         </div>
 
                         <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <label style={{ fontWeight: '600', color: '#475569', fontSize: '14px' }}>Tipo de examen (*)</label>
+                                    <label style={{ fontWeight: '600', color: '#475569', fontSize: '14px' }}>Título de Foto (*)</label>
                                     <input
-                                        placeholder="Ej: Biometría Hemática"
-                                        value={newItem.exam}
-                                        onChange={e => setNewItem({ ...newItem, exam: e.target.value })}
+                                        placeholder="Ej: Vista frontal"
+                                        value={newItem.title}
+                                        onChange={e => setNewItem({ ...newItem, title: e.target.value })}
                                         style={{ width: '100%', padding: '12px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', transition: 'all 0.2s', fontSize: '15px' }}
                                         onFocus={e => { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 4px rgba(79, 70, 229, 0.1)'; }}
                                         onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
@@ -423,9 +427,9 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <label style={{ fontWeight: '600', color: '#475569', fontSize: '14px' }}>Valor / NSH (*)</label>
+                                <label style={{ fontWeight: '600', color: '#475569', fontSize: '14px' }}>Resultados (*)</label>
                                 <input
-                                    placeholder="Ej: 14.5 g/dL"
+                                    placeholder="Ej: Piel hidratada, sin lesiones"
                                     value={newItem.value}
                                     onChange={e => setNewItem({ ...newItem, value: e.target.value })}
                                     style={{ width: '100%', padding: '12px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', outline: 'none', transition: 'all 0.2s', fontSize: '15px' }}
@@ -513,21 +517,21 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                                 onMouseOut={e => { if (!isUploading) e.currentTarget.style.backgroundColor = '#4f46e5' }}
                             >
                                 {isUploading && <Loader2 className="animate-spin" size={18} />}
-                                {isUploading ? 'Subiendo Archivos...' : 'Guardar Resultado'}
+                                {isUploading ? 'Subiendo Archivos...' : 'Guardar Imagen'}
                             </button>
                         </div>
                     </div>
                 </div>
-            )}
+            , document.body)}
 
-            {selectedFilePreview && (
-                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.95)', zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(8px)' }} onClick={() => setSelectedFilePreview(null)}>
+            {selectedFilePreview && createPortal(
+                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.95)', zIndex: 100000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(8px)' }} onClick={() => setSelectedFilePreview(null)}>
                     <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
 
-                        {/* Botón Cerrar */}
+                        {/* BotÃ³n Cerrar */}
                         <button onClick={() => setSelectedFilePreview(null)} style={{ position: 'fixed', top: '24px', right: '24px', color: 'white', background: 'rgba(255,255,255,0.1)', border: 'none', width: '44px', height: '44px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2001 }}><X size={24} /></button>
 
-                        {/* Navegación Anterior */}
+                        {/* NavegaciÃ³n Anterior */}
                         {selectedFilePreview.allFiles.length > 1 && (
                             <button
                                 onClick={() => handleNav('prev')}
@@ -561,7 +565,7 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                             </div>
                         </div>
 
-                        {/* Navegación Siguiente */}
+                        {/* NavegaciÃ³n Siguiente */}
                         {selectedFilePreview.allFiles.length > 1 && (
                             <button
                                 onClick={() => handleNav('next')}
@@ -574,7 +578,7 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                         )}
                     </div>
                 </div>
-            )}
+            , document.body)}
 
             <style>{`
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -583,3 +587,4 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
         </div>
     );
 }
+
