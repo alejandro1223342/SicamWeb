@@ -140,14 +140,24 @@ export default function Schedules() {
                 const endDate = new Date(s.endDate);
                 endDate.setDate(endDate.getDate() + 1);
 
-                const isMine = s.doctorId === doctorId;
+                const isMine = s.doctorId === doctorId && s.specialtyId === (urlSpecialtyId || getActiveSpecialtyId());
                 
-                let title = `${s.office?.name || 'Consultorio'}`;
-                if (isMine) {
-                    title += ` (${start} - ${end})`;
-                } else {
-                    title += ` - Ocupado por Dr. ${s.doctor?.firstName} ${s.doctor?.lastName} (${s.specialty?.name})`;
+                let title = `Dr. ${s.doctor?.firstName} ${s.doctor?.lastName} - ${s.specialty?.name || 'Especialidad'}`;
+                if (!isMine) {
+                    if (s.doctorId === doctorId) {
+                        title = `Ocupado por otra de tus especialidades (${s.specialty?.name})`;
+                    } else {
+                        title = `Ocupado por Dr. ${s.doctor?.firstName} ${s.doctor?.lastName} (${s.specialty?.name})`;
+                    }
                 }
+
+                const colorMap: Record<string, string> = {
+                    primary: '#6366f1',
+                    success: '#10b981',
+                    warning: '#f59e0b',
+                    danger: '#ef4444'
+                };
+                const hexColor = colorMap[s.color] || s.color || '#6366f1';
 
                 return {
                     id: s.id,
@@ -157,19 +167,21 @@ export default function Schedules() {
                     endTime: end,
                     startRecur: s.startDate ? s.startDate.split('T')[0] : undefined,
                     endRecur: endDate.toISOString().split('T')[0],
-                    backgroundColor: isMine ? (s.isActive ? '#6366f1' : '#e5e7eb') : '#4b5563', // gray for others
-                    borderColor: isMine ? (s.isActive ? '#6366f1' : '#d1d5db') : '#374151',
+                    backgroundColor: isMine ? (s.isActive ? hexColor : '#e5e7eb') : '#4b5563', // gray for others
+                    borderColor: isMine ? (s.isActive ? hexColor : '#d1d5db') : '#374151',
                     textColor: isMine ? (s.isActive ? 'white' : '#9ca3af') : '#e5e7eb',
                     editable: isMine,
                     startEditable: isMine,
                     durationEditable: isMine,
+                    classNames: isMine ? [] : ['non-interactive-event'],
                     extendedProps: {
                         isActive: s.isActive !== false,
                         officeId: s.officeId,
                         specialtyId: s.specialtyId,
                         originalStartDate: s.startDate,
                         originalEndDate: s.endDate,
-                        isMine
+                        isMine,
+                        color: s.color || 'primary'
                     }
                 };
             }));
@@ -214,7 +226,7 @@ export default function Schedules() {
 
         setFormData({
             title: clickInfo.event.title.split('(')[0].trim(),
-            color: 'primary',
+            color: clickInfo.event.extendedProps.color || 'primary',
             startDate: clickInfo.event.extendedProps.originalStartDate ? clickInfo.event.extendedProps.originalStartDate.split('T')[0] : clickInfo.event.startStr.split('T')[0],
             endDate: clickInfo.event.extendedProps.originalEndDate ? clickInfo.event.extendedProps.originalEndDate.split('T')[0] : clickInfo.event.endStr.split('T')[0],
             startTime: formatTime(clickInfo.event.start),
@@ -251,7 +263,8 @@ export default function Schedules() {
                 endDate: new Date(formData.endDate).toISOString(),
                 startTime: startDateTime.toISOString(),
                 endTime: endDateTime.toISOString(),
-                isActive: formData.isActive
+                isActive: formData.isActive,
+                color: formData.color
             };
 
             if (!payload.specialtyId) {
@@ -290,7 +303,8 @@ export default function Schedules() {
                     endDate: new Date(formData.endDate).toISOString(),
                     startTime: startDateTime.toISOString(),
                     endTime: endDateTime.toISOString(),
-                    isActive: formData.isActive
+                    isActive: formData.isActive,
+                    color: formData.color
                 });
                 
                 setConflictModalOpen(true);
@@ -441,6 +455,9 @@ export default function Schedules() {
                         border-color: #5D5FEF !important;
                         color: white !important; 
                         width: ${isMobile ? '100%' : 'auto'};
+                    }
+                    .non-interactive-event {
+                        pointer-events: none !important;
                     }
                 `}</style>
 

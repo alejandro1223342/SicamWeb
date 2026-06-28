@@ -209,10 +209,8 @@ export default function PatientClinicalOffices() {
         setLoadingSlots(true);
 
         try {
-            // Fetch existing appointments for this doctor and specialty
-            const response = await api.get(`/appointments/doctor/${doctor.doctorId}`, {
-                params: { specialtyId: doctor.specialty.id }
-            });
+            // Fetch existing appointments for this doctor (todas las especialidades para cruzar ocupación)
+            const response = await api.get(`/appointments/doctor/${doctor.doctorId}`);
             setBookedAppointments(response.data);
         } catch (error) {
             console.error('Error fetching occupied slots:', error);

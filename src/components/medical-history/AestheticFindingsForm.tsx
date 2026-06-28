@@ -33,7 +33,7 @@ export default function AestheticFindingsForm({ patientId, recordId, sessionId, 
 
             if (!patientId || patientId === 'generic') return;
             try {
-                const response = await api.get(`/drive/patient/${patientId}?specialty=Estetica&folder=Hallazgos de Estética&recordId=${recordId || ''}&sessionId=${sessionId || ''}`);
+                const response = await api.get(`/drive/patient/${patientId}?specialty=Estética&folder=Hallazgos de Estética&recordId=${recordId || ''}&sessionId=${sessionId || ''}`);
                 if (Array.isArray(response.data)) {
                     const dbFiles = response.data.map((f: any) => ({
                         url: f.url,
@@ -107,7 +107,7 @@ export default function AestheticFindingsForm({ patientId, recordId, sessionId, 
             try {
                 const baseUrl = api.defaults.baseURL?.replace(/\/$/, '') || 'http://localhost:3000';
                 // Cambiado a Estetica
-                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=Estetica&folder=Hallazgos de Estética&recordId=${recordId || ''}&sessionId=${sessionId || ''}`, formData, {
+                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=Estética&folder=Hallazgos de Estética&recordId=${recordId || ''}&sessionId=${sessionId || ''}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
 

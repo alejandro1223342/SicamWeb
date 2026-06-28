@@ -51,7 +51,7 @@ export default function MedicalHistory() {
     const queryParams = new URLSearchParams(location.search);
     const mode = queryParams.get('mode');
     const navigate = useNavigate();
-    
+
     const { specialtyId: urlSpecialtyId } = useParams<{ specialtyId: string }>();
     const { activeSpecialty, getActiveSpecialtyId } = useSpecialty();
     const [activeSection, setActiveSection] = useState<SectionKey>('reason');
@@ -78,7 +78,7 @@ export default function MedicalHistory() {
         labresults: [] as any[],
         diagnosis: [] as any[],
         consents: { signedFiles: [] as any[] },
-        treatment_details: { treatment: '', observations: '' },
+        treatment_details: { treatment: '', observations: '', files: [] as any[] },
         prescription: { cie10: '', hasAllergies: false, allergiesDetails: '', medications: '', indications: '' },
         exams: { options: [] as string[], other: '', diagnosis: '', treatment: '' },
         tricology: { observations: '', files: [] as any[] },
@@ -115,13 +115,13 @@ export default function MedicalHistory() {
                                     ...fallbackData,
                                     emergency: patientInfo.onboardingData.emergency || initialEmptyState.emergency,
                                     family: patientInfo.onboardingData.family && typeof patientInfo.onboardingData.family === 'object' && 'selected' in patientInfo.onboardingData.family
-                                        ? patientInfo.onboardingData.family 
+                                        ? patientInfo.onboardingData.family
                                         : { selected: Array.isArray(patientInfo.onboardingData.family) ? patientInfo.onboardingData.family : [], allergyDetails: '' },
                                     vaccines: patientInfo.onboardingData.vaccines && typeof patientInfo.onboardingData.vaccines === 'object' && 'selected' in patientInfo.onboardingData.vaccines
-                                        ? patientInfo.onboardingData.vaccines 
+                                        ? patientInfo.onboardingData.vaccines
                                         : { selected: Array.isArray(patientInfo.onboardingData.vaccines) ? patientInfo.onboardingData.vaccines : [], details: '' },
                                     risks: patientInfo.onboardingData.risks && typeof patientInfo.onboardingData.risks === 'object' && 'selected' in patientInfo.onboardingData.risks
-                                        ? patientInfo.onboardingData.risks 
+                                        ? patientInfo.onboardingData.risks
                                         : { selected: Array.isArray(patientInfo.onboardingData.risks) ? patientInfo.onboardingData.risks : [], allergyDetails: patientInfo.allergies || '' },
                                 };
                             }
@@ -276,7 +276,7 @@ export default function MedicalHistory() {
                 diagnosis: mainDiagnosis
             };
             const response = await api.post('/medical-records/upsert', payload);
-            console.log('SAVE: Response received:', response.data);
+
             const recordData = response.data;
             if (recordData?.id) {
                 if (!currentRecordIdRef.current) {
@@ -329,7 +329,7 @@ export default function MedicalHistory() {
             case 'labresults': return <LabResultsForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.labresults} onChange={(d: any[]) => handleUpdateSection('labresults', d)} onUploadingChange={setIsGlobalUploading} />;
             case 'diagnosis': return <DiagnosisActivityForm {...commonProps} data={formData.diagnosis} onChange={(d: any[]) => handleUpdateSection('diagnosis', d)} />;
             case 'consents': return <TricologyConsentForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.consents} onChange={(d: any) => handleUpdateSection('consents', d)} onUploadingChange={setIsGlobalUploading} />;
-            case 'treatment_details': return <TreatmentForm {...commonProps} data={formData.treatment_details} onChange={(d: any) => handleUpdateSection('treatment_details', d)} />;
+            case 'treatment_details': return <TreatmentForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.treatment_details} onChange={(d: any) => handleUpdateSection('treatment_details', d)} onUploadingChange={setIsGlobalUploading} specialtyName="Tricologia" />;
             case 'prescription': return <MedicalPrescriptionForm {...commonProps} data={formData.prescription} onChange={(d: any) => handleUpdateSection('prescription', d)} patient={patient} recordId={currentRecordId} />;
             case 'exams': return <ComplementaryExamsForm {...commonProps} data={formData.exams} onChange={(d: any) => handleUpdateSection('exams', d)} patient={patient} fullCatalog={examCatalog} recordId={currentRecordId} />;
             default: return null;
@@ -366,8 +366,8 @@ export default function MedicalHistory() {
                     <div style={{ textAlign: 'right' }}><div style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Especialidad</div><div style={{ fontSize: '14px', fontWeight: '600', color: '#3b82f6' }}>{activeSpecialty?.name || '---'}</div></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b', fontSize: '12px' }}>
-                           {saveStatus === 'saving' ? <Loader2 className="animate-spin" size={14} /> : saveStatus === 'saved' ? <CheckCircle size={14} color="#22c55e" /> : <CloudUpload size={14} />}
-                           {saveStatus === 'saving' ? 'Guardando...' : saveStatus === 'saved' ? 'Guardado' : 'Auto-save'}
+                            {saveStatus === 'saving' ? <Loader2 className="animate-spin" size={14} /> : saveStatus === 'saved' ? <CheckCircle size={14} color="#22c55e" /> : <CloudUpload size={14} />}
+                            {saveStatus === 'saving' ? 'Guardando...' : saveStatus === 'saved' ? 'Guardado' : 'Auto-save'}
                         </div>
                         <button onClick={() => handleSaveAll(false)} disabled={saving || isReadOnly} style={{ padding: '0 16px', height: '36px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '8px', border: 'none', fontWeight: '600', cursor: 'pointer', display: isReadOnly ? 'none' : 'flex', alignItems: 'center', gap: '8px' }}>
                             {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Guardar
@@ -390,7 +390,7 @@ export default function MedicalHistory() {
                     {renderActiveSection()}
                 </div>
             </div>
-            
+
             <div id="print-root" style={{ display: 'none' }}>
                 <PrintMedicalHistoryTemplate patient={patient} data={formData} />
                 <PrintExamsTemplate patient={patient} data={formData.exams} catalog={examCatalog} />

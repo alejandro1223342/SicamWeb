@@ -32,7 +32,7 @@ export default function TricologyFindingsForm({ patientId, recordId, sessionId, 
             // This prevents old photos from leaking into new sessions
             const isNewMode = new URLSearchParams(window.location.search).get('mode') === 'new';
             if (isNewMode) {
-                console.log('DEBUG: TricologyFindingsForm skipping fetch in NEW mode');
+
                 return;
             }
 
@@ -170,7 +170,7 @@ export default function TricologyFindingsForm({ patientId, recordId, sessionId, 
 
                 if (fileId) {
                     await api.delete(`/drive/file/${fileId}`);
-                    console.log(`✅ Archivo eliminado de Drive: ${fileId}`);
+
                 }
             } catch (error) {
                 console.error('❌ Error al eliminar archivo de Drive:', error);

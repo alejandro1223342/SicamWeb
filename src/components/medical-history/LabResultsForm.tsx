@@ -190,25 +190,7 @@ export default function LabResultsForm({ patientId, recordId, sessionId, data, o
                                 { name: response.data.data.name || file.name, url: proxyUrl, type: file.type }
                             ]
                         };
-                        // Check if this is the last file
-                        if (file === validFiles[validFiles.length - 1]) {
-                            if (updated.exam && updated.observations && updated.value && updated.date) {
-                                setTimeout(() => {
-                                    const result: LabResult = {
-                                        id: Date.now().toString(),
-                                        exam: updated.exam!,
-                                        observations: updated.observations!,
-                                        value: updated.value!,
-                                        date: updated.date!,
-                                        files: updated.files || []
-                                    };
-                                    onChange([...data, result]);
-                                    setNewItem({ exam: '', observations: '', value: '', date: '', files: [] });
-                                    setShowModal(false);
-                                    showToast('Resultado de laboratorio guardado automáticamente.', 'success');
-                                }, 1200);
-                            }
-                        }
+
                         return updated;
                     });
                 }

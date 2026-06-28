@@ -64,8 +64,7 @@ export default function AestheticHistory() {
         const isMale = g === 'M' || g.includes('MAS') || g.includes('MALE') || g === 'H' || g.includes('HOM') || g === '1';
         const isFemale = g === 'F' || g.includes('FEM') || g.includes('FEMALE') || g.includes('MUJ') || g === '2';
 
-        console.log('DEBUG - AestheticHistory Patient:', patient);
-        console.log('DEBUG - AestheticHistory Gender Logic:', { raw: patient?.gender, normalized: g, isMale, isFemale });
+
 
         if (isMale) {
             baseSections.push({ id: 'bodymap_male', title: 'Análisis Corporal (Hombre)', icon: <User size={18} /> });
@@ -109,7 +108,7 @@ export default function AestheticHistory() {
         labresults: [] as any[],
         diagnosis: [] as any[],
         exams: { options: [] as string[], other: '', diagnosis: '', treatment: '' },
-        treatment_details: { treatment: '', observations: '' },
+        treatment_details: { treatment: '', observations: '', files: [] as any[] },
         consents: { signedFiles: [] as any[] },
         tricology: { observations: '', files: [] as any[] },
         bodymap_male: {} as Record<string, number>,
@@ -155,13 +154,13 @@ export default function AestheticHistory() {
                                     ...fallbackData,
                                     emergency: patientInfo.onboardingData.emergency || initialEmptyState.emergency,
                                     family: patientInfo.onboardingData.family && typeof patientInfo.onboardingData.family === 'object' && 'selected' in patientInfo.onboardingData.family
-                                        ? patientInfo.onboardingData.family 
+                                        ? patientInfo.onboardingData.family
                                         : { selected: Array.isArray(patientInfo.onboardingData.family) ? patientInfo.onboardingData.family : [], allergyDetails: '' },
                                     vaccines: patientInfo.onboardingData.vaccines && typeof patientInfo.onboardingData.vaccines === 'object' && 'selected' in patientInfo.onboardingData.vaccines
-                                        ? patientInfo.onboardingData.vaccines 
+                                        ? patientInfo.onboardingData.vaccines
                                         : { selected: Array.isArray(patientInfo.onboardingData.vaccines) ? patientInfo.onboardingData.vaccines : [], details: '' },
                                     risks: patientInfo.onboardingData.risks && typeof patientInfo.onboardingData.risks === 'object' && 'selected' in patientInfo.onboardingData.risks
-                                        ? patientInfo.onboardingData.risks 
+                                        ? patientInfo.onboardingData.risks
                                         : { selected: Array.isArray(patientInfo.onboardingData.risks) ? patientInfo.onboardingData.risks : [], allergyDetails: patientInfo.allergies || '' },
                                 };
                             }
@@ -292,7 +291,7 @@ export default function AestheticHistory() {
             };
 
             const response = await api.post('/medical-records/upsert', payload);
-            console.log('SAVE: Response received:', response.data);
+
             const recordData = response.data;
             if (recordData?.id) {
                 if (!currentRecordIdRef.current) {
@@ -345,7 +344,7 @@ export default function AestheticHistory() {
             case 'labresults': return <AestheticLabResultsForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.labresults} onChange={(d: any[]) => handleUpdateSection('labresults', d)} onUploadingChange={setIsGlobalUploading} />;
             case 'diagnosis': return <DiagnosisActivityForm {...commonProps} data={formData.diagnosis} onChange={(d: any[]) => handleUpdateSection('diagnosis', d)} />;
             case 'exams': return <ComplementaryExamsForm {...commonProps} data={formData.exams} onChange={(d: any) => handleUpdateSection('exams', d)} patient={patient} fullCatalog={examCatalog} recordId={currentRecordId} />;
-            case 'treatment_details': return <TreatmentForm {...commonProps} data={formData.treatment_details} onChange={(d: any) => handleUpdateSection('treatment_details', d)} />;
+            case 'treatment_details': return <TreatmentForm {...commonProps} patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.treatment_details} onChange={(d: any) => handleUpdateSection('treatment_details', d)} onUploadingChange={setIsGlobalUploading} specialtyName="Estética" />;
             case 'prescription': return <MedicalPrescriptionForm {...commonProps} data={formData.prescription} onChange={(d: any) => handleUpdateSection('prescription', d)} patient={patient} recordId={currentRecordId} />;
             case 'consents': return <ConsentForm {...commonProps} specialty="Estética" patientId={patientId || ''} recordId={currentRecordId} sessionId={formData.sessionId} data={formData.consents} onChange={(d: any) => handleUpdateSection('consents', d)} onUploadingChange={setIsGlobalUploading} />;
             case 'bodymap_male':

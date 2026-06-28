@@ -37,7 +37,7 @@ export default function GeneralEmergencyPainForm({ data = [], onChange, readOnly
             setLoadingOptions(true);
             try {
                 const response = await api.get('/catalogs/type/PAIN_INTENSITY');
-                console.log("PAIN_INTENSITY API Response:", response.data);
+
                 if (Array.isArray(response.data)) {
                     setIntensityOptions(response.data.map((item: any) => item.name));
                 } else {

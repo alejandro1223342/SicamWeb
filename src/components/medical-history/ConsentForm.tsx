@@ -31,9 +31,7 @@ const ConsentForm = ({ patientId, specialty, recordId, sessionId, data, onChange
         const fetchTemplates = async () => {
             setFetchingTemplates(true);
             try {
-                // Normalize specialty for API (Estética -> Estetica)
-                const normalizedSpec = specialty.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                const response = await api.get('/drive/templates', { params: { specialty: normalizedSpec } });
+                const response = await api.get('/drive/templates', { params: { specialty } });
                 
                 if (response.data?.data) {
                     setTemplates(response.data.data);
@@ -56,8 +54,7 @@ const ConsentForm = ({ patientId, specialty, recordId, sessionId, data, onChange
             if (!patientId || patientId === 'generic') return;
 
             try {
-                const normalizedSpec = specialty.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                const response = await api.get(`/drive/patient/${patientId}?specialty=${normalizedSpec}&folder=Consentimientos&recordId=${recordId || ''}&sessionId=${sessionId || ''}`);
+                const response = await api.get(`/drive/patient/${patientId}?specialty=${specialty}&folder=Consentimientos&recordId=${recordId || ''}&sessionId=${sessionId || ''}`);
                 
                 if (Array.isArray(response.data)) {
                     const dbFiles = response.data.map((f: any) => ({
@@ -86,8 +83,6 @@ const ConsentForm = ({ patientId, specialty, recordId, sessionId, data, onChange
         setIsUploading(true);
         onUploadingChange?.(true);
 
-        const normalizedSpec = specialty.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
         for (const file of Array.from(files)) {
             if (file.type !== 'application/pdf') {
                 showToast(`El archivo ${file.name} no es un PDF. Solo se admiten PDFs firmados.`, 'error');
@@ -101,7 +96,7 @@ const ConsentForm = ({ patientId, specialty, recordId, sessionId, data, onChange
             formData.append('file', file);
             try {
                 const baseUrl = api.defaults.baseURL?.replace(/\/$/, '') || 'http://localhost:3000';
-                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=${normalizedSpec}&folder=Consentimientos&recordId=${recordId || ''}&sessionId=${sessionId || ''}`, formData, {
+                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=${specialty}&folder=Consentimientos&recordId=${recordId || ''}&sessionId=${sessionId || ''}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
 

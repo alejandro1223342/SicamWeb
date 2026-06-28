@@ -39,7 +39,6 @@ const GeneralImagingReportUploadForm: React.FC<GeneralImagingReportUploadFormPro
         const uploadedFiles = [...(data.files || [])];
         
         setIsUploading(true);
-        const normalizedSpec = specialty.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
         for (const file of Array.from(files)) {
             if (!allowedTypes.includes(file.type)) {
@@ -51,7 +50,7 @@ const GeneralImagingReportUploadForm: React.FC<GeneralImagingReportUploadFormPro
             formData.append('file', file);
 
             try {
-                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=${normalizedSpec}&folder=Informes_Imagenologia&recordId=${recordId || ''}&sessionId=${sessionId || ''}`, formData, {
+                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=${specialty}&folder=Informes_Imagenologia&recordId=${recordId || ''}&sessionId=${sessionId || ''}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
 

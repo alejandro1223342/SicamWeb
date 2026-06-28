@@ -206,12 +206,9 @@ export default function NutritionHistory() {
                     if (!prevRes) {
                         try {
                             const cleanId = patientId.trim();
-                            console.log('Fetching onboarding fallback for patient (Nutrition):', cleanId);
                             const patientRes = await api.get(`/users/patients/${cleanId}`);
                             const patientInfo = patientRes.data?.data || patientRes.data;
-                            console.log('Patient Info received (Nutrition):', patientInfo);
                             if (patientInfo?.onboardingData) {
-                                console.log('Applying onboarding fallback data (Nutrition):', patientInfo.onboardingData);
                                 fallbackData = {
                                     emergency: patientInfo.onboardingData.emergency || fallbackData.emergency,
                                     family: patientInfo.onboardingData.family || fallbackData.family,

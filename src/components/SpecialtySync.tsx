@@ -12,7 +12,7 @@ export default function SpecialtySync() {
             if (activeSpecialty?.id !== specialtyId) {
                 const matched = availableSpecialties.find(s => s.id === specialtyId);
                 if (matched) {
-                    console.log('SpecialtySync: URL change detected, updating context to:', matched.name);
+
                     setActiveSpecialty(matched);
                 }
             }

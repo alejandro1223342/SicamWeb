@@ -55,7 +55,7 @@ export const SpecialtyProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                         if (!flat.id && s.specialtyId) flat.id = s.specialtyId;
                         return flat;
                     });
-                    console.log('SpecialtyContext: Loaded specialties:', specialties);
+
                     setAvailableSpecialties(specialties);
 
                     // Auto-select first if none active

@@ -162,7 +162,7 @@ export default function CabinHistory() {
                 try {
                     const response = await api.get(`/medical-records/${recordId}`);
                     const dbRecord = response.data;
-                    console.log('--- READ MODE FETCHED RECORD ---', dbRecord);
+
                     
                     const cleanId = patientId?.trim() || '';
                     const patientRes = await api.get(`/users/patients/${cleanId}`);
@@ -170,7 +170,7 @@ export default function CabinHistory() {
                     setPatient(pData);
                     
                     if (dbRecord && dbRecord.data) {
-                        console.log('--- PARSED DATA ---', dbRecord.data);
+
                         setFormData({
                             ...initialEmptyState,
                             ...dbRecord.data,

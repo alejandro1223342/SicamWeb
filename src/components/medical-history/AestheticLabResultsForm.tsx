@@ -178,7 +178,7 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
             formData.append('file', file);
 
             try {
-                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=Estetica&folder=Examenes de Estética&recordId=${recordId || ''}&sessionId=${sessionId || ''}`, formData, {
+                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=Estética&folder=Examenes de Estética&recordId=${recordId || ''}&sessionId=${sessionId || ''}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
 
@@ -192,24 +192,7 @@ export default function AestheticLabResultsForm({ patientId, recordId, sessionId
                                 { name: file.name, url: proxyUrl, type: file.type }
                             ]
                         };
-                        if (file === validFiles[validFiles.length - 1]) {
-                            if (updated.exam && updated.observations && updated.value && updated.date) {
-                                setTimeout(() => {
-                                    const result: LabResult = {
-                                        id: Date.now().toString(),
-                                        exam: updated.exam!,
-                                        observations: updated.observations!,
-                                        value: updated.value!,
-                                        date: updated.date!,
-                                        files: updated.files || []
-                                    };
-                                    onChange([...data, result]);
-                                    setNewItem({ exam: '', observations: '', value: '', date: '', files: [] });
-                                    setShowModal(false);
-                                    showToast('Resultado de laboratorio guardado automáticamente.', 'success');
-                                }, 1200);
-                            }
-                        }
+
                         return updated;
                     });
                 }

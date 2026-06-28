@@ -43,7 +43,6 @@ const GeneralFileUploadForm: React.FC<GeneralFileUploadFormProps & { fileNamePre
         const uploadedFiles = [...(data.files || [])];
         
         setIsUploading(true);
-        const normalizedSpec = specialty.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
         for (const file of Array.from(files)) {
             if (!allowedTypes.includes(file.type)) {
@@ -55,7 +54,7 @@ const GeneralFileUploadForm: React.FC<GeneralFileUploadFormProps & { fileNamePre
             formData.append('file', file);
 
             try {
-                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=${normalizedSpec}&folder=${folderName}&recordId=${recordId || ''}&sessionId=${sessionId || ''}&fileNamePrefix=${fileNamePrefix || ''}`, formData, {
+                const response = await api.post(`/drive/upload?patientId=${patientId}&specialty=${specialty}&folder=${folderName}&recordId=${recordId || ''}&sessionId=${sessionId || ''}&fileNamePrefix=${fileNamePrefix || ''}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
 
