@@ -264,7 +264,7 @@ export default function PatientClinicalOffices() {
                     patientId: user.id,
                     scheduleId: schedule.id,
                     appointmentDate: appointmentDate.toISOString(),
-                    notes: 'Agendado desde el portal de pacientes (Gratuita)'
+                    notes: 'Agendado desde el portal de pacientes (Por confirmar valor)'
                 };
                 await api.post('/appointments', payload);
                 showToast('¡Cita agendada exitosamente!', 'success');
@@ -453,6 +453,11 @@ export default function PatientClinicalOffices() {
                                 </div>
                             </div>
                             <p className="footer-notice">* Las citas tienen una duración estimada de 60 minutos.</p>
+                            {Number(selectedDoctor.appointmentRate || 0) === 0 && (
+                                <p className="footer-notice" style={{ fontStyle: 'italic', color: '#f59e0b', marginTop: '4px' }}>
+                                    * Valor sujeto a evaluación médica durante la consulta.
+                                </p>
+                            )}
                             <button
                                 className="btn-confirm-selection"
                                 disabled={!selectedDate || !selectedSlot || loading}
@@ -460,7 +465,7 @@ export default function PatientClinicalOffices() {
                                 style={{ marginTop: '1.5rem' }}
                             >
                                 {loading ? 'Procesando...' :
-                                    Number(selectedDoctor.appointmentRate || 0) > 0 ? 'Confirmar y Pagar con PayPhone' : 'Confirmar Cita (Gratuita)'}
+                                    Number(selectedDoctor.appointmentRate || 0) > 0 ? 'Confirmar y Pagar con PayPhone' : 'Confirmar Cita'}
                             </button>
 
                             {!selectedSlot && (
