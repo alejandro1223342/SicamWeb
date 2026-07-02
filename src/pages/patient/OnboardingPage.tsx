@@ -55,7 +55,7 @@ export default function OnboardingPage() {
             case 3:
                 return formData.family.selected.length > 0;
             case 4:
-                return formData.vaccines.selected.length > 0;
+                return formData.vaccines.selected.length > 0 || formData.vaccines.details.trim().length > 0;
             case 5:
                 return formData.risks.selected.length > 0;
             default:
