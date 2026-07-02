@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '../../components/Toast';
+import api from '../../api';
 
 const signUpSchema = z.object({
     firstName: z.string().min(1, 'El nombre es requerido'),
@@ -54,11 +55,17 @@ export default function SignUp() {
         { label: 'Un símbolo', test: /[^A-Za-z0-9]/.test(passwordValue) },
     ];
 
-    const onSubmit = async () => {
+    const onSubmit = async (data: SignUpFormData) => {
         setError('');
         setLoading(true);
 
         try {
+            await api.post('/users/patients', {
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                password: data.password
+            });
 
             // Redirigir al login después de registro exitoso
             showToast('¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.', 'success');
