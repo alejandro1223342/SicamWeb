@@ -53,10 +53,14 @@ export default function OnboardingPage() {
             case 2:
                 return formData.emergency.name && formData.emergency.phone;
             case 3:
-                return formData.family.selected.length > 0;
+                const hasFamilyAllergies = formData.family.selected.some(opt => opt.toUpperCase().includes('ALERGIA'));
+                if (hasFamilyAllergies && !formData.family.allergyDetails?.trim()) return false;
+                return true;
             case 4:
                 return formData.vaccines.selected.length > 0 || formData.vaccines.details.trim().length > 0;
             case 5:
+                const hasRiskAllergies = formData.risks.selected.some(opt => opt.toUpperCase().includes('ALERGIA'));
+                if (hasRiskAllergies && !formData.risks.allergyDetails?.trim()) return false;
                 return true;
             default:
                 return false;
