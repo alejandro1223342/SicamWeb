@@ -25,6 +25,7 @@ const Patients: React.FC = () => {
     const [fetchingPatients, setFetchingPatients] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const [linkConflict, setLinkConflict] = useState<{ patientId: string, message: string } | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
     const [genderOptions, setGenderOptions] = useState<{ id: string, name: string }[]>([]);
@@ -94,14 +95,53 @@ const Patients: React.FC = () => {
                 await api.patch(`/users/patients/${selectedPatientId}`, formData);
                 toast.success('Paciente actualizado');
             } else {
-                await api.post('/users/patients', formData);
-                toast.success('Paciente registrado');
+                const userData = localStorage.getItem('user');
+                const user = userData ? JSON.parse(userData) : null;
+                const activeOfficeStr = localStorage.getItem('activeOffice');
+                const officeId = activeOfficeStr ? JSON.parse(activeOfficeStr).id : undefined;
+                
+                const postData = { ...formData, doctorId: user?.id, specialtyId: activeSpecialty?.id, officeId };
+                await api.post('/users/patients', postData);
+                toast.success('Paciente registrado exitosamente');
             }
             fetchPatients();
             setShowModal(false);
         } catch (err: any) {
-            toast.error(err.response?.data?.message || 'Error');
+            const errorData = err.response?.data;
+            if (err.response?.status === 409 && errorData?.existingPatientId) {
+                setLinkConflict({ patientId: errorData.existingPatientId, message: errorData.message });
+            } else {
+                toast.error(errorData?.message || 'Error');
+            }
         } finally { }
+    };
+
+    const handleLinkConfirm = async () => {
+        if (!linkConflict) return;
+        try {
+            const userData = localStorage.getItem('user');
+            const user = userData ? JSON.parse(userData) : null;
+            const activeOfficeStr = localStorage.getItem('activeOffice');
+            const officeId = activeOfficeStr ? JSON.parse(activeOfficeStr).id : undefined;
+            
+            await api.post('/users/patients/link', {
+                patientId: linkConflict.patientId,
+                doctorId: user?.id,
+                specialtyId: activeSpecialty?.id,
+                officeId
+            });
+            toast.success('Paciente vinculado exitosamente');
+            fetchPatients();
+            setShowModal(false);
+            setLinkConflict(null);
+        } catch (linkErr) {
+            toast.error('Error al vincular el paciente');
+            setLinkConflict(null);
+        }
+    };
+
+    const handleLinkCancel = () => {
+        setLinkConflict(null);
     };
 
     const handleNewHistory = (patient: Patient) => {
@@ -236,6 +276,30 @@ const Patients: React.FC = () => {
                                 <button type="submit" className="btn-primary" style={{ padding: '10px 20px' }}>{isEditing ? 'Actualizar' : 'Registrar'}</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {linkConflict && (
+                <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '15px' }}>
+                    <div className="modal-content card" style={{ background: 'white', width: '100%', maxWidth: '400px', borderRadius: '15px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+                        <div style={{ padding: '20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h2 style={{ fontSize: '1.1rem', margin: 0, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <UserPlus size={18} />
+                                Paciente Existente
+                            </h2>
+                            <X onClick={handleLinkCancel} style={{ cursor: 'pointer', color: '#666' }} size={20} />
+                        </div>
+                        <div style={{ padding: '20px' }}>
+                            <p style={{ margin: 0, marginBottom: '20px', fontSize: '0.95rem', color: '#555', lineHeight: '1.5' }}>
+                                {linkConflict.message}.<br/><br/>
+                                <strong>¿Deseas vincular este paciente a tu lista actual?</strong>
+                            </p>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                <button onClick={handleLinkCancel} className="btn-outline" style={{ padding: '8px 16px' }}>Cancelar</button>
+                                <button onClick={handleLinkConfirm} className="btn-primary" style={{ padding: '8px 16px' }}>Sí, vincular</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
